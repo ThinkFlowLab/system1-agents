@@ -1,7 +1,7 @@
 # coding: utf-8
 """The injection guard: flags tool output that instructs the agent and quarantines it before the model reads it.
 
-``s1a run injection_guard`` evaluates it on ``evals/labelled/injection.jsonl``; a DeepAgent takes it
+``s1a run injection_guard`` evaluates it on ``evals/labelled/injection-public.jsonl``; a DeepAgent takes it
 through ``create_deep_agent(rails=[rails.DecisionModelRail(SPEC, decision_model)])``. The guard fails closed: a
 decision error (endpoint down, bad key, deadline) quarantines the result as well.
 """
@@ -75,5 +75,5 @@ SPEC = RailSpec(
     thresholds=Thresholds(allow=0.3, act=0.7),
     act=quarantine,
     on_failure="closed",
-    labelled_set=ROOT / "evals" / "labelled" / "injection.jsonl",
+    labelled_set=ROOT / "evals" / "labelled" / "injection-public.jsonl",
 )

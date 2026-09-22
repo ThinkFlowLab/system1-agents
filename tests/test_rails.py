@@ -243,9 +243,11 @@ class TestEvaluate(IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 rails.read_labelled(labelled)
 
-    def test_the_shipped_labelled_set_is_well_formed_and_balanced(self) -> None:
+    def test_the_shipped_labelled_set_is_well_formed_and_contains_public_cases(self) -> None:
         records = rails.read_labelled(GUARD.labelled_set)
-        self.assertEqual((len(records), sum(r["label"] for r in records)), (20, 10))
+        self.assertEqual((len(records), sum(r["label"] for r in records)), (1703, 1693))
+        self.assertTrue(any("InjecAgent:" in r["note"] for r in records))
+        self.assertTrue(any("AgentDojo:" in r["note"] for r in records))
 
 
 class TestPlay(IsolatedAsyncioTestCase):
@@ -275,4 +277,4 @@ class TestPlay(IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp, patch.object(rails, "build_model", build):
             args = rails.parser(GUARD).parse_args(["--slot", "laya"])
             summary = await rails.play(GUARD, args, results_dir=Path(tmp))
-        self.assertEqual((built, events, summary["records"]), (["laya"], ["warm", "close"], 20))
+        self.assertEqual((built, events, summary["records"]), (["laya"], ["warm", "close"], 1703))
