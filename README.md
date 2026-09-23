@@ -33,8 +33,8 @@
 lasagna with over 100 reviews, 4.5 stars or more, for 6. The chat model of that row is Claude Fable 5.1 through
 OpenRouter; both models pay it for the typed search text and the answer. \* Estimated; the chat-model run recorded no
 cost. Each replay below is the episode behind its row, Jev on the left and the chat model on the right, both on the
-wall clock. The other Allrecipes runs, longer games and the Google Flights driver comparison:
-[docs/benchmarks.md](docs/benchmarks.md).
+wall clock. The other Allrecipes runs, longer games and the Google Flights driver comparison with its rerun of
+2026-09-23: [docs/benchmarks.md](docs/benchmarks.md).
 
 <table>
   <tr>
@@ -135,7 +135,7 @@ interface fits: [docs/architecture.md](docs/architecture.md), [docs/decision-mod
 
 ## Docs
 
-- [docs/benchmarks.md](docs/benchmarks.md): the six runs above, the Google Flights driver comparison, a longer game, the guard rail.
+- [docs/benchmarks.md](docs/benchmarks.md): the six runs above, the Google Flights driver comparison and its 2026-09-23 rerun, a longer game, the guard rail.
 - [docs/skills.md](docs/skills.md): the caller skill, the builder skill, what to delegate.
 - [docs/agents.md](docs/agents.md): every agent with its flags, run command and extra.
 - [docs/architecture.md](docs/architecture.md) and [docs/decision-models.md](docs/decision-models.md): the fronts, the model slot, the model interface, adding a backend.

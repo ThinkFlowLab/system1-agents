@@ -234,15 +234,122 @@ PLAYWRIGHT_MCP_COMMAND=node PLAYWRIGHT_MCP_ARGS=/tmp/pw-mcp-nosettle/node_module
   s1a run flights --model jev --batch off --profile-out run.json   # TYPESAFE_API_KEY unset: the OpenRouter proxy
 ```
 
-### Six arms, one table
+### Rerun of 2026-09-23: every arm from Poland
+
+The same task on 2026-09-23 from a Windows 11 machine whose egress Google places in Poland (`gl=PL`, prices in
+zloty), on Chrome 153 launched with `--remote-debugging-port=9222` and a scratch profile that every run shared, all
+arms back to back, three runs each, on both decision backends. Chrome was brought to the front and its leftover
+tabs closed before each run. The shipped `flights` agent computed October 25, 2026 as its date; jev-ultrafast's
+`examples/flights.py` and arm B's `--query` were given the same date. Google's consent page, which this location
+gets and Japan did not, was answered once ("Reject all") before the runs.
+
+- A ran jev-ultrafast at 1231850 with one local change: its tab created in the foreground
+  (`Target.createTarget(background=False)`), because this Chrome does not open Google's menus in a background tab;
+  three background-tab attempts blocked after the first click.
+- B ran the agtai fork at tag `jj-bu-baseline` with its browser-use sidecar
+  (`python -m openjiuwen.harness.tools.browser_move.lab.run_jiuwen_jev --decisions typesafe|openrouter --prefetch on`),
+  so its records name the decision phase `jev` and predate the whole-page answer step.
+- C, C' and C'' ran this repository at 0f0b4c9 through `--cdp-endpoint http://127.0.0.1:9222`, C' and C'' on the
+  copy `scripts/pw_mcp_nosettle.sh` describes, C'' with `--batch on`.
+
+The S1A records are in `docs/results/flights/rerun-2026-09-23/records.tar.gz`, one archive in place of 24 files, to
+keep the tree small; the arm A records stay out of the tree, as above. Unpack the archive before rebuilding the
+tables:
+
+```bash
+tar -xzf docs/results/flights/rerun-2026-09-23/records.tar.gz -C docs/results/flights/rerun-2026-09-23
+```
+
+The columns are those of the tables above.
+
+| run | window s | decisions | median ms | decision s | probe s | tool s | value wait s | verified |
+|---|---|---|---|---|---|---|---|---|
+| A-direct-1 | 10.3 | 15 (5 not executed) | 380 | 6.1 | n/a | n/a | n/a | yes |
+| A-direct-2 | 10.3 | 18 (8 not executed) | 366 | 6.9 | n/a | n/a | n/a | yes |
+| A-direct-3 | 9.6 | 16 (5 not executed) | 359 | 6.3 | n/a | n/a | n/a | yes |
+| B-direct-1 | 8.3 | 12 | 413 | 5.0 | 2.8 | 0.4 | 0.0 | yes |
+| B-direct-2 | 8.0 | 12 | 354 | 4.4 | 3.0 | 0.5 | 0.0 | yes |
+| B-direct-3 | 7.8 | 12 | 356 | 4.4 | 2.9 | 0.4 | 0.0 | yes |
+| B-openrouter-1 | 8.2 | 12 | 391 | 4.9 | 2.8 | 0.4 | 0.0 | yes |
+| B-openrouter-2 | 8.5 | 12 | 423 | 5.0 | 2.9 | 0.4 | 0.0 | yes |
+| B-openrouter-3 | 8.8 | 12 | 402 | 5.3 | 2.9 | 0.4 | 0.0 | yes |
+| C-direct-1 | 26.2 | 11 | 399 | 4.7 | 11.3 | 9.1 | 0.0 | yes |
+| C-direct-2 | 25.3 | 11 | 364 | 4.1 | 10.8 | 9.3 | 0.0 | yes |
+| C-direct-3 | 26.5 | 11 | 426 | 4.9 | 11.2 | 9.3 | 0.0 | yes |
+| C-openrouter-1 | 30.0 | 12 | 438 | 5.4 | 12.8 | 10.4 | 0.0 | yes |
+| C-openrouter-2 | 28.9 | 12 | 463 | 5.8 | 12.1 | 9.6 | 0.0 | yes |
+| C-openrouter-3 | 27.3 | 11 | 417 | 4.9 | 11.8 | 9.5 | 0.0 | yes |
+| C'-direct-1 | 12.0 | 12 | 357 | 4.3 | 4.5 | 2.1 | 0.0 | yes |
+| C'-direct-2 | 12.3 | 12 | 372 | 4.4 | 4.5 | 2.1 | 0.0 | yes |
+| C'-direct-3 | 11.8 | 12 | 381 | 4.6 | 4.3 | 1.9 | 0.0 | yes |
+| C'-openrouter-1 | 15.2 | 12 | 466 | 5.6 | 5.1 | 2.2 | 0.0 | yes |
+| C'-openrouter-2 | 12.9 | 12 | 427 | 5.4 | 4.1 | 2.3 | 0.0 | yes |
+| C'-openrouter-3 | 14.3 | 13 | 439 | 6.0 | 4.9 | 2.3 | 0.0 | yes |
+| C''-direct-1 | 11.7 | 12 | 356 | 4.5 | 1.1 | 5.2 | 0.0 | yes |
+| C''-direct-2 | 14.1 | 12 | 374 | 4.5 | 1.1 | 5.1 | 0.0 | yes |
+| C''-direct-3 | 11.5 | 12 | 355 | 4.2 | 1.2 | 5.1 | 0.0 | yes |
+| C''-openrouter-1 | 13.3 | 12 | 450 | 5.5 | 1.1 | 5.4 | 0.0 | yes |
+| C''-openrouter-2 | 14.2 | 12 | 451 | 5.8 | 1.1 | 6.2 | 0.0 | yes |
+| C''-openrouter-3 | 12.8 | 12 | 432 | 5.2 | 1.1 | 5.3 | 0.0 | yes |
+
+Medians of the window: A 10.3 s; B 8.0 s direct and 8.5 s through OpenRouter; C 26.2 s and 28.9 s; C' 12.0 s and
+14.3 s; C'' 11.7 s and 13.3 s. Every run verified.
+
+Per step, probe wait and decision latency in ms, the median run of three direct arms:
+
+| step | action | B-direct-2 probe / decision ms | C'-direct-1 probe / decision ms | C''-direct-1 probe / decision ms |
+|---|---|---|---|---|
+| 1 | Change ticket type. Round trip | 105 / 360 | 193 / 378 | 159 / 379 |
+| 2 | One way | 104 / 339 | 144 / 369 | 0 / 321 |
+| 3 | Where from? | 143 / 324 | 250 / 318 | 0 / 535 |
+| 4 | Zürich, Switzerland | 212 / 349 | 344 / 344 | 0 / 382 |
+| 5 | Where to? | 251 / 353 | 303 / 348 | 0 / 305 |
+| 6 | London, United Kingdom | 337 / 307 | 317 / 379 | 0 / 342 |
+| 7 | Departure | 175 / 326 | 199 / 360 | 0 / 357 |
+| 8 | Sunday, October 25, 2026 | 271 / 396 | 490 / 353 | 0 / 394 |
+| 9 | Done. Search for one-way fligh | 283 / 405 | 452 / 408 | 0 / 407 |
+| 10 | Search | 642 / 545 | 909 / 342 | 393 / 337 |
+| 11 | WAIT | 187 / 355 | 183 / 354 | 0 / 335 |
+| 12 | DONE | 382 / 364 | 562 / 396 | 392 / 355 |
+
+- **The endpoints are not slower from here.** Jev answered in 354 to 426 ms direct and 391 to 466 ms through
+  OpenRouter (medians per run), against 360 to 418 ms and 438 to 510 ms on the verified runs of 2026-09-19. Over
+  twelve decisions the proxy costs about 1 s per run. A warm request to `api.typesafe.ai` that the origin rejects
+  for a missing key took 0.21 to 0.45 s from this machine and the TCP connect to the Cloudflare edge in front of it
+  35 to 52 ms: the edge is near, and a decision's cost above inference is the backhaul to the origin, the same order
+  as from Japan.
+- **The stock Playwright arm halved.** 26.2 s direct and 28.9 s through the proxy, three of three verified, against
+  42.7 s over two verified runs of three: page waits went from 21.0 s to 11.3 s and clicks from 14.8 s to 9.1 s.
+  The server's `waitForCompletion` is unchanged; how long it waits for Google's requests in flight is what differed.
+  Google Flights answered a plain fetch in 0.35 to 0.41 s to the first byte at run time. Inference, not measured.
+- **B is 3.8 s faster than on the 2026-09-19 afternoon and 0.7 s behind 2026-09-18.** Its page waits, 3.0 s, sit
+  between those days' 2.6 s and 5.7 s.
+- **C'' is 1.3 s behind its September median.** Its decisions took 0.8 s less, the batched calls 0.8 s more, the
+  first probe 0.5 s more and the `other` column 0.7 s more: the whole-page answer step (commit ec947e6), one probe
+  and one chat call at every DONE, which the September runs predate and every rerun row of this repository
+  includes.
+- **jev-ultrafast: 10.3 s against 14.1 s**, 15 to 18 decisions of which 5 to 8 discarded, against 18 to 21 and 7
+  to 11.
+- Cost per S1A Playwright run, Jev plus the chat model's typed values and answer, medians: C $0.0048, C' $0.0051,
+  C'' $0.0053. The arm B lab runner and jev-ultrafast record no dollar amount.
+- Not counted, kept outside the tree: one C'' attempt that blocked on the consent page, the three arm A attempts in
+  a background tab, two arm B proxy attempts whose driven tab reported zero elements after the first click, and two
+  whose sidecar connect timed out after 30 s while a dozen sidecar processes of earlier runs were still attached to
+  Chrome (the harness reports that as `model_provider_unavailable`). Ending them and closing the tab each sidecar
+  leaves fixed it. On Windows, `PYTHONUTF8=1` lets `compare_runs.py` print its `×`.
+
+### Every arm in one table
 
 Every run writes a record: the profiler JSON for S1A arms (`--profile-out`), `state.json` for jev-ultrafast.
 `scripts/compare_runs.py` takes any set of them as `label=glob`, represents each arm by its median run, and
 prints one table with each component next to its delta against the first arm; `--svg` also writes the chart
-(a `-dark` sibling for dark surfaces). The S1A records are in `docs/results/flights/`. The chart below also took the
-arm A records as a sixth `label=glob`; "day before" is 2026-09-18,
-"today" is 2026-09-19. These runs predate the whole-page answer step (commit ec947e6). That step adds one probe and
-one chat call to every DONE, about 0.5 to 1 s per run.
+(a `-dark` sibling for dark surfaces). The S1A records of 2026-09-18 and 2026-09-19 are in `docs/results/flights/`,
+those of the 2026-09-23 rerun in `docs/results/flights/rerun-2026-09-23/records.tar.gz`, unpacked as shown above. The
+first chart below also took the
+arm A records of 2026-09-19 as a sixth `label=glob`; the second took the rerun's as a sixteenth. "Baseline 09-18" and
+"baseline 09-19" are the September runs above, "rerun 09-23" the rerun. The September runs predate the whole-page
+answer step (commit ec947e6); the rerun's C, C' and C'' rows include it. That step adds one probe and one chat call
+to every DONE, about 0.5 to 1 s per run.
 
 ```bash
 uv run python scripts/compare_runs.py --svg docs/results/flights/compare.svg \
@@ -258,13 +365,53 @@ uv run python scripts/compare_runs.py --svg docs/results/flights/compare.svg \
   <img alt="One stacked bar per arm: waiting on the model, waiting on the page, browser actions, other; totals and the split in a text column" src="results/flights/compare.svg">
 </picture>
 
+The rerun, from the tree after unpacking the archive (the arm A records were the sixteenth argument, `<jev-ultrafast>/artifacts/flights/run-*/state.json`):
+
+```bash
+uv run python scripts/compare_runs.py --svg docs/results/flights/rerun-2026-09-23/compare.svg \
+  "S1A browser-use driver, baseline 09-18=docs/results/flights/B-direct-daybefore-*.json" \
+  "S1A browser-use driver, baseline 09-19=docs/results/flights/B-direct-[123].json" \
+  "S1A browser-use driver, baseline 09-19 (OpenRouter)=docs/results/flights/B-openrouter-*.json" \
+  "S1A Playwright stock MCP, baseline 09-19 (OpenRouter)=docs/results/flights/C-openrouter-*.json" \
+  "S1A Playwright no settle, baseline 09-19=docs/results/flights/Cprime-direct-*.json" \
+  "S1A Playwright no settle, baseline 09-19 (OpenRouter)=docs/results/flights/Cprime-openrouter-*.json" \
+  "S1A Playwright no settle, batched, baseline 09-19=docs/results/flights/Cbatch-direct-*.json" \
+  "S1A browser-use driver, rerun 09-23=docs/results/flights/rerun-2026-09-23/B-direct-*.json" \
+  "S1A browser-use driver, rerun 09-23 (OpenRouter)=docs/results/flights/rerun-2026-09-23/B-openrouter-*.json" \
+  "S1A Playwright stock MCP, rerun 09-23=docs/results/flights/rerun-2026-09-23/C-direct-*.json" \
+  "S1A Playwright stock MCP, rerun 09-23 (OpenRouter)=docs/results/flights/rerun-2026-09-23/C-openrouter-*.json" \
+  "S1A Playwright no settle, rerun 09-23=docs/results/flights/rerun-2026-09-23/Cprime-direct-*.json" \
+  "S1A Playwright no settle, rerun 09-23 (OpenRouter)=docs/results/flights/rerun-2026-09-23/Cprime-openrouter-*.json" \
+  "S1A Playwright no settle, batched, rerun 09-23=docs/results/flights/rerun-2026-09-23/Cbatch-direct-*.json" \
+  "S1A Playwright no settle, batched, rerun 09-23 (OpenRouter)=docs/results/flights/rerun-2026-09-23/Cbatch-openrouter-*.json"
+```
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results/flights/rerun-2026-09-23/compare-dark.svg">
+  <img alt="The rerun of 2026-09-23: one stacked bar per arm, the seven September arms and the nine rerun arms" src="results/flights/rerun-2026-09-23/compare.svg">
+</picture>
+
+The September rows are the table as published on 2026-09-19 with the dates in their labels; the jev-ultrafast
+baseline row is the one above, whose records are not in the tree.
+
 | arm | runs | total s | waiting on the model s | waiting on the page s | browser actions s | other s | decisions |
 |---|---|---|---|---|---|---|---|
-| S1A browser-use driver, day before | 3 of 3 verified, 7.2 to 8.5 s | 7.3 | 4.5 | 2.6 | 0.2 | 0.0 | 12 × 363 ms |
-| S1A browser-use driver, today | 3 of 3 verified, 9.9 to 11.9 s | 11.8 (+4.5) | 5.2 (+0.7) | 5.7 (+3.0) | 0.8 (+0.7) | 0.2 (+0.1) | 12 × 418 ms |
-| S1A Playwright stock MCP, today (OpenRouter) | 2 of 3 verified, 30.0 to 50.9 s | 42.7 (+35.3) | 6.7 (+2.2) | 21.0 (+18.4) | 14.8 (+14.7) | 0.1 (+0.0) | 13 × 493 ms |
-| S1A Playwright no settle, today | 2 of 3 verified, 13.6 to 34.3 s | 14.9 (+7.6) | 4.7 (+0.2) | 7.2 (+4.5) | 3.0 (+2.8) | 0.1 (+0.0) | 11 × 393 ms |
-| S1A Playwright no settle, batched, today | 3 of 3 verified, 9.5 to 10.5 s | 10.4 (+3.1) | 5.3 (+0.8) | 0.6 (-2.0) | 4.4 (+4.2) | 0.2 (+0.1) | 13 × 386 ms |
-| jev-ultrafast, today | 3 of 3 verified, 12.1 to 14.2 s | 14.1 (+6.8) | 9.1 (+4.7) | n/a | n/a | 5.0 (+5.0) | 21 × 402 ms |
+| S1A browser-use driver, baseline 09-18 | 3 of 3 verified, 7.2 to 8.5 s | 7.3 | 4.5 | 2.6 | 0.2 | 0.0 | 12 × 363 ms |
+| S1A browser-use driver, baseline 09-19 | 3 of 3 verified, 9.9 to 11.9 s | 11.8 (+4.5) | 5.2 (+0.7) | 5.7 (+3.0) | 0.8 (+0.7) | 0.2 (+0.1) | 12 × 418 ms |
+| S1A browser-use driver, baseline 09-19 (OpenRouter) | 3 of 3 verified, 10.1 to 11.2 s | 10.1 (+2.8) | 5.9 (+1.4) | 3.7 (+1.0) | 0.5 (+0.3) | 0.1 (+0.0) | 12 × 455 ms |
+| S1A Playwright stock MCP, baseline 09-19 (OpenRouter) | 2 of 3 verified, 30.0 to 50.9 s | 42.7 (+35.3) | 6.7 (+2.2) | 21.0 (+18.4) | 14.8 (+14.7) | 0.1 (+0.0) | 13 × 493 ms |
+| S1A Playwright no settle, baseline 09-19 | 2 of 3 verified, 13.6 to 34.3 s | 14.9 (+7.6) | 4.7 (+0.2) | 7.2 (+4.5) | 3.0 (+2.8) | 0.1 (+0.0) | 11 × 393 ms |
+| S1A Playwright no settle, baseline 09-19 (OpenRouter) | 3 of 3 verified, 10.6 to 11.5 s | 11.1 (+3.7) | 6.1 (+1.6) | 3.0 (+0.3) | 1.8 (+1.7) | 0.1 (+0.1) | 12 × 471 ms |
+| S1A Playwright no settle, batched, baseline 09-19 | 3 of 3 verified, 9.5 to 10.5 s | 10.4 (+3.1) | 5.3 (+0.8) | 0.6 (-2.0) | 4.4 (+4.2) | 0.2 (+0.1) | 13 × 386 ms |
+| jev-ultrafast, baseline 09-19 | 3 of 3 verified, 12.1 to 14.2 s | 14.1 (+6.8) | 9.1 (+4.7) | n/a | n/a | 5.0 (+5.0) | 21 × 402 ms |
+| S1A browser-use driver, rerun 09-23 | 3 of 3 verified, 7.8 to 8.3 s | 8.0 (+0.7) | 4.4 (-0.1) | 3.0 (+0.4) | 0.5 (+0.3) | 0.1 (+0.1) | 12 × 354 ms |
+| S1A browser-use driver, rerun 09-23 (OpenRouter) | 3 of 3 verified, 8.2 to 8.8 s | 8.5 (+1.1) | 5.0 (+0.5) | 2.9 (+0.3) | 0.4 (+0.2) | 0.1 (+0.1) | 12 × 423 ms |
+| S1A Playwright stock MCP, rerun 09-23 | 3 of 3 verified, 25.3 to 26.5 s | 26.2 (+18.9) | 4.7 (+0.2) | 11.3 (+8.7) | 9.1 (+8.9) | 1.1 (+1.1) | 11 × 399 ms |
+| S1A Playwright stock MCP, rerun 09-23 (OpenRouter) | 3 of 3 verified, 27.3 to 30.0 s | 28.9 (+21.6) | 5.8 (+1.3) | 12.1 (+9.5) | 9.6 (+9.5) | 1.3 (+1.3) | 12 × 463 ms |
+| S1A Playwright no settle, rerun 09-23 | 3 of 3 verified, 11.8 to 12.3 s | 12.0 (+4.7) | 4.3 (-0.1) | 4.5 (+1.8) | 2.1 (+2.0) | 1.1 (+1.0) | 12 × 357 ms |
+| S1A Playwright no settle, rerun 09-23 (OpenRouter) | 3 of 3 verified, 12.9 to 15.2 s | 14.3 (+7.0) | 6.0 (+1.5) | 4.9 (+2.3) | 2.3 (+2.2) | 1.1 (+1.0) | 13 × 439 ms |
+| S1A Playwright no settle, batched, rerun 09-23 | 3 of 3 verified, 11.5 to 14.1 s | 11.7 (+4.4) | 4.5 (-0.0) | 1.1 (-1.5) | 5.2 (+5.1) | 0.9 (+0.9) | 12 × 356 ms |
+| S1A Playwright no settle, batched, rerun 09-23 (OpenRouter) | 3 of 3 verified, 12.8 to 14.2 s | 13.3 (+5.9) | 5.5 (+1.0) | 1.1 (-1.5) | 5.4 (+5.2) | 1.2 (+1.2) | 12 × 450 ms |
+| jev-ultrafast, rerun 09-23 | 3 of 3 verified, 9.6 to 10.3 s | 10.3 (+3.0) | 6.1 (+1.6) | n/a | n/a | 4.2 (+4.2) | 15 × 380 ms |
 
 Each arm is its median run; its components add up to its total. Deltas in parentheses are against the first arm. `total`: seconds from the first decision request to the final answer. `waiting on the model`: time blocked on the decision request. `waiting on the page`: time the policy waited for the page after an action (DOM quiet, autocomplete, tab activation, typed values). `browser actions`: clicks and fills executing in the browser. `other`: everything else. `decisions`: requests to the endpoint in the median run × median latency. In the batched arm, page waits sit in `browser actions` because each action call also runs the next probe. jev-ultrafast's page and browser time sits in `other` because it records only its decisions.
