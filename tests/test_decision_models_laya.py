@@ -136,6 +136,82 @@ class TestMapping(IsolatedAsyncioTestCase):
         self.assertEqual((decision_model.name, decision_model.model), ("laya", "convaiinnovations/laya"))
 
 
+_BROWSER_STATE = {
+    "page": {"url": "https://example.com/flights", "title": "Google Flights" + "!" * 100, "text": "x" * 5000},
+    "elements": [
+        {
+            "index": "1",
+            "role": "textbox",
+            "label": "Where from?" + " padding" * 20,
+            "value": "",
+            "operations": ["TYPE_TEXT"],
+        },
+        {
+            "index": "2",
+            "role": "button",
+            "label": "Search",
+            "value": "",
+            "checked": True,
+            "operations": ["CLICK"],
+        },
+    ],
+    "recent_actions": [
+        {"action": f"step-{i}", "kind": "click", "text": "", "page_changed": i % 2 == 0} for i in range(10)
+    ],
+}
+
+
+class TestLayaState(TestCase):
+    """``laya_state`` folds the browser front's state to fit Laya's window; anything else passes through."""
+
+    def test_a_non_browser_state_passes_through(self) -> None:
+        for state in ({"page": "x"}, "plain text", {"score": 1}, {"page": {"url": "u"}, "elements": "not a list"}):
+            self.assertEqual(laya_module.laya_state(state), state)
+
+    def test_page_text_is_dropped_and_the_title_is_capped(self) -> None:
+        compact = laya_module.laya_state(_BROWSER_STATE)
+        self.assertEqual(compact["page"]["url"], "https://example.com/flights")
+        self.assertNotIn("text", compact["page"])
+        self.assertLessEqual(len(compact["page"]["title"]), laya_module.LAYA_BROWSER_TITLE_CHARS)
+
+    def test_each_element_row_becomes_one_short_line_not_a_json_object(self) -> None:
+        compact = laya_module.laya_state(_BROWSER_STATE)
+        self.assertEqual(len(compact["elements"]), 2)
+        self.assertTrue(all(isinstance(row, str) for row in compact["elements"]))
+        self.assertLess(len(compact["elements"][0]), len("label") * 20)  # far short of the padded label
+        self.assertIn("[C]", compact["elements"][1])  # the checked flag survives as a letter, not a key
+
+    def test_history_is_capped_at_the_last_few_actions(self) -> None:
+        compact = laya_module.laya_state(_BROWSER_STATE)
+        self.assertEqual(len(compact["recent_actions"]), laya_module.LAYA_BROWSER_HISTORY_KEPT)
+        self.assertEqual(compact["recent_actions"][-1], "click:step-9 (no change)")
+
+    def test_compaction_shrinks_the_json_size_by_an_order_of_magnitude(self) -> None:
+        import json
+
+        raw = json.dumps(_BROWSER_STATE)
+        compact = json.dumps(laya_module.laya_state(_BROWSER_STATE))
+        self.assertGreater(len(raw) / len(compact), 8)
+
+
+class TestLayaModelCompaction(IsolatedAsyncioTestCase):
+    async def test_the_browser_state_reaching_the_agent_is_compacted_by_default(self) -> None:
+        agent = FakeLayaAgent()
+        question = ChoiceQuestion({"1": {"element": "[1] Search"}})
+        await _model(agent).decide_many(Observation(_BROWSER_STATE), {"operation": question})
+        ((state, _asked),) = agent.calls
+        self.assertEqual(state, laya_module.laya_state(_BROWSER_STATE))
+        self.assertNotIn("text", state["page"])
+
+    async def test_compaction_turns_off_with_compact_browser_state_false(self) -> None:
+        agent = FakeLayaAgent()
+        question = ChoiceQuestion({"1": {"element": "[1] Search"}})
+        model = LayaModel(agent, model="convaiinnovations/laya", compact_browser_state=False)
+        await model.decide_many(Observation(_BROWSER_STATE), {"operation": question})
+        ((state, _asked),) = agent.calls
+        self.assertEqual(state, _BROWSER_STATE)
+
+
 class TestFailures(IsolatedAsyncioTestCase):
     async def test_option_overflow_and_torch_errors_are_model_call_failures(self) -> None:
         for error in (ValueError("question 'pick' options exceed head_max_len=192"), RuntimeError("CUDA error")):
@@ -204,3 +280,13 @@ class TestFromEnv(TestCase):
                 decision_model = LayaModel.from_env()
         self.assertEqual(decision_model.model, laya_module.LAYA_DEFAULT_MODEL)
         self.assertEqual(decision_model._agent.cfg, {"max_len": 512, "head_max_len": 192})
+        self.assertTrue(decision_model._compact_browser_state)
+
+    def test_laya_compact_browser_state_env_var_turns_compaction_off(self) -> None:
+        for off in ("0", "false", "False", "no"):
+            with self.subTest(off=off):
+                env = {"LAYA_COMPACT_BROWSER_STATE": off}
+                with patch.dict(sys.modules, {"laya": SimpleNamespace(load=lambda *a, **k: FakeLayaAgent())}):
+                    with patch.dict(os.environ, env):
+                        decision_model = LayaModel.from_env()
+                self.assertFalse(decision_model._compact_browser_state)

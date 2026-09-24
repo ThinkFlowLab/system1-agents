@@ -90,6 +90,16 @@ real; `bodies` records every request). `ScriptedModel` fakes the interface for f
 4. An optional extra in `pyproject.toml` and an env block in `.env.example` when it needs a dependency.
 
 Laya is text only and reads a 512 to 1024 token window; it fits the tool front first. The browser front's element
-tables are wider than that window. The window check sums `input_tokens` over the request's questions. On the
-browser front (two to four questions per tick) only a cut on every head raises the config error above; a cut on
-one head goes unseen. `--model laya` on a browser agent needs `LAYA_MAX_LEN` raised to the page's size.
+tables, sent to Jev as-is, ran well past that window on a real page before a single instruction token was spent:
+a JSON object per row, the full page text, and ten actions of history. The window check sums `input_tokens` over
+the request's questions. On the browser front (two to four questions per tick) only a cut on every head raises
+the config error above; a cut on one head goes unseen.
+
+`laya_state` (`s1a/decision_models/laya.py`) folds a browser-shaped state before every call: `page.text` dropped
+(the choice heads already carry each candidate's own text; the free-form dump is for the chat model's DONE
+answer, which Laya never writes), each element row rendered as one short line instead of a JSON object, and the
+last three actions kept instead of ten. On the WebVoyager-style pages measured while adding this, that is
+roughly a tenfold reduction in the JSON-shaped state's size before the tokenizer sees it — the difference between
+routinely filling a 512-token window and, on most pages, comfortably fitting it. It is on by default and skips
+anything that is not the browser front's shape; `LAYA_COMPACT_BROWSER_STATE=0` turns it off. `--model laya` on a
+page whose element table is still too wide for the window needs `LAYA_MAX_LEN` raised, same as before.
