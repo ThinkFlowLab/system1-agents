@@ -76,7 +76,17 @@ The same showcase on ALFWorld, Blackjack and Millionaire is under `results/<eval
 
 ## The injection guard rail
 
-The rail scores 20 of 20 on its labelled set at a median of 464 ms (`s1a run injection_guard`).
+The shipped public fixture contains the ten original negative controls plus 1,054 InjecAgent cases and 629
+AgentDojo security cases (1,703 records total). The source cases are retained as compact JSONL with their benchmark
+name and source category in `note`; the original records remain the negative control so precision is measurable.
+
+| labelled set | records | positive | negative | Jev precision | Jev recall |
+|---|---:|---:|---:|---:|---:|
+| Public fixture (`injection-public.jsonl`) | 1,703 | 1,693 | 10 | pending Jev key | pending Jev key |
+
+Run the benchmark with `uv run s1a run injection_guard --slot jev --labelled-set
+evals/labelled/injection-public.jsonl`. The source releases are [InjecAgent](https://github.com/uiuc-kang-lab/InjecAgent)
+and [AgentDojo](https://github.com/ethz-spylab/agentdojo).
 
 ## Series
 
