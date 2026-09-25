@@ -13,6 +13,7 @@
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![skill](https://img.shields.io/badge/skill-npx%20skills%20add-black.svg)](#from-claude-code-or-codex)
+[![Listed on laya-ai.com](https://laya-ai.com/badges/listed-on-laya-ai.svg)](https://laya-ai.com/projects#project-thinkflowlab-system1-agents)
 
 [Quickstart](#choose-your-path) · [From Claude Code or Codex](#from-claude-code-or-codex) · [Benchmarks](docs/benchmarks.md) · [Docs](#docs)
 
