@@ -141,6 +141,7 @@ interface fits: [docs/architecture.md](docs/architecture.md), [docs/decision-mod
 - [docs/architecture.md](docs/architecture.md) and [docs/decision-models.md](docs/decision-models.md): the fronts, the model slot, the model interface, adding a backend.
 - [docs/browser-front.md](docs/browser-front.md): the browser policy, decision by decision.
 - [docs/configuration.md](docs/configuration.md): environment variables, defaults and reader subsystems in one table.
+- [docs/glossary.md](docs/glossary.md): terms the documentation glosses on first mention.
 - [docs/why.md](docs/why.md): the problem, the philosophy, the precedents.
 - [docs/roadmap.md](docs/roadmap.md) and [CHANGELOG.md](CHANGELOG.md).
 
