@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1084" height="758" viewBox="0 0 1084 758" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12">
+<rect width="1084" height="758" fill="#1a1a19" rx="8"/>
+<text x="24" y="26" font-size="15" font-weight="600" fill="#ffffff">Google Flights, Zurich to London: where each arm's seconds go</text>
+<text x="24" y="44" fill="#c3c2b7">Median run of 3 per arm. Total is first decision request to final answer.</text>
+<rect x="24" y="54" width="12" height="12" rx="3" fill="#3987e5"/>
+<text x="41" y="64" fill="#c3c2b7">waiting on the model</text>
+<rect x="199" y="54" width="12" height="12" rx="3" fill="#d95926"/>
+<text x="216" y="64" fill="#c3c2b7">waiting on the page</text>
+<rect x="367" y="54" width="12" height="12" rx="3" fill="#199e70"/>
+<text x="384" y="64" fill="#c3c2b7">browser actions</text>
+<rect x="507" y="54" width="12" height="12" rx="3" fill="#c98500"/>
+<text x="524" y="64" fill="#c3c2b7">other</text>
+<line x1="314.0" y1="66" x2="314.0" y2="706" stroke="#383835" stroke-width="1"/>
+<text x="314.0" y="722" text-anchor="middle" fill="#c3c2b7" font-size="11">0 s</text>
+<line x1="414.8" y1="66" x2="414.8" y2="706" stroke="#383835" stroke-width="1"/>
+<text x="414.8" y="722" text-anchor="middle" fill="#c3c2b7" font-size="11">10 s</text>
+<line x1="515.5" y1="66" x2="515.5" y2="706" stroke="#383835" stroke-width="1"/>
+<text x="515.5" y="722" text-anchor="middle" fill="#c3c2b7" font-size="11">20 s</text>
+<line x1="616.3" y1="66" x2="616.3" y2="706" stroke="#383835" stroke-width="1"/>
+<text x="616.3" y="722" text-anchor="middle" fill="#c3c2b7" font-size="11">30 s</text>
+<line x1="717.1" y1="66" x2="717.1" y2="706" stroke="#383835" stroke-width="1"/>
+<text x="717.1" y="722" text-anchor="middle" fill="#c3c2b7" font-size="11">40 s</text>
+<text x="24" y="86" fill="#ffffff" font-weight="600">S1A browser-use driver, baseline 09-18</text>
+<text x="24" y="100" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="76" width="43.3" height="16" rx="3" fill="#3987e5"/>
+<rect x="359.3" y="76" width="24.5" height="16" rx="3" fill="#d95926"/>
+<text x="760" y="86" fill="#ffffff" font-weight="600">7.3 s</text>
+<text x="760" y="100" fill="#c3c2b7" font-size="11">model 4.5 · page 2.6 · browser 0.2 · other 0.0</text>
+<text x="24" y="126" fill="#ffffff" font-weight="600">S1A browser-use driver, baseline 09-19</text>
+<text x="24" y="140" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="116" width="50.0" height="16" rx="3" fill="#3987e5"/>
+<rect x="366.0" y="116" width="55.1" height="16" rx="3" fill="#d95926"/>
+<rect x="423.2" y="116" width="6.5" height="16" rx="3" fill="#199e70"/>
+<text x="760" y="126" fill="#ffffff" font-weight="600">11.8 s</text>
+<text x="760" y="140" fill="#c3c2b7" font-size="11">model 5.2 · page 5.7 · browser 0.8 · other 0.2</text>
+<text x="24" y="166" fill="#ffffff" font-weight="600">S1A browser-use driver, baseline 09-19 (OpenRouter)</text>
+<text x="24" y="180" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="156" width="57.2" height="16" rx="3" fill="#3987e5"/>
+<rect x="373.2" y="156" width="35.0" height="16" rx="3" fill="#d95926"/>
+<rect x="410.2" y="156" width="3.0" height="16" rx="3" fill="#199e70"/>
+<text x="760" y="166" fill="#ffffff" font-weight="600">10.1 s</text>
+<text x="760" y="180" fill="#c3c2b7" font-size="11">model 5.9 · page 3.7 · browser 0.5 · other 0.1</text>
+<text x="24" y="206" fill="#ffffff" font-weight="600">S1A Playwright stock MCP, baseline 09-19 (OpenRouter)</text>
+<text x="24" y="220" fill="#c3c2b7" font-size="11">2 of 3 verified</text>
+<rect x="314.0" y="196" width="65.9" height="16" rx="3" fill="#3987e5"/>
+<rect x="381.9" y="196" width="209.9" height="16" rx="3" fill="#d95926"/>
+<rect x="593.8" y="196" width="147.3" height="16" rx="3" fill="#199e70"/>
+<text x="760" y="206" fill="#ffffff" font-weight="600">42.7 s</text>
+<text x="760" y="220" fill="#c3c2b7" font-size="11">model 6.7 · page 21.0 · browser 14.8 · other 0.1</text>
+<text x="24" y="246" fill="#ffffff" font-weight="600">S1A Playwright no settle, baseline 09-19</text>
+<text x="24" y="260" fill="#c3c2b7" font-size="11">2 of 3 verified</text>
+<rect x="314.0" y="236" width="45.4" height="16" rx="3" fill="#3987e5"/>
+<rect x="361.4" y="236" width="70.0" height="16" rx="3" fill="#d95926"/>
+<rect x="433.4" y="236" width="27.9" height="16" rx="3" fill="#199e70"/>
+<text x="760" y="246" fill="#ffffff" font-weight="600">14.9 s</text>
+<text x="760" y="260" fill="#c3c2b7" font-size="11">model 4.7 · page 7.2 · browser 3.0 · other 0.1</text>
+<text x="24" y="286" fill="#ffffff" font-weight="600">S1A Playwright no settle, baseline 09-19 (OpenRouter)</text>
+<text x="24" y="300" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="276" width="59.3" height="16" rx="3" fill="#3987e5"/>
+<rect x="375.3" y="276" width="28.0" height="16" rx="3" fill="#d95926"/>
+<rect x="405.3" y="276" width="16.6" height="16" rx="3" fill="#199e70"/>
+<text x="760" y="286" fill="#ffffff" font-weight="600">11.1 s</text>
+<text x="760" y="300" fill="#c3c2b7" font-size="11">model 6.1 · page 3.0 · browser 1.8 · other 0.1</text>
+<text x="24" y="326" fill="#ffffff" font-weight="600">S1A Playwright no settle, batched, baseline 09-19</text>
+<text x="24" y="340" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="316" width="51.2" height="16" rx="3" fill="#3987e5"/>
+<rect x="367.2" y="316" width="4.0" height="16" rx="3" fill="#d95926"/>
+<rect x="373.2" y="316" width="42.4" height="16" rx="3" fill="#199e70"/>
+<text x="760" y="326" fill="#ffffff" font-weight="600">10.4 s</text>
+<text x="760" y="340" fill="#c3c2b7" font-size="11">model 5.3 · page 0.6 · browser 4.4 · other 0.2</text>
+<text x="24" y="366" fill="#ffffff" font-weight="600">S1A browser-use driver, rerun 09-23</text>
+<text x="24" y="380" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="356" width="42.6" height="16" rx="3" fill="#3987e5"/>
+<rect x="358.6" y="356" width="28.1" height="16" rx="3" fill="#d95926"/>
+<rect x="388.7" y="356" width="2.6" height="16" rx="3" fill="#199e70"/>
+<text x="760" y="366" fill="#ffffff" font-weight="600">8.0 s</text>
+<text x="760" y="380" fill="#c3c2b7" font-size="11">model 4.4 · page 3.0 · browser 0.5 · other 0.1</text>
+<text x="24" y="406" fill="#ffffff" font-weight="600">S1A browser-use driver, rerun 09-23 (OpenRouter)</text>
+<text x="24" y="420" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="396" width="48.4" height="16" rx="3" fill="#3987e5"/>
+<rect x="364.4" y="396" width="27.5" height="16" rx="3" fill="#d95926"/>
+<rect x="393.9" y="396" width="2.2" height="16" rx="3" fill="#199e70"/>
+<text x="760" y="406" fill="#ffffff" font-weight="600">8.5 s</text>
+<text x="760" y="420" fill="#c3c2b7" font-size="11">model 5.0 · page 2.9 · browser 0.4 · other 0.1</text>
+<text x="24" y="446" fill="#ffffff" font-weight="600">S1A Playwright stock MCP, rerun 09-23</text>
+<text x="24" y="460" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="436" width="45.5" height="16" rx="3" fill="#3987e5"/>
+<rect x="361.5" y="436" width="111.9" height="16" rx="3" fill="#d95926"/>
+<rect x="475.4" y="436" width="89.6" height="16" rx="3" fill="#199e70"/>
+<rect x="567.0" y="436" width="9.0" height="16" rx="3" fill="#c98500"/>
+<text x="760" y="446" fill="#ffffff" font-weight="600">26.2 s</text>
+<text x="760" y="460" fill="#c3c2b7" font-size="11">model 4.7 · page 11.3 · browser 9.1 · other 1.1</text>
+<text x="24" y="486" fill="#ffffff" font-weight="600">S1A Playwright stock MCP, rerun 09-23 (OpenRouter)</text>
+<text x="24" y="500" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="476" width="56.7" height="16" rx="3" fill="#3987e5"/>
+<rect x="372.7" y="476" width="120.2" height="16" rx="3" fill="#d95926"/>
+<rect x="494.9" y="476" width="95.2" height="16" rx="3" fill="#199e70"/>
+<rect x="592.0" y="476" width="11.5" height="16" rx="3" fill="#c98500"/>
+<text x="760" y="486" fill="#ffffff" font-weight="600">28.9 s</text>
+<text x="760" y="500" fill="#c3c2b7" font-size="11">model 5.8 · page 12.1 · browser 9.6 · other 1.3</text>
+<text x="24" y="526" fill="#ffffff" font-weight="600">S1A Playwright no settle, rerun 09-23</text>
+<text x="24" y="540" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="516" width="41.8" height="16" rx="3" fill="#3987e5"/>
+<rect x="357.8" y="516" width="43.1" height="16" rx="3" fill="#d95926"/>
+<rect x="402.9" y="516" width="19.3" height="16" rx="3" fill="#199e70"/>
+<rect x="424.3" y="516" width="8.9" height="16" rx="3" fill="#c98500"/>
+<text x="760" y="526" fill="#ffffff" font-weight="600">12.0 s</text>
+<text x="760" y="540" fill="#c3c2b7" font-size="11">model 4.3 · page 4.5 · browser 2.1 · other 1.1</text>
+<text x="24" y="566" fill="#ffffff" font-weight="600">S1A Playwright no settle, rerun 09-23 (OpenRouter)</text>
+<text x="24" y="580" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="556" width="58.4" height="16" rx="3" fill="#3987e5"/>
+<rect x="374.4" y="556" width="47.7" height="16" rx="3" fill="#d95926"/>
+<rect x="424.1" y="556" width="21.4" height="16" rx="3" fill="#199e70"/>
+<rect x="447.5" y="556" width="8.6" height="16" rx="3" fill="#c98500"/>
+<text x="760" y="566" fill="#ffffff" font-weight="600">14.3 s</text>
+<text x="760" y="580" fill="#c3c2b7" font-size="11">model 6.0 · page 4.9 · browser 2.3 · other 1.1</text>
+<text x="24" y="606" fill="#ffffff" font-weight="600">S1A Playwright no settle, batched, rerun 09-23</text>
+<text x="24" y="620" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="596" width="42.9" height="16" rx="3" fill="#3987e5"/>
+<rect x="358.9" y="596" width="9.3" height="16" rx="3" fill="#d95926"/>
+<rect x="370.2" y="596" width="50.8" height="16" rx="3" fill="#199e70"/>
+<rect x="423.0" y="596" width="7.3" height="16" rx="3" fill="#c98500"/>
+<text x="760" y="606" fill="#ffffff" font-weight="600">11.7 s</text>
+<text x="760" y="620" fill="#c3c2b7" font-size="11">model 4.5 · page 1.1 · browser 5.2 · other 0.9</text>
+<text x="24" y="646" fill="#ffffff" font-weight="600">S1A Playwright no settle, batched, rerun 09-23 (OpenRouter)</text>
+<text x="24" y="660" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="636" width="53.5" height="16" rx="3" fill="#3987e5"/>
+<rect x="369.5" y="636" width="9.5" height="16" rx="3" fill="#d95926"/>
+<rect x="381.0" y="636" width="52.4" height="16" rx="3" fill="#199e70"/>
+<rect x="435.4" y="636" width="10.3" height="16" rx="3" fill="#c98500"/>
+<text x="760" y="646" fill="#ffffff" font-weight="600">13.3 s</text>
+<text x="760" y="660" fill="#c3c2b7" font-size="11">model 5.5 · page 1.1 · browser 5.4 · other 1.2</text>
+<text x="24" y="686" fill="#ffffff" font-weight="600">jev-ultrafast, rerun 09-23</text>
+<text x="24" y="700" fill="#c3c2b7" font-size="11">3 of 3 verified</text>
+<rect x="314.0" y="676" width="59.4" height="16" rx="3" fill="#3987e5"/>
+<rect x="375.4" y="676" width="40.6" height="16" rx="3" fill="#c98500"/>
+<text x="760" y="686" fill="#ffffff" font-weight="600">10.3 s</text>
+<text x="760" y="700" fill="#c3c2b7" font-size="11">model 6.1 · other 4.2</text>
+</svg>
