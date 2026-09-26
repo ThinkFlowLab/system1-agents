@@ -4,6 +4,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Fixed
+
+- Windows development checks: the smoke script accepts CRLF output, shell scripts and Git hooks retain LF
+  line endings, and tests check socket closure and invalid output directories without Unix-specific behavior.
+  The core CI matrix now covers Windows with Python 3.11.
+
 ### Added
 
 - `docs/benchmarks.md`: the Google Flights driver comparison rerun on 2026-09-23 from Poland, every arm three times on

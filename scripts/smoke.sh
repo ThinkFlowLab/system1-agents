@@ -13,7 +13,8 @@ AGENTS="alfworld allrecipes blackjack desktop flights game2048 injection_guard m
 
 fail() { echo "smoke: $*" >&2; exit 1; }
 
-listed=$($S1A list)
+# Native Windows Python emits CRLF even when launched from Git Bash.
+listed=$($S1A list | tr -d '\r')
 [ "$(echo "$listed" | tr '\n' ' ' | sed 's/ $//')" = "$AGENTS" ] || fail "list printed: $listed"
 echo "list: $AGENTS"
 
