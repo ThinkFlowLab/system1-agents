@@ -9,7 +9,7 @@ import contextlib
 import logging
 import sys
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, Literal
 
 import s1a.console  # first: routes the harness logs to files before openjiuwen loads and logs to the console
 from mcp.server.fastmcp import FastMCP
@@ -25,7 +25,8 @@ INSTRUCTIONS = (
     "constraint puzzles or free-text generation. list_agents gives every agent's flags: a browser agent takes "
     "--model jev --goal '...' and needs a chat-model key (OPENAI_API_KEY or LLM_API_KEY plus MODEL_NAME), a Jev key "
     "(TYPESAFE_API_KEY or OPENROUTER_API_KEY) and Node for @playwright/mcp; a tool agent takes --model, --rethink and "
-    "--episodes; a rail takes --labelled-set. Runs go one at a time per server."
+    "--episodes; a rail takes --labelled-set. decide accepts model jev (default), laya or cua; local models need "
+    "their optional extra and no Jev key. Runs and decisions go one at a time per server."
 )
 
 
@@ -89,13 +90,21 @@ async def run_agent(name: str, flags: list[str]) -> dict[str, Any]:
 
 
 @server.tool()
-async def decide(state: dict[str, Any], options: dict[str, str], rules: str) -> dict[str, Any]:
-    """One choice question over options you enumerate: the chosen key, a probability per option, a confidence, the latency in ms."""
-    decision_model = build_model("jev")
-    try:
-        return await probe.pick(decision_model, state=state, options=options, rules=rules)
-    finally:
-        await decision_model.close()
+async def decide(
+    state: dict[str, Any], options: dict[str, str], rules: str, model: Literal["jev", "laya", "cua"] = "jev"
+) -> dict[str, Any]:
+    """One choice question: the chosen key, probabilities, confidence and decision latency in ms.
+
+    Use jev over HTTP (default), or laya/cua locally after installing the matching extra. Local model loading
+    is excluded from the reported latency.
+    """
+    async with _ONE_RUN:
+        with contextlib.redirect_stdout(sys.stderr):  # local SDK loading must not write to the stdio protocol
+            decision_model = await asyncio.to_thread(build_model, model)
+            try:
+                return await probe.pick(decision_model, state=state, options=options, rules=rules)
+            finally:
+                await decision_model.close()
 
 
 def main() -> None:

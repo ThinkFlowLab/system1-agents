@@ -74,8 +74,13 @@ codex mcp add s1a -- uv run --project /path/to/system1-agents s1a-mcp
 `s1a-mcp` serves the same agents over stdio as three tools. `list_agents()` returns every agent with its front, its
 description and the flags `run_agent` accepts for it; an agent whose optional dependency is missing is listed as
 unavailable with the error. `run_agent(name, flags)` runs one agent with the flags of `s1a run <name>` and returns
-its JSON object. `decide(state, options, rules)` answers one choice question with `jev`: the chosen key, a
-probability per option, a confidence and the latency in ms.
+its JSON object. `decide(state, options, rules, model="jev")` answers one choice question: the chosen key, a
+probability per option, a confidence and the latency in ms. `model` accepts `jev`, `laya` or `cua`; callers that
+omit it keep using Jev. For local decisions, install the matching extra in the server's checkout (`uv sync
+--extra laya` or `uv sync --extra cua`) and pass `model="laya"` or `model="cua"`; no Jev API key is needed.
+The first local call may download the checkpoint. Each call loads and closes its model; `ms` measures the
+decision, not model loading. Agent runs and decisions are serialized, and model output stays off the stdio
+protocol stream.
 
 ## Build a System 1 agent
 
