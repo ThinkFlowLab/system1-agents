@@ -291,13 +291,16 @@ class TestStdoutIsForResults(TestCase):
             self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()), ["s1a"])
 
     def test_an_unusable_s1a_home_is_one_line_on_stderr_and_exit_1(self) -> None:
-        done = subprocess.run(
-            [sys.executable, "-c", "import s1a.cli"],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            env={**os.environ, "S1A_HOME": "/dev/null/x"},
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            blocked = Path(tmp) / "file"
+            blocked.write_text("not a directory", encoding="utf-8")
+            done = subprocess.run(
+                [sys.executable, "-c", "import s1a.cli"],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                env={**os.environ, "S1A_HOME": str(blocked / "x")},
+            )
         self.assertEqual((done.returncode, done.stdout), (1, ""))
         self.assertEqual(len(done.stderr.strip().splitlines()), 1, done.stderr)
         self.assertIn("S1A_HOME", done.stderr)

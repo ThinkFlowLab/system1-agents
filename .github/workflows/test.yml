@@ -14,11 +14,15 @@ concurrency:
 jobs:
   core:
     # The install the README promises: openjiuwen alone, no game or report extras, no keys.
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       matrix:
+        os: [ubuntu-latest]
         python: ["3.11", "3.13"]
+        include:
+          - os: windows-latest
+            python: "3.11"
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
@@ -32,6 +36,7 @@ jobs:
       - run: uv run ty check
       - run: uv build
       - run: scripts/smoke.sh
+        shell: bash
       - run: uv run pytest -q
 
   full:

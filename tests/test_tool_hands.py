@@ -165,14 +165,6 @@ class FakeRuntime:
         self.stopped.append("shutdown")
 
 
-def _refused(port: int) -> bool:
-    try:
-        socket.create_connection(("127.0.0.1", port), timeout=1.0).close()
-    except ConnectionRefusedError:
-        return True
-    return False
-
-
 class TestBrowserHandsLifecycle(IsolatedAsyncioTestCase):
     async def test_a_failed_start_still_stops_the_runtime(self) -> None:
         with patch.object(hands_module, "BrowserAgentRuntime", FakeRuntime):
@@ -192,11 +184,12 @@ class TestBrowserHandsLifecycle(IsolatedAsyncioTestCase):
     async def test_serving_shuts_the_static_server_down_when_the_session_ends(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             site = serve_static(Path(tmp))
-            port = site.server_address[1]
-            self.assertFalse(_refused(port))
+            self.assertGreaterEqual(site.fileno(), 0)
             async with serving(site, nullcontext()):
-                self.assertFalse(_refused(port))
-            self.assertTrue(_refused(port))
+                with socket.create_connection(site.server_address, timeout=1.0):
+                    pass
+            # Check our socket directly: a closed-port connection can time out on Windows.
+            self.assertEqual(site.fileno(), -1)
 
     async def test_serving_shuts_the_static_server_down_when_the_session_fails_to_open(self) -> None:
         @asynccontextmanager
@@ -209,4 +202,4 @@ class TestBrowserHandsLifecycle(IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(RuntimeError, "no browser"):
                 async with serving(site, failing()):
                     pass
-            self.assertTrue(_refused(site.server_address[1]))
+            self.assertEqual(site.fileno(), -1)
