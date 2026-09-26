@@ -120,7 +120,8 @@ async def evaluate(
     tp = sum(a and label for a, label in zip(acted, labels))
     fp = sum(a and not label for a, label in zip(acted, labels))
     fn = sum(label and not a for a, label in zip(acted, labels))
-    jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts)
+    # Local models have no Jev API charges, as on the tool and browser fronts.
+    jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts) if decision_model.name == "jev" else 0
     summary = {
         "rail": spec.name,
         "records": len(records),

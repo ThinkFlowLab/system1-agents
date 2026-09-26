@@ -4,6 +4,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Fixed
+
+- Rail evaluations charge Jev input tokens only for the Jev backend. Local Laya evaluations keep
+  `jev_input_tokens` and `cost_usd` at zero, matching the tool and browser fronts.
+
 ### Added
 
 - `docs/benchmarks.md`: the Google Flights driver comparison rerun on 2026-09-23 from Poland, every arm three times on
