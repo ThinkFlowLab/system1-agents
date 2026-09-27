@@ -30,8 +30,20 @@ models behind them: [architecture.md](architecture.md#models).
 
 `s1a run <agent> --help` lists every flag with its default. Beyond the shared ones: `flights` and `allrecipes` take `--goal`,
 `--batch on|off`, `--prefetch on|off`, `--goal-values on|off`, `--profile-out` and `--logs-dir`; `desktop` takes
-`--app`, `--goal`, `--expect`, `--execute`, `--plan` and `--clear`; `ticket_router` takes `--dataset` and
+`--app`, `--app-path`, `--window-title`, `--goal`, `--expect`, `--execute`, `--plan`, `--clear`, `--text`,
+`--text-target`, `--text-mode` and `--verify-file`; `ticket_router` takes `--dataset` and
 `--batch-size`; `injection_guard` takes `--labelled-set`. The four games take no flag of their own.
+
+### Desktop text input
+
+`--text` supplies the content for a `type:*` action. `--text-target` selects an exact field label or native
+identifier. The default `--text-mode insert` inserts at the current selection; `replace` sets the whole field.
+Both require a fresh readback before the input is recorded as successful. Chinese and multiline text are
+supported through native field replacement. `--window-title` selects the document when an app has several windows.
+
+`--verify-file` requires the expected window state and a file changed during this episode whose UTF-8 content
+matches `--text`. Without `--execute`, the first decision is only recorded as a plan.
+The [macOS fixture](../evals/desktop/README.md) provides a local Laya demo and a fixed-plan execution check.
 
 ## Allrecipes
 
