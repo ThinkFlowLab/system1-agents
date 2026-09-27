@@ -17,6 +17,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - `docs/benchmarks.md`: the Google Flights driver comparison rerun on 2026-09-23 from Poland, every arm three times on
   both decision backends, next to the baseline rows in one table; the 24 S1A records, as one archive, and the chart
   under `docs/results/flights/rerun-2026-09-23/`.
+- `evals/labelled/injection-public.jsonl`: 665 labelled tool outputs for the `injection_guard` rail from InjecAgent
+  and AgentDojo at pinned versions, 335 with an injected instruction. 65 of those read as an ordinary request that only
+  the user's task tells apart; their notes carry a `-u` source and they are reported on their own row. Negatives
+  include requests written for a human (`R2` in the note), which with the unmarked positives form a hard subset.
+  `uv run scripts/build_injection_dataset.py` rebuilds the file byte for byte; `--report <job>` prints precision and
+  recall per source without the `-u` positives, their own recall, and balanced accuracy on the hard subset against
+  fixed keyword baselines.
 
 ### Changed
 

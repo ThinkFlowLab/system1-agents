@@ -5,6 +5,7 @@ labelled-set evaluation."""
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import statistics
 from datetime import datetime
@@ -123,6 +124,7 @@ async def evaluate(
     jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts)
     summary = {
         "rail": spec.name,
+        "model": decision_model.name,
         "records": len(records),
         "positives": sum(labels),
         "acted": sum(acted),
@@ -135,6 +137,7 @@ async def evaluate(
         "cost_usd": cost_usd(jev_input_tokens, 0, 0, 0, None),
         "thresholds": {"allow": spec.thresholds.allow, "act": spec.thresholds.act},
         "labelled_set": str(labelled_set),
+        "labelled_set_sha256": hashlib.sha256(labelled_set.read_bytes()).hexdigest(),
         "finished_at": now_iso(),
     }
     job_dir = results_dir / spec.name / f"{datetime.now():%Y-%m-%d__%H-%M-%S-%f}__{decision_model.name}"

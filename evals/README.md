@@ -14,6 +14,7 @@ folder per episode). `uv run python -m evals.table evals/results` aggregates the
 | Desktop (Cua Driver) | clicks toward `--goal` until the window shows `--expect` | `s1a run desktop --app Calculator --goal "compute 12 times 7" --expect 84 --execute --model jev --rethink off --episodes 1` |
 | Ticket router (30 local labelled tickets) | correct routes to five queues | `s1a run ticket_router --model jev --rethink off --episodes 1` |
 | Injection guard (rail) | precision and recall on a labelled set | `s1a run injection_guard` |
+| Injection guard, public set (InjecAgent + AgentDojo) | precision and recall per source without the context-needed positives, balanced accuracy on the hard subset | `s1a run injection_guard --model jev --labelled-set evals/labelled/injection-public.jsonl`; numbers in `docs/benchmarks.md` |
 
 ## The loop
 

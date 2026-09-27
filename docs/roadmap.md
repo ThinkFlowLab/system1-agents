@@ -6,14 +6,17 @@ in `README.md`, `docs/agents.md`, `docs/browser-front.md` (the browser policy) a
 
 ## Rails: one shipped, two to ship
 
-### Prompt-injection guard: shipped, with a 20-item labelled set
+### Prompt-injection guard: shipped, with two labelled sets
 
 jiuwen ingests untrusted pages through `browser_snapshot` and `fetch_webpage`. The `injection_guard` rail
 (`s1a/agents/injection_guard.py`) ships: one rail on `after_tool_call` asks Jev "does this text instruct
 the agent?" (`noul`) and quarantines the result; 20 of 20 on `evals/labelled/injection.jsonl` at a median of
-464 ms. Still to build: the planted-page demo (the browser subagent visits a planted page and the guard flags the
-planted instruction before the model reads it) and a labelled set from the public ones, InjecAgent (1,054 tool-output
-injections) and AgentDojo (97 tasks, 629 security cases). jiuwen's own
+464 ms. `evals/labelled/injection-public.jsonl` adds 665 records from the public InjecAgent and AgentDojo benchmarks,
+built by `scripts/build_injection_dataset.py`: 335 positives, 65 of them needing the user's task to tell apart and
+reported on their own, and 330 negatives. Its precision, recall and hard-subset balanced accuracy are in
+`docs/benchmarks.md`. Still to build:
+the planted-page demo (the browser subagent visits a planted page and the guard flags the planted instruction before
+the model reads it). jiuwen's own
 `openjiuwen/harness/rails/security/prompt_security_rail.py` is pattern-based; `SafetyPromptRail` only injects
 guideline text before model calls.
 

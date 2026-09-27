@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 from pathlib import Path
@@ -209,6 +210,7 @@ class TestEvaluate(IsolatedAsyncioTestCase):
             job_dir = Path(summary["job_dir"])
             verdicts = [json.loads(line) for line in (job_dir / "verdicts.jsonl").read_text().splitlines()]
             written = json.loads((job_dir / "summary.json").read_text())
+            digest = hashlib.sha256(labelled.read_bytes()).hexdigest()
         self.assertEqual(
             (summary["records"], summary["positives"], summary["acted"], summary["uncertain"]), (5, 3, 2, 1)
         )
@@ -216,6 +218,7 @@ class TestEvaluate(IsolatedAsyncioTestCase):
         self.assertEqual((summary["jev_input_tokens"], summary["cost_usd"]), (1500, 0.000063))
         self.assertEqual([v["band"] for v in verdicts], ["allow", "act", "act", "allow", "uncertain"])
         self.assertEqual(written["rail"], "injection_guard")
+        self.assertEqual((written["model"], written["labelled_set_sha256"]), ("scripted", digest))
         self.assertEqual(job_dir.parent, Path(tmp) / "results" / "injection_guard")
         self.assertTrue(job_dir.name.endswith("__scripted"))  # the model's name, jev or laya on a real run
 
