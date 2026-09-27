@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 import sys
-from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
@@ -32,9 +31,7 @@ class TestBuildModel(TestCase):
         fake_laya = SimpleNamespace(
             load=lambda *a, **k: SimpleNamespace(cfg={}, system_one=lambda state, questions: {})
         )
-        # transformers' helper stubbed so torch is not imported inside patch.dict: see TestFromEnv in the laya tests.
-        modules = {"laya": fake_laya, "transformers.initialization": SimpleNamespace(no_init_weights=nullcontext)}
-        with patch.dict(sys.modules, modules), patch.dict(os.environ, {"LAYA_SUBFOLDER": ""}):
+        with patch.dict(sys.modules, {"laya": fake_laya}), patch.dict(os.environ, {"LAYA_SUBFOLDER": ""}):
             self.assertIsInstance(build_model("laya"), LayaModel)
         self.assertIsInstance(build_model("random", seed=3), RandomModel)
         rule = build_model("rule", rule=("always-inc", lambda state, options: "inc"))
