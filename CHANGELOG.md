@@ -9,6 +9,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - Windows development checks: the smoke script accepts CRLF output, shell scripts and Git hooks retain LF
   line endings, and tests check socket closure and invalid output directories without Unix-specific behavior.
   The core CI matrix now covers Windows with Python 3.11.
+- Rail, tool, and browser evaluations charge Jev-rate input tokens only when the decision backend declares
+  them billable. Local model token usage remains recorded without Jev API charges.
 
 ### Added
 

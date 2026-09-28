@@ -34,6 +34,7 @@ class JevModel(DecisionModel):
     """TypeSafe Jev over HTTP; the transport owns the connection, its retries and the round-trip clock."""
 
     name = "jev"
+    bills_input_tokens = True
 
     def __init__(self, transport: JevTransport) -> None:
         self._transport = transport

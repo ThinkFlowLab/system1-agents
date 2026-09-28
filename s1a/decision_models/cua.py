@@ -70,6 +70,7 @@ class CuaS1Model(DecisionModel):
     """Cua-S1 Nano's ``NanoScorer`` behind the interface: choice questions only, text only, deterministic."""
 
     name = "cua"
+    bills_input_tokens = False
     question_types = frozenset({"choice"})
     deterministic = True
 

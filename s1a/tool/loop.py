@@ -273,8 +273,11 @@ async def run_episode(
         for event in state.rethinks:
             print(f"  rethink {event}", file=sys.stderr)
     policy = model.name if isinstance(model, ToolDecisionModel) else "llm"
-    # Laya and Cua run in process: their tokens are free and unpriced
-    jev_input_tokens = sum(tick["input_tokens"] for tick in state.ticks if tick["source"] == "jev")
+    jev_input_tokens = (
+        sum(tick["input_tokens"] for tick in state.ticks if tick["source"] != "llm")
+        if isinstance(model, ToolDecisionModel) and model.bills_input_tokens
+        else 0
+    )
     chat_input_tokens = sum(call["input_tokens"] for call in state.chat)
     chat_output_tokens = sum(call["output_tokens"] for call in state.chat)
     chat_cache_tokens = sum(call["cache_tokens"] for call in state.chat)

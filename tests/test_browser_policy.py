@@ -433,8 +433,8 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
         report = slot_model.report()
         self.assertEqual((report["decisions"], report["median_decision_ms"], report["jev_input_tokens"]), (1, 7, 315))
 
-    async def test_jev_input_tokens_are_zero_for_a_non_jev_decision_model(self) -> None:
-        """Laya and Cua run in process for free; only Jev-over-HTTP tokens are priced (s1a/tool/loop.py does the same)."""
+    async def test_report_prices_input_tokens_by_backend_flag(self) -> None:
+        """The scripted backend's token usage is priced only when it opts into the Jev input rate."""
         from s1a.decision_models import ScriptedModel
 
         decision_model = ScriptedModel(latency_ms=3, usage=Usage(11, 0), model="laya-rl-agent")
@@ -444,6 +444,8 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
 
         self.assertEqual(slot_model.ticks[0]["input_tokens"], 11, "the tick itself still records what the model spent")
         self.assertEqual(slot_model.report()["jev_input_tokens"], 0)
+        decision_model.bills_input_tokens = True
+        self.assertEqual(slot_model.report()["jev_input_tokens"], 11)
 
     async def test_a_laya_shaped_model_fills_the_slot_the_same_way(self) -> None:
         """The policy asks any decision_model: a scripted one at the interface, no wire at all, decides a tick."""

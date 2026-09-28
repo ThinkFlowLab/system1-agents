@@ -64,6 +64,7 @@ class ScriptedModel(DecisionModel):
     images, so a pass-through can be tested."""
 
     name = "scripted"
+    bills_input_tokens = False
     supports_images = True
 
     def __init__(

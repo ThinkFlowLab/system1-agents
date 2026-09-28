@@ -120,7 +120,7 @@ async def evaluate(
     tp = sum(a and label for a, label in zip(acted, labels))
     fp = sum(a and not label for a, label in zip(acted, labels))
     fn = sum(label and not a for a, label in zip(acted, labels))
-    jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts)
+    jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts) if decision_model.bills_input_tokens else 0
     summary = {
         "rail": spec.name,
         "records": len(records),

@@ -51,6 +51,7 @@ class LayaModel(DecisionModel):
     """Laya's ``Agent`` (or anything with ``system_one(state, questions)`` and a ``cfg``) behind the interface."""
 
     name = "laya"
+    bills_input_tokens = False
     deterministic = True
 
     def __init__(self, agent: Any, *, model: str) -> None:

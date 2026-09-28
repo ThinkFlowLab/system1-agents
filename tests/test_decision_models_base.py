@@ -3,21 +3,46 @@
 
 from __future__ import annotations
 
-from unittest import IsolatedAsyncioTestCase
+from unittest import IsolatedAsyncioTestCase, TestCase
 
 from openjiuwen.core.common.exception.codes import StatusCode
 from openjiuwen.core.common.exception.errors import BaseError, build_error
 
 from decision_model_contract import CHECK, OBSERVATION, PICK, DecisionModelContract
 from s1a.decision_models import (
+    CuaS1Model,
     DecisionModel,
+    JevModel,
+    LayaModel,
     Choice,
     Image,
     Json,
     Noul,
     Observation,
+    RandomModel,
+    RuleModel,
     ScriptedModel,
 )
+
+
+class TestBillingContract(TestCase):
+    def test_every_backend_declares_whether_input_tokens_use_jev_pricing(self) -> None:
+        expected = {
+            JevModel: True,
+            LayaModel: False,
+            CuaS1Model: False,
+            RandomModel: False,
+            RuleModel: False,
+            ScriptedModel: False,
+        }
+        backends = set(DecisionModel.__subclasses__())
+        self.assertLessEqual(set(expected), backends)
+        for backend in backends:
+            with self.subTest(backend=backend.__name__):
+                declared = vars(backend).get("bills_input_tokens")
+                self.assertIsInstance(declared, bool)
+                if backend in expected:
+                    self.assertIs(declared, expected[backend])
 
 
 class TestScriptedContract(DecisionModelContract, IsolatedAsyncioTestCase):

@@ -22,7 +22,9 @@ from s1a.decision_models import (
     JevModel,
     RandomModel,
     RuleModel,
+    ScriptedModel,
     ScriptedTransport,
+    Usage,
 )
 from s1a.spec import Budget, ToolAgentSpec
 from s1a.tool import loop as agent
@@ -253,6 +255,15 @@ def _refusing() -> JevModel:
 
 class TestEpisodeThroughTheAgent(IsolatedAsyncioTestCase):
     """Episodes through ``create_deep_agent`` and the Runner, offline: a rule in the slot, no chat model."""
+
+    async def test_a_priced_backend_counts_its_tokens_without_relying_on_its_name(self) -> None:
+        decision_model = ScriptedModel(choose="inc", usage=Usage(input_tokens=300))
+        decision_model.bills_input_tokens = True
+        episode = await _play(
+            CountingEnv(), max_acts=1, timeout_s=60.0, model_name="random", decision_model=decision_model
+        )
+        self.assertEqual((episode.decisions[0]["source"], episode.decisions[0]["input_tokens"]), ("scripted", 300))
+        self.assertEqual((episode.jev_input_tokens, episode.cost_usd), (300, 0.000013))
 
     async def test_a_refused_decision_is_the_episodes_error_with_no_decisions(self) -> None:
         episode = await _play(CountingEnv(), max_acts=10, timeout_s=60.0, model_name="jev", decision_model=_refusing())
