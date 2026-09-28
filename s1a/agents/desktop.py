@@ -24,7 +24,7 @@ from typing import Any, AsyncIterator
 
 from s1a.desktop.driver import CuaDriver, Snapshot, driver_from_env, opened
 from s1a.desktop.env import ABSTAIN, DONE, WindowEnv, clickable
-from s1a.spec import Budget, Series, ToolAgentSpec
+from s1a.spec import Budget, Series, ToolAgentSpec, positive_float, positive_int
 
 RULES = (
     "A desktop app window. goal says what to do; elements lists the window's controls with their labels and values; "
@@ -103,13 +103,25 @@ def flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--execute", action="store_true", help="click for real; without it one decision is planned")
     parser.add_argument("--plan", default="", help="the rule baseline: button labels in order, | between variants")
     parser.add_argument("--clear", default="", help="button labels pressed on reset when the window has one")
+    parser.add_argument(
+        "--rethink-attempts",
+        type=positive_int,
+        default=3,
+        help="bounded rethink: stalls handled by a refresh and a plan before the episode gives up",
+    )
+    parser.add_argument(
+        "--rethink-timeout",
+        type=positive_float,
+        default=15.0,
+        help="bounded rethink: seconds across all refreshes and plans in one episode",
+    )
 
 
 SPEC = ToolAgentSpec(
     name="desktop",
     description="A Windows or macOS app window through Cua Driver: click controls toward --goal until --expect appears.",
     rules=RULES,
-    budget=Budget(max_steps=12, timeout_s=90, stall_after=0),
+    budget=Budget(max_steps=12, timeout_s=90, stall_after=3),
     flags=flags,
     series=make_series,
 )

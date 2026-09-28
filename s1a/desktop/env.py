@@ -67,6 +67,12 @@ class WindowEnv:
                 "the window already shows --expect before any action; pass --clear <label> or reset the app"
             )
 
+    async def refresh(self) -> None:
+        """Re-read the window without clicking; a done or dry-run episode stays ended and candidates get new tokens."""
+        if self._window is None:
+            raise RuntimeError("the window was never observed: call reset first")
+        await self._refresh()
+
     async def _refresh(self) -> None:
         assert self._window is not None
         self._snapshot = await self._driver.window_state(self._window)
@@ -79,13 +85,15 @@ class WindowEnv:
     async def observe(self) -> dict[str, Any]:
         snapshot = self._require_snapshot()
         values = [e.value for e in snapshot.elements if e.value and not clickable(e)]
+        elements = [{"role": e.role, "label": e.label, "value": e.value} for e in snapshot.elements]
         state: dict[str, Any] = {
             "goal": self._goal,
             "app": self._app_name,
             "title": snapshot.window.title,
-            "elements": [{"role": e.role, "label": e.label, "value": e.value} for e in snapshot.elements],
+            "elements": elements,
             "presses": list(self._presses),
-            "progress": {"values": values, "presses": len(self._presses)},
+            # progress is the window itself, not the click count: a click that changes nothing must look stuck
+            "progress": {"title": snapshot.window.title, "elements": elements, "values": values},
         }
         if self._planned is not None:
             state["planned"] = self._planned

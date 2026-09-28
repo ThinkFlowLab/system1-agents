@@ -19,6 +19,7 @@ from openjiuwen.core.foundation.llm import AssistantMessage, AssistantMessageChu
 
 from s1a.decision_models import DecisionModel, ChoiceQuestion, Observation
 from s1a.env import Env
+from s1a.recovery import recovery_next_action
 
 ACT_TOOL = "act"
 OBSERVE_TOOL = "observe"
@@ -46,6 +47,7 @@ class EvalState:
     max_acts: int = 0  # the episode's act budget, positive in every run; 0 leaves it unbounded in tests
     give_up: bool = False
     error: str | None = None  # a decision or an act that failed; the episode is an errored trial
+    bounded_recovery: bool = False  # a bounded RethinkRail is active, so give-up/error outrank a spent act budget
 
     @property
     def budget_spent(self) -> bool:
@@ -120,8 +122,10 @@ class ToolDecisionModel(Model):
         env, state = self._env, self._state
         if env.done:
             return self._stop("DONE", "environment done")
-        if state.budget_spent:
-            return self._stop("DONE", "act budget spent")
+        # Preserve the legacy game status. A bounded episode that has not finished reports BLOCKED;
+        # a recovery failure takes precedence so its more specific reason survives the act limit.
+        if state.budget_spent and not (state.bounded_recovery and (state.give_up or state.error is not None)):
+            return self._stop("BLOCKED" if state.bounded_recovery else "DONE", "act budget spent")
         if state.give_up:
             return self._stop("BLOCKED", "rethink give-up ceiling")
         if state.error is not None:
@@ -171,5 +175,43 @@ class ToolDecisionModel(Model):
         return AssistantMessage(content="", tool_calls=[call], finish_reason="tool_calls")
 
     def _stop(self, status: str, reason: str) -> AssistantMessage:
-        summary = {"status": status, "reason": reason, "score": self._env.score, "steps": len(self._state.acts)}
+        state = self._state
+        summary: dict[str, Any] = {
+            "status": status,
+            "reason": reason,
+            "score": self._env.score,
+            "steps": len(state.acts),
+        }
+        # A bounded recovery that ended the episode gives the same record as the browser front: the specific reason
+        # and one actionable next step, never a wider tool set or an automatic retry. The legacy game branch is
+        # untouched: it has no bounded recovery, so nothing is added.
+        if state.bounded_recovery and status == "BLOCKED":
+            event = next((e for e in reversed(state.rethinks) if e.get("next_action")), None)
+            if event is not None:
+                next_action = event["next_action"]
+                recovery = {
+                    "failed": True,
+                    "attempt": event.get("attempt"),
+                    "termination": event.get("termination"),
+                    "phase": event.get("phase"),
+                    "reason": event.get("error") or reason,
+                    "next_action": next_action,
+                }
+            else:
+                # Every bounded BLOCKED gets an operator-facing reason and next step. When the act budget ends the
+                # episode right after a plan (no failed recovery event carries one), synthesise it from the shared
+                # helper and name the cap as the reason: never dress an act cap up as a recovery timeout.
+                last = next((e for e in reversed(state.rethinks) if e.get("attempt") is not None), None)
+                next_action = recovery_next_action(termination=reason)
+                recovery = {
+                    "failed": True,
+                    "attempt": None if last is None else last.get("attempt"),
+                    "termination": None,
+                    "phase": None,
+                    "reason": reason,
+                    "next_action": next_action,
+                }
+            # next_action first keeps the one actionable step inside the terminal's short output budget.
+            summary["next_action"] = next_action
+            summary["recovery"] = recovery
         return AssistantMessage(content=json.dumps(summary, ensure_ascii=False), finish_reason="stop")

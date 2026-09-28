@@ -95,6 +95,28 @@ class TestSolverContract(TestCase):
         plain = browse.finish_llm(_answer("Not JSON at all"))
         self.assertEqual(plain["final"], "Not JSON at all")
 
+    def test_a_failed_chat_call_makes_the_usage_unknown_not_zero(self) -> None:
+        calls = [
+            {"status": "ok", "usage_known": True, "input_tokens": 100, "output_tokens": 5, "tool_calls": []},
+            {"status": "error", "usage_known": False, "input_tokens": 0, "output_tokens": 0, "tool_calls": []},
+        ]
+        summary = browse.usage_summary(calls, jev_input_tokens=0, decisions=0)
+        self.assertFalse(summary["usage_known"])
+        self.assertEqual(summary["unknown_calls"], 1)
+        self.assertIsNone(summary["cost_usd"], "an unknown call makes the task's cost unknown, never zero")
+
+    def test_every_call_reported_usage_keeps_the_cost_known(self) -> None:
+        calls = [
+            {"status": "ok", "usage_known": True, "input_tokens": 100, "output_tokens": 5, "tool_calls": []},
+            {"status": "ok", "usage_known": True, "input_tokens": 20, "output_tokens": 1, "tool_calls": []},
+        ]
+        prices = {"CHAT_USD_PER_M_INPUT": "1", "CHAT_USD_PER_M_OUTPUT": "2"}
+        with patch.dict(os.environ, prices):
+            summary = browse.usage_summary(calls, jev_input_tokens=0, decisions=0)
+        self.assertTrue(summary["usage_known"])
+        self.assertEqual(summary["unknown_calls"], 0)
+        self.assertIsNotNone(summary["cost_usd"])
+
 
 def _completed(summary: str) -> str:
     return browser_result(summary, status="completed")

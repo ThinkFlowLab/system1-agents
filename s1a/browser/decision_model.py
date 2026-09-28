@@ -19,6 +19,7 @@ import json
 import re
 import statistics
 import time
+from collections.abc import Awaitable
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator
 from urllib.parse import urlparse
@@ -42,7 +43,9 @@ from s1a.browser.action_space import (
 )
 from s1a.browser.probe_js import POLICY_PROBE_JS, STAMP_ATTRIBUTE
 from s1a.decision_models import DecisionModel
+from s1a.recovery import RecoveryBudget, RecoveryExhausted, RecoveryLimits, recovery_next_action
 from s1a.spec import BrowserAgentSpec
+from s1a.tool.rethink import draft_plan
 
 BROWSER_TURN_TOOL = "browser_click"
 # The runtime registers MCP tools under a server prefix (mcp_<server>_browser_click); match by suffix.
@@ -75,6 +78,8 @@ SUMMARY_TEXT_CHARS = (
 )
 MAX_URL_VISITS = 3  # the fourth arrival at one URL ends the run: the policy is circling
 MAX_PREFETCHED_FIELDS = 8
+OBSERVATION_ERROR_CHARS = 200  # a failed probe is refused with a short reason, never a whole browser log
+RECENT_ACTIONS = 12  # the actions and candidates a bounded recovery's plan is written over
 PROBE_SETTLE_MS = 500  # must equal probe_js.py's JS default so an un-escalated probe's timing is unchanged
 PROBE_QUIET_MS = 60  # must equal probe_js.py's JS default DOM-quiet window
 ACTION_SETTLE_START_MS = 250  # first in-page wait for an action whose effect has not shown yet
@@ -86,11 +91,18 @@ URL_RE = re.compile(r"https?://[^\s'\"<>]+")
 
 @dataclass(frozen=True)
 class BrowserPolicy:
-    """The run-time switches of the Jev browser policy, set per run by flags or the environment, never by the spec."""
+    """The run-time switches of the Jev browser policy, set per run by flags or the environment, never by the spec.
+
+    ``rethink_on`` turns the bounded recovery on: each stall (an unchanged page, an A-B-A-B loop, a visited page, an
+    over-long WAIT) spends one refresh and, when the page really did not move, one plan under ``recovery_limits``.
+    The fields are last so a three-argument ``BrowserPolicy`` keeps working.
+    """
 
     prefetch_values: bool  # generate a typed value for every editable field as soon as a probe shows it
     batch_actions: bool  # each action and the next probe in one browser_run_code_unsafe call; needs unsafe_dev
     goal_value_cache: bool  # offer values extracted from the goal to Jev as a choice head
+    rethink_on: bool = False  # bounded recovery: refresh plus plan under a per-task budget, never a wider tool set
+    recovery_limits: RecoveryLimits = field(default_factory=RecoveryLimits)  # attempts and active seconds, never reset
 
 
 @dataclass
@@ -117,6 +129,20 @@ class _Run:
     url_visits: dict[str, int] = field(default_factory=dict)
     last_url: str = ""  # the URL of the latest good probe; a probe landing elsewhere counts a visit to its URL
     token: str = field(default_factory=lambda: uuid4().hex[:6])  # keeps tool-call ids unique across runs
+    # -- bounded recovery: one per-run budget, its events, and the one-turn plan they may produce --------------
+    recovery: RecoveryBudget | None = None
+    recovery_events: list[dict[str, Any]] = field(default_factory=list)
+    plan: str = ""  # the last plan, attached to the next observation and cleared there; it never executes a click
+    history_boundary: int = 0  # detection reads history from here, so a plan gets a few actions before a re-stall
+    recovery_stopped: bool = False  # the run ended because recovery failed: no answer is fetched for it
+    recovery_error: str | None = None
+    recovery_snapshot: dict[str, Any] | None = None  # the freshest observation a stopped recovery reached
+    # The policy still answered BLOCKED after a replan: the task did not settle, but recovery itself did not fail.
+    recovery_blocked: bool = False
+    recovery_blocked_reason: str | None = None
+    terminal_message: AssistantMessage | None = (
+        None  # re-served to a same-task re-call, so a terminal run never revives
+    )
 
 
 class BrowserDecisionModel(Model):
@@ -146,8 +172,12 @@ class BrowserDecisionModel(Model):
         self._goal_value_cache = policy.goal_value_cache
         self._prefetch_enabled = policy.prefetch_values
         self._batch_actions = policy.batch_actions
+        self._rethink_on = policy.rethink_on
+        self._recovery_limits = policy.recovery_limits
         self._language = spec.language
         self._decision_model = decision_model
+        # the chat model writes the bounded recovery's plan, as the tool front's RethinkRail does
+        self._planner: Model | None = fallback
         self._runtime: Any = None
         self._tool_names: dict[str, str] = {}
         self._run: _Run | None = None
@@ -217,10 +247,19 @@ class BrowserDecisionModel(Model):
             )
         goal = self._goal_from(messages)
         run = self._run
+        if run is not None and run.recovery_stopped and goal == run.goal:
+            if run.terminal_message is None:
+                # Cancellation can unwind before _final. A repeated call still cannot resume this task.
+                return await self._final(
+                    run, "BLOCKED", run.recovery_snapshot or {}, run.recovery_error or "recovery stopped"
+                )
+            return run.terminal_message
         if run is None or run.finished or goal != run.goal:
             if run is not None:
                 self._cancel_run_tasks(run)
             run = _Run(goal=goal, started_at=time.perf_counter())
+            if self._rethink_on:
+                run.recovery = RecoveryBudget(self._recovery_limits)
             self._run = run
             if self._goal_value_cache:
                 run.values_task = asyncio.create_task(self._extract_values(goal))
@@ -234,21 +273,18 @@ class BrowserDecisionModel(Model):
         snapshot, probe_ms = await (self._batched_probe(run, batched) if batched else self._probe(run))
         settle_probes, settle_ms = 0, 0
         while True:  # a settle probe can set the guards too, so they are read on every pass
-            if snapshot.get("stalled"):
-                reason = f"{self._spec.budget.stall_after} actions without page change"
-                return await self._final(run, "BLOCKED", snapshot, reason)
-            if snapshot.get("oscillating"):
-                return await self._final(run, "BLOCKED", snapshot, "oscillating between two pages")
-            if snapshot.get("revisiting"):
-                return await self._final(run, "BLOCKED", snapshot, "reached the same page four times")
+            self._require_observation(snapshot)
+            guard = self._guard(snapshot)
+            if guard is not None:
+                trigger, reason = guard
+                recovered = await self._recover(run, snapshot, trigger=trigger, reason=reason)
+                if recovered is None:
+                    return await self._final(run, "BLOCKED", snapshot, reason)
+                snapshot, probe_ms = recovered
+                settle_probes, settle_ms = 0, 0
+                continue
             space = build_action_space(snapshot, run.history)
-            for operation, tool in _OPERATION_TOOLS.items():
-                if tool not in self._tool_names:
-                    space.operations = [op for op in space.operations if op != operation]
-                    space.heads.pop(operation, None)
-            acted = next((h for h in reversed(run.history) if h["kind"] != "wait"), None)
-            if acted is not None and acted["kind"] == "scroll" and acted["page_changed"] is False:
-                space.operations = [op for op in space.operations if op != acted["action"]]  # the page end was reached
+            self._filter_operations(space, run)
             values = run.values if run.values_task is None or run.values_task.done() else []
             if run.values_task is not None and run.values_task.done() and not run.values:
                 try:
@@ -258,6 +294,10 @@ class BrowserDecisionModel(Model):
                     run.values = []
                 values = run.values
             observation = build_observation(space, snapshot, run.history)
+            if run.plan:
+                if isinstance(observation.state, dict):
+                    observation.state["plan"] = run.plan  # rides one turn; the decision still picks the action
+                run.plan = ""
             questions = build_questions(
                 space, goal=run.goal, values=values, rules=self._spec.rules, language=self._language
             )
@@ -292,12 +332,26 @@ class BrowserDecisionModel(Model):
                 run.consecutive_waits += 1
                 run.history.append({"action": "wait", "kind": "wait", "text": None, "page_changed": None})
                 if run.consecutive_waits > MAX_CONSECUTIVE_WAITS:
-                    return await self._final(run, "BLOCKED", snapshot, "waited without progress")
+                    recovered = await self._recover(
+                        run, snapshot, trigger="wait_streak", reason="waited without progress"
+                    )
+                    if recovered is None:
+                        return await self._final(run, "BLOCKED", snapshot, "waited without progress")
+                    snapshot, probe_ms = recovered
+                    settle_probes, settle_ms = 0, 0
+                    continue
                 snapshot, settle_probes, settle_ms, progressed = await self._settle_wait(run, snapshot)
                 if not progressed:
                     record["settle_probes"] += settle_probes
                     record["settle_ms"] += settle_ms
-                    return await self._final(run, "BLOCKED", snapshot, "waited without progress")
+                    recovered = await self._recover(
+                        run, snapshot, trigger="wait_settle", reason="waited without progress"
+                    )
+                    if recovered is None:
+                        return await self._final(run, "BLOCKED", snapshot, "waited without progress")
+                    snapshot, probe_ms = recovered
+                    settle_probes, settle_ms = 0, 0
+                    continue
                 probe_ms = settle_ms
                 continue
             run.consecutive_waits = 0
@@ -308,6 +362,214 @@ class BrowserDecisionModel(Model):
             if move.operation == "BLOCKED":
                 return await self._final(run, "BLOCKED", snapshot, "")
             return await self._act(run, move, snapshot, record)
+
+    # -- bounded recovery ---------------------------------------------------
+
+    @staticmethod
+    def _require_observation(snapshot: dict[str, Any]) -> None:
+        """Refuse a failed probe before the decision model or a chat answer can read it as an empty page.
+
+        The runtime reports a failed probe as ``ok=False`` or an ``error`` field; either is a hard observation
+        failure (a missing browser library, a closed page), not a page with zero elements. Raising here keeps a
+        broken browser from being answered DONE, and the bounded reason keeps a full browser log out of the logs.
+        The recovery refresh and the in-page settle probes keep their own handling; only the observation fed to a
+        decision is refused.
+        """
+        if _probe_failed(snapshot):
+            raise RuntimeError(f"browser observation failed: {_probe_error_reason(snapshot)}")
+
+    def _guard(self, snapshot: dict[str, Any]) -> tuple[str, str] | None:
+        """The page-level stop signals as ``(trigger, reason)``; the caller recovers or ends the run."""
+        if snapshot.get("stalled"):
+            return "stalled", f"{self._spec.budget.stall_after} actions without page change"
+        if snapshot.get("oscillating"):
+            return "oscillating", "oscillating between two pages"
+        if snapshot.get("revisiting"):
+            return "revisiting", "reached the same page four times"
+        return None
+
+    def _filter_operations(self, space: Any, run: _Run) -> None:
+        """Drop the operations whose tool this turn was not offered: the offer is the run's, not the plan's."""
+        for operation, tool in _OPERATION_TOOLS.items():
+            if tool not in self._tool_names:
+                space.operations = [op for op in space.operations if op != operation]
+                space.heads.pop(operation, None)
+        acted = next((h for h in reversed(run.history) if h["kind"] != "wait"), None)
+        if acted is not None and acted["kind"] == "scroll" and acted["page_changed"] is False:
+            space.operations = [op for op in space.operations if op != acted["action"]]
+
+    async def _recover(
+        self, run: _Run, snapshot: dict[str, Any], *, trigger: str, reason: str
+    ) -> tuple[dict[str, Any], int] | None:
+        """One stall's bounded attempt: a read-only refresh, then a plan for the next turn; ``None`` means stop.
+
+        The event is appended and the attempt charged before the awaits, so a timeout, a cancellation or an error
+        still leaves the trigger, the fresh observation and the stage in the record. The fresh page is read through
+        the read-only probe, never a navigation; the plan only ever rides into the next observation, and the offered
+        tools and candidates are filtered exactly as the normal turn filters them, so recovery cannot widen what the
+        run may do. Only the detection windows reset after an attempt: history, ticks and the global budget stay.
+        """
+        budget = run.recovery
+        if budget is None:
+            return None
+        event: dict[str, Any] = {
+            "kind": "recovery",
+            "trigger": trigger,
+            "reason": reason,
+            "tick": run.tick,
+            "attempt": budget.attempts,
+            "recent_actions": [
+                {key: entry.get(key) for key in ("action", "kind", "page_changed")}
+                for entry in run.history[-RECENT_ACTIONS:]
+            ],
+            "stage": "refresh",
+            "fresh_obs": None,
+            "plan": "",
+            "spent_s": round(budget.spent_s, 3),
+            "termination": None,
+        }
+        run.recovery_events.append(event)
+        try:
+            budget.begin_attempt()  # a stall starts one attempt; a spent budget gives up, never a success
+        except RecoveryExhausted as exc:
+            self._stop_recovery(run, event, stage="exhausted", termination="give_up", error=str(exc))
+            return None
+        event["attempt"] = budget.attempts
+        try:
+            fresh = await budget.call(self._raw_probe(settle_ms=PROBE_SETTLE_MS, quiet_ms=PROBE_QUIET_MS, after=None))
+        except asyncio.CancelledError:
+            self._stop_recovery(run, event, stage="refresh", termination="cancelled", error="recovery cancelled")
+            raise
+        except asyncio.TimeoutError:
+            self._stop_recovery(run, event, stage="refresh", termination="timeout", error="recovery refresh timed out")
+            return None
+        except Exception as exc:  # noqa: BLE001 - any refresh failure is a clean terminal, never a retry loop
+            self._stop_recovery(
+                run, event, stage="refresh", termination="error", error=f"recovery refresh failed: {exc}"
+            )
+            return None
+        finally:
+            event["spent_s"] = round(budget.spent_s, 3)
+        event["fresh_obs"] = fresh
+        run.recovery_snapshot = fresh
+        if _probe_failed(fresh):
+            self._stop_recovery(
+                run,
+                event,
+                stage="refresh",
+                termination="error",
+                error=f"recovery probe failed: {_probe_error_reason(fresh)}",
+            )
+            return None
+        self._reset_detection(run, fresh)
+        if snapshot.get("page_key") != fresh.get("page_key"):
+            event["termination"] = "delayed_progress"  # the page moved after all: no plan to write
+            return fresh, 0
+        if self._planner is None:
+            event["termination"] = "no_planner"
+            return fresh, 0
+        event["stage"] = "planner"
+        try:
+            plan = await budget.call(self._draft_plan(run, fresh))
+            if not (plan or "").strip():
+                # A blank answer is a planner failure, not a plan: the turn would otherwise get no guidance and the
+                # event would read as planned. ``draft_plan`` strips, so None/whitespace arrives here as "".
+                raise ValueError("planner returned an empty plan")
+        except asyncio.CancelledError:
+            self._stop_recovery(run, event, stage="planner", termination="cancelled", error="recovery cancelled")
+            raise
+        except asyncio.TimeoutError:
+            self._stop_recovery(run, event, stage="planner", termination="timeout", error="recovery planner timed out")
+            return None
+        except Exception as exc:  # noqa: BLE001 - any planner failure is a clean terminal, never a retry loop
+            self._stop_recovery(
+                run, event, stage="planner", termination="error", error=f"recovery planner failed: {exc}"
+            )
+            return None
+        finally:
+            event["spent_s"] = round(budget.spent_s, 3)
+        run.plan = plan  # the next observation offers it; the plan never executes a click itself
+        event.update(stage="planner", plan=plan, termination="planned")
+        return fresh, 0
+
+    @staticmethod
+    def _reset_detection(run: _Run, fresh: dict[str, Any]) -> None:
+        """After an attempt only the detection windows reset; history, ticks and the global budget stay."""
+        run.history_boundary = len(run.history)
+        run.consecutive_waits = 0
+        run.settle_spent_ms = 0
+        run.url_visits.clear()
+        run.last_url = str(fresh.get("url") or "")
+
+    @staticmethod
+    def _stop_recovery(run: _Run, event: dict[str, Any], *, stage: str, termination: str, error: str) -> None:
+        if run.recovery is not None:
+            event["spent_s"] = round(run.recovery.spent_s, 3)
+        event.update(stage=stage, termination=termination, error=error)
+        event["next_action"] = recovery_next_action(termination=termination, stage=stage, error=error)
+        run.recovery_stopped = True
+        run.recovery_error = error
+
+    def _draft_plan(self, run: _Run, fresh: dict[str, Any]) -> Awaitable[str]:
+        """The replan request over the fresh page, offering exactly the tools and candidates the turn will."""
+        space = build_action_space(fresh, run.history)
+        self._filter_operations(space, run)
+        recent = [
+            {"action": entry.get("action"), "kind": entry.get("kind"), "page_changed": entry.get("page_changed")}
+            for entry in run.history[-RECENT_ACTIONS:]
+        ]
+        state = {
+            "goal": run.goal,
+            "page": {"url": fresh.get("url", ""), "title": fresh.get("title", ""), "text": fresh.get("text", "")},
+            "elements": space.elements,
+        }
+        candidates = {
+            "operations": list(space.operations),
+            "targets": {
+                operation: {key: candidate.item.get("label", "") for key, candidate in head.items()}
+                for operation, head in space.heads.items()
+            },
+        }
+        assert self._planner is not None
+        return draft_plan(
+            self._planner, rules=self._spec.rules, recent_steps=recent, state=state, candidates=candidates
+        )
+
+    def _recovery_summary(self, run: _Run) -> dict[str, Any]:
+        """The recovery record for the report and the terminal summary: counts, active time and the last termination.
+
+        On a failure it also carries the specific reason and one short ``next_action``: the escalation the task says
+        an operator should take, never a wider tool set or an automatic retry. A model that still answers BLOCKED
+        after a replan is recorded separately (``blocked_after_recovery``): the task did not settle, so it is not a
+        success, but recovery itself neither failed nor exhausted its budget.
+        """
+        budget = run.recovery
+        last = run.recovery_events[-1] if run.recovery_events else {}
+        failed = run.recovery_stopped
+        blocked = run.recovery_blocked
+        if failed:
+            reason = run.recovery_error
+            next_action = recovery_next_action(
+                termination=last.get("termination"), stage=last.get("stage"), error=run.recovery_error
+            )
+        elif blocked:
+            reason = run.recovery_blocked_reason
+            next_action = recovery_next_action(termination="blocked", error=run.recovery_blocked_reason)
+        else:
+            reason = next_action = None
+        return {
+            "attempts": budget.attempts if budget is not None else 0,
+            "spent_s": round(budget.spent_s, 3) if budget is not None else 0.0,
+            "exhausted": budget.exhausted if budget is not None else False,
+            "failed": failed,
+            "blocked_after_recovery": blocked,
+            "termination": last.get("termination"),
+            "stage": last.get("stage"),
+            "error": run.recovery_error,
+            "reason": reason,
+            "next_action": next_action,
+            "events": run.recovery_events,
+        }
 
     async def _settle_wait(self, run: _Run, asked_snapshot: dict[str, Any]) -> tuple[dict[str, Any], int, int, bool]:
         """Spend a WAIT verdict in-page instead of paying another decisions request.
@@ -372,14 +634,14 @@ class BrowserDecisionModel(Model):
                 snapshot, changed = await self._settle_action(run, snapshot, pending["page_key"])
             pending["entry"]["page_changed"] = changed
             limit = self._spec.budget.stall_after
-            recent = run.history[-limit:] if limit else []
+            recent = run.history[run.history_boundary :][-limit:] if limit else []
             if (
                 limit
                 and len(recent) == limit
                 and all(h["page_changed"] is False and h["kind"] != "wait" for h in recent)
             ):
                 snapshot["stalled"] = True
-            acted = [h for h in run.history if h["kind"] != "wait"][-4:]
+            acted = [h for h in run.history[run.history_boundary :] if h["kind"] != "wait"][-4:]
             labels = [h["action"] for h in acted]
             if (
                 len(labels) == 4
@@ -717,12 +979,33 @@ class BrowserDecisionModel(Model):
 
     async def _final(self, run: _Run, status: str, snapshot: dict[str, Any], reason: str) -> AssistantMessage:
         self._cancel_run_tasks(run)  # no value call outlives its run
-        if status == "BLOCKED" and not run.answer and any(h.get("page_changed") for h in run.history):
+        if run.recovery_stopped and run.recovery_snapshot is not None:
+            snapshot = run.recovery_snapshot  # the freshest page a stopped recovery reached
+        if (
+            status == "BLOCKED"
+            and not run.answer
+            and not run.recovery_stopped  # a failed recovery is a clear BLOCKED, not another answer request
+            and not _probe_failed(snapshot)  # a failed observation holds no page a chat answer may read
+            and any(h.get("page_changed") for h in run.history)
+        ):
             run.answer = await self._answer(run, snapshot)  # the page the run reached may already hold the answer
         run.finished = True
+        if status == "BLOCKED" and not run.recovery_stopped and run.recovery is not None and run.recovery.attempts > 0:
+            # The policy answered BLOCKED after a replan: the task is not settled, but this is not a failed or
+            # exhausted recovery either. Keep the partial answer as context and name the real reason and next step.
+            run.recovery_blocked = True
+            run.recovery_blocked_reason = (
+                reason or f"model reported BLOCKED after {run.recovery.attempts} recovery attempt(s)"
+            )
         summary = {
             "status": status,
-            "reason": reason,
+            "reason": (
+                run.recovery_error
+                if run.recovery_stopped
+                else run.recovery_blocked_reason
+                if run.recovery_blocked
+                else reason
+            ),
             "url": snapshot.get("url"),
             "title": snapshot.get("title"),
             "steps": len([h for h in run.history if h["kind"] != "wait"]),
@@ -730,7 +1013,15 @@ class BrowserDecisionModel(Model):
             "page_text": str(snapshot.get("text", ""))[:SUMMARY_TEXT_CHARS],
             "answer": run.answer,
         }
-        return AssistantMessage(content=json.dumps(summary, ensure_ascii=False), finish_reason="stop")
+        if run.recovery is not None:
+            # Full observations belong in report()/decision_ticks.json; the harness caps terminal text.
+            recovery = self._recovery_summary(run)
+            summary["recovery"] = {key: value for key, value in recovery.items() if key != "events"}
+            if recovery["next_action"] and (recovery["failed"] or recovery["blocked_after_recovery"]):
+                summary["next_action"] = recovery["next_action"]  # the actionable escalation, next to the reason
+        message = AssistantMessage(content=json.dumps(summary, ensure_ascii=False), finish_reason="stop")
+        run.terminal_message = message
+        return message
 
     @staticmethod
     def _goal_from(messages: Any) -> str:
@@ -765,6 +1056,19 @@ class BrowserDecisionModel(Model):
                 "settle_ms": 0,
                 "values": {"cache": 0, "prefetch": 0, "llm": 0},
                 "history": [],
+                "recovery": {
+                    "attempts": 0,
+                    "spent_s": 0.0,
+                    "exhausted": False,
+                    "failed": False,
+                    "blocked_after_recovery": False,
+                    "termination": None,
+                    "stage": None,
+                    "error": None,
+                    "reason": None,
+                    "next_action": None,
+                    "events": [],
+                },
             }
         jev = [t["decision_ms"] for t in run.ticks]
         return {
@@ -785,12 +1089,24 @@ class BrowserDecisionModel(Model):
                 for source in ("cache", "prefetch", "llm")
             },
             "history": run.history,
+            "recovery": self._recovery_summary(run),
         }
+
+
+def _probe_failed(snapshot: dict[str, Any]) -> bool:
+    """A probe that failed is not a page: the runtime reports it as ``ok=False`` or an ``error`` field."""
+    return snapshot.get("ok") is False or bool(snapshot.get("error"))
+
+
+def _probe_error_reason(snapshot: dict[str, Any]) -> str:
+    """The bounded, single-line reason for a failed probe; a browser log never floods the terminal or a log."""
+    reason = " ".join(str(snapshot.get("error") or "policy probe returned no result").split())
+    return reason[:OBSERVATION_ERROR_CHARS]
 
 
 def _progressed(snapshot: dict[str, Any], before_key: Any) -> bool:
     """A page moved on only when a probe that succeeded shows a different ``page_key``."""
-    return not snapshot.get("error") and snapshot.get("page_key") != before_key
+    return not _probe_failed(snapshot) and snapshot.get("page_key") != before_key
 
 
 def _json_field(content: Any, key: str) -> Any:

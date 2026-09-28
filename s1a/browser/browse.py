@@ -28,8 +28,9 @@ from openjiuwen.harness.tools.browser_move.utils.parsing import extract_json_obj
 from s1a.browser.decision_model import URL_RE, BrowserDecisionModel, BrowserPolicy
 from s1a.decision_models import DecisionModel, build_model
 from s1a.config import HOME, browser_launch_args, chat_model_from_env, first_env
-from s1a.counting_model import CountingModel
+from s1a.counting_model import CountingModel, usage_known
 from s1a.pricing import chat_prices, cost_usd
+from s1a.recovery import RecoveryLimits
 from s1a.browser.profiler import BrowserProfiler, render
 from s1a.spec import BrowserAgentSpec, positive_float, positive_int
 
@@ -75,14 +76,33 @@ def finish_llm(answer: Answer) -> Answer:
 
 def finish_decision_model(answer: Answer, *, model_name: str) -> Answer:
     """The policy's answer from the page it reached (on DONE, or on BLOCKED after progress) is the result; none fails.
-    ``model_name`` names the decision model in the error."""
+
+    A bounded recovery that timed out, errored or ran out of attempts is a failure even when the summary carries an
+    answer: the run did not settle the task, it stopped trying. A policy that still answers BLOCKED after one or more
+    replans is a failure too, even with a partial answer: the task remains blocked, so the partial text is kept only
+    as context, with the real reason and an actionable next step. ``model_name`` names the decision model in the error.
+    """
     summary = terminal_summary(answer["final"])
     if summary is None:
         return answer
     status = str(summary.get("status") or "")
+    recovery = summary.get("recovery") or {}
     answer["status"] = status
     answer["terminal"] = summary
     answer["final"] = str(summary.get("answer") or "")
+    if recovery.get("failed"):
+        answer["ok"] = False
+        detail = recovery.get("error") or summary.get("reason") or "no reason given"
+        answer["error"] = f"{model_name} recovery {recovery.get('termination') or 'failed'}: {detail}"
+        # The actionable escalation rides with the failure; it never widens the tool set or retries on its own.
+        answer["next_action"] = recovery.get("next_action") or summary.get("next_action")
+        return answer
+    if recovery.get("blocked_after_recovery"):
+        answer["ok"] = False
+        detail = recovery.get("reason") or summary.get("reason") or "no reason given"
+        answer["error"] = f"{model_name} BLOCKED after recovery: {detail}"
+        answer["next_action"] = recovery.get("next_action") or summary.get("next_action")
+        return answer
     answer["ok"] = bool(answer["final"])
     if answer["ok"]:
         answer["error"] = None  # run_task flagged the harness's own verdict; the policy's answer is the one that counts
@@ -94,10 +114,16 @@ def finish_decision_model(answer: Answer, *, model_name: str) -> Answer:
 
 
 def usage_summary(calls: list[dict[str, Any]], *, jev_input_tokens: int, decisions: int) -> dict[str, Any]:
-    """Counts and dollars for one task: decisions, the chat model's calls and tokens, Jev's input tokens, the sum in USD."""
+    """Counts and dollars for one task: decisions, the chat model's calls and tokens, Jev's input tokens, the sum in USD.
+
+    A failed or cancelled call is in ``calls`` with unknown usage: its tokens cannot be summed, so the task's
+    ``cost_usd`` is None (unknown), never zero, and ``usage_known`` is False with the count in ``unknown_calls``.
+    """
     chat_in = sum(int(call["input_tokens"]) for call in calls)
     chat_out = sum(int(call["output_tokens"]) for call in calls)
     chat_cached = sum(int(call.get("cache_tokens") or 0) for call in calls)
+    complete = usage_known(calls)
+    unknown_calls = len([call for call in calls if not call.get("usage_known", True)])
     prices = chat_prices(first_env("MODEL_NAME")) if chat_in + chat_out else None
     return {
         "decisions": decisions,
@@ -106,7 +132,9 @@ def usage_summary(calls: list[dict[str, Any]], *, jev_input_tokens: int, decisio
         "chat_output_tokens": chat_out,
         "chat_cache_tokens": chat_cached,
         "jev_input_tokens": jev_input_tokens,
-        "cost_usd": cost_usd(jev_input_tokens, chat_in, chat_out, chat_cached, prices),
+        "usage_known": complete,
+        "unknown_calls": unknown_calls,
+        "cost_usd": None if not complete else cost_usd(jev_input_tokens, chat_in, chat_out, chat_cached, prices),
     }
 
 
@@ -156,8 +184,13 @@ async def browse(
 
     A decision model writes ``decision_ticks.json`` under ``logs_dir`` and returns the ticks and the policy's report with
     the answer; ``llm`` writes ``chat_calls.json``. ``decision_model`` is required by every other name and unused
-    by ``llm``.
+    by ``llm``. ``policy.rethink_on`` needs a decision model: the plain chat model cannot read a plan, so the pair is
+    rejected here, before any agent or browser is built, instead of silently ignoring the flag.
     """
+    if policy.rethink_on and model_name == "llm":
+        raise RuntimeError("--rethink on needs a decision model; --model llm cannot use it")
+    if policy.rethink_on and decision_model is None:
+        raise RuntimeError(f"--rethink on needs a decision model; --model {model_name} was given none")
     logs_dir.mkdir(parents=True, exist_ok=True)
     calls: list[dict[str, Any]] = []
     counted = CountingModel(chat, calls)
@@ -258,6 +291,27 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
         help="decision models only: offer values extracted from the goal as a choice head",
     )
     build.add_argument(
+        "--rethink",
+        choices=("on", "off"),
+        default="off",
+        help=(
+            "decision models only: on a stall re-probe the page and ask the chat model for a plan under a bounded "
+            "budget (off keeps the legacy BLOCKED guard; run the same goal both ways to compare)"
+        ),
+    )
+    build.add_argument(
+        "--rethink-attempts",
+        type=positive_int,
+        default=3,
+        help="bounded rethink: stalls handled by a refresh and a plan before the task gives up",
+    )
+    build.add_argument(
+        "--rethink-timeout",
+        type=positive_float,
+        default=15.0,
+        help="bounded rethink: seconds across all refreshes and plans in one task, never reset by progress",
+    )
+    build.add_argument(
         "--logs-dir",
         type=Path,
         default=RUNS_DIR / spec.name / f"{datetime.now():%Y-%m-%d__%H-%M-%S}",
@@ -273,10 +327,13 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
 
 
 def policy_from_args(args: argparse.Namespace) -> BrowserPolicy:
+    """The policy from the parsed flags. ``RecoveryLimits`` rejects a non-finite or non-positive budget here."""
     return BrowserPolicy(
         prefetch_values=args.prefetch == "on",
         batch_actions=args.batch == "on",
         goal_value_cache=args.goal_values == "on",
+        rethink_on=args.rethink == "on",
+        recovery_limits=RecoveryLimits(max_attempts=args.rethink_attempts, timeout_s=float(args.rethink_timeout)),
     )
 
 

@@ -52,13 +52,44 @@ class TestWindowEnv(IsolatedAsyncioTestCase):
         self.assertEqual(fake.clicks[-1][2], "tok-7-5")  # the token of the snapshot the model saw
         state = await env.observe()
         self.assertEqual((state["goal"], state["app"]), ("compute 12 times 7", "Calculator"))
-        self.assertEqual(
-            (state["presses"], state["progress"]), (["1", "2", "Multiply", "7"], {"values": ["7"], "presses": 4})
-        )
+        self.assertEqual(state["presses"], ["1", "2", "Multiply", "7"])
+        self.assertEqual(state["progress"]["values"], ["7"])
+        self.assertEqual(state["progress"]["title"], "Calculator")
+        self.assertEqual(state["progress"]["elements"], state["elements"])
+        self.assertNotIn("presses", state["progress"])  # the count is gone: the window is the progress
         self.assertEqual(state["elements"][0], {"role": "AXStaticText", "label": "", "value": "7"})
         self.assertEqual((env.done, env.score), (False, 0.0))
         await env.step("click:Equals")
         self.assertEqual((env.done, env.score, await env.candidates()), (True, 1.0, {}))
+
+    async def test_refresh_re_reads_the_window_with_new_tokens(self) -> None:
+        fake = FakeCalculator()
+        env = _env(fake)
+        await env.reset()
+        fake.display = "4"  # the window moved on its own since the snapshot
+        await env.refresh()
+        self.assertEqual(fake.snapshots, 3)  # reset's clear made two, refresh the third
+        self.assertEqual((await env.observe())["progress"]["values"], ["4"])
+        await env.step("click:1")  # offered from the refreshed snapshot, so its token is current
+        self.assertEqual(fake.clicks[-1][2], "tok-1-3")
+
+    async def test_refresh_keeps_a_done_or_planned_episode_done(self) -> None:
+        for execute in (True, False):
+            with self.subTest(execute=execute):
+                fake = FakeCalculator()
+                env = _env(fake, execute=execute)
+                await env.reset()
+                end = DONE if execute else "click:1"
+                await env.step(end)
+                self.assertTrue(env.done)
+                planned = (await env.observe()).get("planned")
+                await env.refresh()
+                self.assertTrue(env.done)
+                self.assertEqual((await env.observe()).get("planned"), planned)
+
+    async def test_refresh_before_reset_is_an_error(self) -> None:
+        with self.assertRaises(RuntimeError):
+            await _env(FakeCalculator()).refresh()
 
     async def test_done_and_abstain_end_the_episode_without_a_click(self) -> None:
         for key in (DONE, ABSTAIN):

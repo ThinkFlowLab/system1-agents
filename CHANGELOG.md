@@ -6,12 +6,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- Bounded recovery treats an empty, whitespace-only or otherwise blank planner answer (browser and desktop) as a
+  planner failure: the run stops with the existing reason and next action, the one attempt and its active seconds
+  stay charged and the fresh observation is kept, instead of recording a `planned` event with an empty plan.
 - Windows development checks: the smoke script accepts CRLF output, shell scripts and Git hooks retain LF
   line endings, and tests check socket closure and invalid output directories without Unix-specific behavior.
   The core CI matrix now covers Windows with Python 3.11.
 
 ### Added
 
+- Bounded recovery on the browser front: `--rethink on|off` (default off), `--rethink-attempts` (3) and
+  `--rethink-timeout` (15 s). A stall (no page change, an A-B-A-B loop, a repeated URL, a WAIT that moved nothing)
+  re-probes the page read-only through the same runtime permission and asks the chat model for a plan under a
+  per-task `RecoveryLimits` budget; the next normal decision still picks the action, the plan never executes and
+  cannot widen the offered tools or add `unsafe_dev`. Only the detection windows reset after an attempt; attempts,
+  seconds, history and ticks stay. `report()` and `decision_ticks.json` keep the recovery events, counts and
+  termination, and a timed-out, failed or exhausted recovery is a clear `BLOCKED` even when a summary carries text.
+  `--model llm` with `--rethink on` is rejected before the agent or browser is built.
+- The desktop agent's bounded recovery takes the same `--rethink-attempts` and `--rethink-timeout` names and stalls
+  after 3 actions without progress. Recovery failures include an operator next action; failed or cancelled chat
+  calls remain counted, and incomplete token usage is reported as unknown cost.
+- Small repeatable browser and native Windows recovery on/off fixtures, with independent completion checks,
+  bounded failure cases and paired reports. These use scripted models to verify mechanisms, not model accuracy.
 - The MCP `decide` tool accepts `model="jev"|"laya"|"cua"`, defaulting to `jev`. Local backends use their
   optional extras and need no Jev API key.
 - `docs/benchmarks.md`: the Google Flights driver comparison rerun on 2026-09-23 from Poland, every arm three times on

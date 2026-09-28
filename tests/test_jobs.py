@@ -111,11 +111,23 @@ class TestSummaryAndJob(TestCase):
             self.assertEqual(first["agent_result"]["n_cache_tokens"], 50)
             self.assertEqual(first["agent_result"]["cost_usd"], 0.001)
             self.assertEqual(first["agent_result"]["metadata"]["chat_calls"], 2)
+            self.assertTrue(first["agent_result"]["metadata"]["usage_known"])
             episode = json.loads((trials[0] / "agent" / "episode.json").read_text())
             self.assertEqual(episode["final_state"], {"n": 3})
             self.assertEqual(episode["extra"]["rethinks"][0]["kind"], "repeat")
             self.assertEqual(episode["views"][0]["state"], {"n": 0})
             self.assertFalse((trials[0] / "agent" / "frames").exists())
+
+    def test_an_unknown_usage_episode_is_flagged_in_the_harbor_metadata(self) -> None:
+        episode = _episode(0, 1.0, 3)
+        episode.usage_known = False
+        episode.cost_usd = None
+        with tempfile.TemporaryDirectory() as tmp:
+            job_dir = write_job("counter", [episode], results_dir=Path(tmp))
+            trial = next(p for p in job_dir.iterdir() if p.is_dir())
+            result = json.loads((trial / "result.json").read_text())
+        self.assertFalse(result["agent_result"]["metadata"]["usage_known"])
+        self.assertIsNone(result["agent_result"]["cost_usd"])
 
     def test_job_folder_takes_the_episode_frames(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

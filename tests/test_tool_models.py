@@ -149,6 +149,87 @@ class TestToolDecisionModelOverJev(IsolatedAsyncioTestCase):
         message = await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)
         self.assertEqual(json.loads(message.content)["status"], "BLOCKED")
 
+    async def test_a_spent_budget_in_a_bounded_episode_after_give_up_is_blocked_not_done(self) -> None:
+        state = EvalState(max_acts=1, bounded_recovery=True, give_up=True)
+        state.acts.append({"key": "inc", "score": 1.0, "done": False})
+        message = await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)
+        self.assertEqual(json.loads(message.content)["status"], "BLOCKED")
+
+    async def test_a_spent_budget_in_a_bounded_episode_after_an_error_is_blocked(self) -> None:
+        state = EvalState(max_acts=1, bounded_recovery=True, error="rethink planner timed out")
+        state.acts.append({"key": "inc", "score": 1.0, "done": False})
+        summary = json.loads((await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)).content)
+        self.assertEqual((summary["status"], summary["reason"]), ("BLOCKED", "rethink planner timed out"))
+
+    async def test_an_unfinished_bounded_episode_at_the_act_limit_is_blocked(self) -> None:
+        state = EvalState(max_acts=1, bounded_recovery=True)
+        state.acts.append({"key": "inc", "score": 1.0, "done": False})
+        summary = json.loads((await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)).content)
+        self.assertEqual((summary["status"], summary["reason"]), ("BLOCKED", "act budget spent"))
+
+    async def test_a_spent_budget_without_bounded_recovery_keeps_the_legacy_done(self) -> None:
+        state = EvalState(max_acts=1, give_up=True)
+        state.acts.append({"key": "inc", "score": 1.0, "done": False})
+        message = await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)
+        self.assertEqual(json.loads(message.content)["status"], "DONE")
+
+    async def test_a_bounded_act_budget_terminal_names_the_cap_and_gives_a_next_action(self) -> None:
+        state = EvalState(max_acts=1, bounded_recovery=True)
+        state.acts.append({"key": "inc", "score": 0.0, "done": False})
+        state.rethinks.append({"kind": "stall", "attempt": 3, "termination": "planned", "phase": "planner"})
+        summary = json.loads((await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)).content)
+        self.assertEqual((summary["status"], summary["reason"]), ("BLOCKED", "act budget spent"))
+        self.assertTrue(summary["recovery"]["failed"])
+        self.assertIsNone(summary["recovery"]["termination"], "an act cap is not a recovery timeout")
+        self.assertEqual(summary["recovery"]["attempt"], 3)
+        self.assertIn("act budget spent", summary["recovery"]["reason"])
+        self.assertIn("start a new task", summary["recovery"]["next_action"])
+        self.assertEqual(summary["next_action"], summary["recovery"]["next_action"])
+
+    async def test_a_bounded_error_without_a_recorded_event_still_gets_a_next_action(self) -> None:
+        state = EvalState(bounded_recovery=True, error="rethink planner timed out")
+        summary = json.loads((await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)).content)
+        self.assertEqual((summary["status"], summary["reason"]), ("BLOCKED", "rethink planner timed out"))
+        self.assertTrue(summary["recovery"]["failed"])
+        self.assertIn("start a new task", summary["recovery"]["next_action"])
+        self.assertEqual(summary["next_action"], summary["recovery"]["next_action"])
+
+    async def test_a_done_bounded_episode_keeps_a_plain_done_terminal(self) -> None:
+        env = CountingEnv()
+        env.n = 3
+        summary = json.loads(
+            (await _jev(env, EvalState(bounded_recovery=True), _transport()).invoke([], tools=TOOLS)).content
+        )
+        self.assertEqual(summary["status"], "DONE")
+        self.assertNotIn("recovery", summary)
+        self.assertNotIn("next_action", summary)
+
+    async def test_a_bounded_recovery_failure_puts_reason_and_next_action_in_the_terminal(self) -> None:
+        state = EvalState(bounded_recovery=True, error="rethink planner timed out")
+        state.rethinks.append(
+            {
+                "kind": "stall",
+                "attempt": 1,
+                "termination": "error",
+                "phase": "planner",
+                "error": "rethink planner timed out",
+                "next_action": "review the latest observation, then start a new task",
+            }
+        )
+        summary = json.loads((await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)).content)
+        self.assertEqual((summary["status"], summary["reason"]), ("BLOCKED", "rethink planner timed out"))
+        self.assertEqual(summary["recovery"]["failed"], True)
+        self.assertEqual(summary["recovery"]["reason"], "rethink planner timed out")
+        self.assertIn("start a new task", summary["recovery"]["next_action"])
+        self.assertEqual(summary["next_action"], summary["recovery"]["next_action"])
+
+    async def test_the_legacy_game_branch_terminal_has_no_recovery_field(self) -> None:
+        state = EvalState(give_up=True)
+        summary = json.loads((await _jev(CountingEnv(), state, _transport()).invoke([], tools=TOOLS)).content)
+        self.assertEqual(
+            (summary["status"], "recovery" in summary, "next_action" in summary), ("BLOCKED", False, False)
+        )
+
     async def test_a_decisions_failure_ends_the_episode_as_blocked_and_is_the_episodes_error(self) -> None:
         state = EvalState()
         error = build_error(StatusCode.MODEL_CALL_FAILED, error_msg="decisions endpoint returned HTTP 401")

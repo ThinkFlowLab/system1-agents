@@ -7,6 +7,7 @@ import asyncio
 import json
 import sys
 import time
+from collections.abc import Awaitable, Callable
 from typing import Any, AsyncIterator
 from uuid import uuid4
 
@@ -20,8 +21,9 @@ from s1a.decision_models import DecisionModel
 from s1a.env import Env
 from s1a.jobs import Episode, now_iso
 from s1a.config import HOME
-from s1a.counting_model import CountingModel
+from s1a.counting_model import CountingModel, call_digests, usage_known
 from s1a.pricing import ChatPrices, cost_usd
+from s1a.recovery import RecoveryLimits
 from s1a.spec import ToolAgentSpec
 from s1a.tool.rethink import RethinkRail
 from s1a.tool.models import ACT_TOOL, OBSERVE_TOOL, EvalState, ToolDecisionModel
@@ -99,7 +101,7 @@ class ActTool(Tool):
     async def invoke(self, inputs: dict[str, Any], **kwargs: Any) -> str:
         key = str((inputs or {}).get("key", ""))
         state = self._state
-        if state.budget_spent or state.error is not None:
+        if state.budget_spent or state.give_up or state.error is not None or self._env.done:
             state.act_calls.append({"key": key, "accepted": False})
             return await snapshot(self._env, state)
         candidates = await self._env.candidates()
@@ -225,11 +227,18 @@ async def run_episode(
     timeout_s: float,
     prices: ChatPrices | None,
     log: bool,
+    limits: RecoveryLimits | None = None,
 ) -> Episode:
     """One episode through the agent: reset, one conversation, the ticks, rethinks, tokens and dollars into the Episode.
 
     ``max_acts`` bounds the acts for every model; ``timeout_s`` bounds the wall clock, and a timed-out episode
-    keeps its score so far with ``result_type: timeout``."""
+    keeps its score so far with ``result_type: timeout``. ``limits`` turns on bounded recovery (a refresh plus a
+    plan under a per-episode budget) for a decision model; plain llm is rejected, before reset."""
+    refresh_method = getattr(env, "refresh", None)
+    if limits is not None and rethink_on and model_name == "llm":
+        raise RuntimeError("bounded rethink needs a decision model; --model llm cannot use it")
+    if limits is not None and rethink_on and spec.budget.stall_after > 0 and refresh_method is None:
+        raise RuntimeError("bounded rethink needs an Env with a refresh callback")
     state = EvalState(max_acts=max_acts)
     await env.reset()
     first_view = await view_of(env, state)
@@ -237,6 +246,15 @@ async def run_episode(
     model = build_slot_model(model_name, env, state, rules=spec.rules, chat=counted, decision_model=decision_model)
     rail = None
     if rethink_on and spec.budget.stall_after > 0 and model_name != "llm":  # the chat model reads no plan or block
+        refresh_cb: Callable[[], Awaitable[dict[str, Any]]] | None = None
+        if limits is not None:
+            assert refresh_method is not None  # checked before reset
+
+            async def make_refresh() -> dict[str, Any]:
+                await refresh_method()
+                return await view_of(env, state)
+
+            refresh_cb = make_refresh
         rail = RethinkRail(
             state,
             rules=spec.rules,
@@ -245,6 +263,8 @@ async def run_episode(
             stall_after=spec.budget.stall_after,
             repeat_after=REPEAT_AFTER,
             give_up_after=GIVE_UP_AFTER,
+            refresh=refresh_cb,
+            limits=limits,
         )
     cap = (max_acts + ITERATION_HEADROOM) * (LLM_ITERATION_HEADROOM if model_name == "llm" else 1)
     agent = create_eval_agent(spec, env, model, state, rethink=rail, max_iterations=cap)
@@ -278,6 +298,14 @@ async def run_episode(
     chat_input_tokens = sum(call["input_tokens"] for call in state.chat)
     chat_output_tokens = sum(call["output_tokens"] for call in state.chat)
     chat_cache_tokens = sum(call["cache_tokens"] for call in state.chat)
+    complete_usage = usage_known(state.chat)
+    # A failed or cancelled planner call leaves its tokens unknown: the episode's cost is unknown, not zero, and
+    # price_episodes must not overwrite that None with a partial number.
+    episode_cost = (
+        None
+        if not complete_usage
+        else cost_usd(jev_input_tokens, chat_input_tokens, chat_output_tokens, chat_cache_tokens, prices)
+    )
     return Episode(
         env=spec.name,
         policy=policy,
@@ -294,7 +322,8 @@ async def run_episode(
         chat_cache_tokens=chat_cache_tokens,
         jev_input_tokens=jev_input_tokens,
         invalid_keys=state.invalid_keys,
-        cost_usd=cost_usd(jev_input_tokens, chat_input_tokens, chat_output_tokens, chat_cache_tokens, prices),
+        cost_usd=episode_cost,
+        usage_known=complete_usage,
         error=state.error,
         decisions=state.ticks,
         views=[first_view, *state.views],
@@ -303,5 +332,7 @@ async def run_episode(
             "rethinks": state.rethinks,
             "result_type": result.get("result_type"),
             "output": str(result.get("output") or "")[:300],
+            # Keep only the failed or unpriced call records: enough to trace a lost planner call, no prompt bloat.
+            "failed_chat_calls": call_digests(state.chat),
         },
     )
