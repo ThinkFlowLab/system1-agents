@@ -39,3 +39,16 @@ Fonts under `evals/2048/style/fonts` are Clear Sans by Intel Corporation, Apache
 
 `evals/millionaire/questions.json`, fetched on the first Millionaire run, holds questions from the
 [Open Trivia Database](https://opentdb.com), Creative Commons Attribution-ShareAlike 4.0 International.
+
+## Valen Sokoban
+
+`s1a/agents/_sokoban.py` is adapted from
+[Liuziyu77/Valen](https://github.com/Liuziyu77/Valen/blob/c96c4f736c6928d2cb1166bc105a24cebdfcdc40/evaluation/sokoban/env.py),
+commit `c96c4f736c6928d2cb1166bc105a24cebdfcdc40`, Apache-2.0.
+Changes: removed unused hash, inverse-action and clone helpers; applied repository formatting.
+
+`s1a/agents/_data/sokoban_levels.jsonl` and `tests/fixtures/sokoban_reference.jsonl` are unchanged copies of
+`eval_sokoban/levels.jsonl` and `eval_sokoban/reference.jsonl` from
+[Valen-Team/Valen-Eval-Game](https://huggingface.co/datasets/Valen-Team/Valen-Eval-Game/tree/4f25038cd30d9a96aa377eea176a4d2e1680a35c),
+revision `4f25038cd30d9a96aa377eea176a4d2e1680a35c`, declared Apache-2.0.
+The full Apache-2.0 license text is this repository's `LICENSE`.
