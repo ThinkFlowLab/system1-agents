@@ -3,7 +3,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
+
+from s1a.decision_models.types import Image
+
+
+@runtime_checkable
+class VisualEnv(Protocol):
+    """Optional images from the same observation; kept out of serializable tool state and logs."""
+
+    async def images(self) -> tuple[Image, ...]: ...
 
 
 class Env(Protocol):

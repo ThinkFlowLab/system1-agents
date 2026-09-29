@@ -21,11 +21,18 @@ from s1a.decision_models import (
     RuleModel,
     build_model,
 )
+from s1a.decision_models.cua_four_b import CuaFourBModel
 
 KEYS = {"TYPESAFE_API_KEY": "k", "TYPESAFE_API_URL": "", "OPENROUTER_API_KEY": ""}
 
 
 class TestBuildModel(TestCase):
+    def test_cua_four_b_is_explicit_and_unknown_variants_fail(self) -> None:
+        with patch.dict(os.environ, {"CUA_S1_VARIANT": "4b"}), patch.object(CuaFourBModel, "from_env") as build:
+            self.assertIs(build_model("cua"), build.return_value)
+        with patch.dict(os.environ, {"CUA_S1_VARIANT": "typo"}), self.assertRaises(ValueError):
+            build_model("cua")
+
     def test_every_name_builds_its_class(self) -> None:
         with patch.dict(os.environ, KEYS):
             self.assertIsInstance(build_model("jev"), JevModel)

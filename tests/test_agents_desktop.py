@@ -14,6 +14,7 @@ from s1a.desktop.driver import Element, Snapshot, Window
 from s1a.run import started_runner
 from s1a.tool import loop, series
 from support_desktop import FakeCalculator, FakeWindowsCalculator
+from test_desktop_driver import _process, _result
 
 CALCULATOR = ["--app", "Calculator", "--goal", "compute 12 times 7", "--expect", "84"]
 PLAN = ["--plan", "1,2,Multiply|×,7,Equals|=", "--clear", "All Clear"]
@@ -71,7 +72,7 @@ class TestPieces(TestCase):
             self.assertIsNone(desktop.make_series(args).baseline)
 
 
-async def _noop(app: str, driver: object) -> None:
+async def _noop(app: str, driver: object, window_title: str = "") -> None:
     return None
 
 
@@ -84,6 +85,37 @@ class _Exited:
 
 
 class TestLaunch(IsolatedAsyncioTestCase):
+    async def test_windows_title_selects_at_launch_and_keeps_the_window_binding(self) -> None:
+        windows = [
+            {"pid": 41, "window_id": 9, "title": "Other"},
+            {"pid": 42, "window_id": 7, "title": "Draft", "app_name": "ApplicationFrameHost.exe"},
+            {"pid": 42, "window_id": 8, "title": "Draft", "is_on_screen": False},
+        ]
+        listed = [*windows, {"pid": 50, "window_id": 7, "title": "Draft", "app_name": "Editor"}]
+        args = series.parser(desktop.SPEC).parse_args(
+            ["--model", "rule", "--rethink", "off", "--episodes", "1"]
+            + ["--app", "Editor", "--window-title", "Draft", "--goal", "Save", "--expect", "Saved"]
+        )
+        with (
+            patch("sys.platform", "win32"),
+            _process(
+                _result({}),
+                _result({"apps": []}),
+                _result({"pid": 100, "windows": windows}),
+                _result({"windows": listed}),
+                _result({"elements": []}),
+                _result({}),
+            ) as (driver, session, _),
+            patch.object(desktop, "driver_from_env", return_value=driver),
+        ):
+            task = desktop.make_series(args)
+            async with task.session:
+                env = task.env_for(0)
+                await env.reset()
+                self.assertEqual((await env.observe())["title"], "Draft")
+        name, target = session.calls[4]
+        self.assertEqual((name, target["pid"], target["window_id"]), ("get_window_state", 42, 7))
+
     async def test_windows_launches_through_driver_without_running_macos_open(self) -> None:
         fake = FakeCalculator()
         with (
@@ -102,7 +134,7 @@ class TestLaunch(IsolatedAsyncioTestCase):
             patch.object(desktop.asyncio, "create_subprocess_exec", AsyncMock(return_value=process)) as spawn,
             patch.object(desktop.asyncio, "sleep", AsyncMock()),
         ):
-            await desktop.launch_app("Calculator", FakeCalculator())
+            await desktop.launch_app("Calculator", FakeCalculator(), "Paper Tape")
         spawn.assert_awaited_once_with("open", "-a", "Calculator")
 
     async def test_a_failed_macos_open_raises_with_the_exit_code(self) -> None:

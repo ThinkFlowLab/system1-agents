@@ -33,6 +33,11 @@ models behind them: [architecture.md](architecture.md#models).
 `--app`, `--goal`, `--expect`, `--execute`, `--plan` and `--clear`; `ticket_router` takes `--dataset` and
 `--batch-size`; `injection_guard` takes `--labelled-set`. The four games take no flag of their own.
 
+`--pixel-target KEY=X,Y` offers named points in screenshot fractions. Local Cua-S1 4B multimodal can select
+among them when controls have no accessibility elements. Each click carries its screenshot capture ID.
+Install the `cua-four-b` extra and set `CUA_S1_VARIANT=4b`, `CUA_S1_MODALITY=multimodal`.
+See [the macOS visual task](../evals/desktop/visual.md) for setup and verification commands.
+
 ## Allrecipes
 
 `allrecipes` is the first Allrecipes task of the [WebVoyager](https://github.com/MinorJerry/WebVoyager) task set

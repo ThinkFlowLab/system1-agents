@@ -247,6 +247,18 @@ class TestWindows(IsolatedAsyncioTestCase):
                 with self.assertRaises(DriverError):
                     await driver.launch_app("Calculator")
 
+    async def test_launch_requires_one_visible_exact_title_match(self) -> None:
+        for windows in (
+            [{"window_id": 7, "title": "Other"}],
+            [{"window_id": 7, "title": "draft"}],
+            [{"window_id": 7, "title": "Draft", "is_on_screen": False}],
+            [{"window_id": 7, "title": "Draft"}, {"window_id": 8, "title": "Draft"}],
+        ):
+            with self.subTest(windows=windows):
+                driver, _ = _driver(_result({"apps": []}), _result({"pid": 42, "windows": windows}))
+                with self.assertRaises(DriverError):
+                    await driver.launch_app("Editor", "Draft")
+
     async def test_the_one_on_screen_window_of_the_app_by_name_case_insensitive(self) -> None:
         listed = {
             "windows": [
