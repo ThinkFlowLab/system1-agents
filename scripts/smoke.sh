@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 S1A=${S1A:-uv run --no-sync s1a}
 PY=${PY:-uv run --no-sync python}
-AGENTS="alfworld allrecipes blackjack desktop flights game2048 injection_guard millionaire ticket_router"
+AGENTS="alfworld allrecipes blackjack desktop flights game2048 injection_guard millionaire sokoban ticket_router"
 
 fail() { echo "smoke: $*" >&2; exit 1; }
 
@@ -18,7 +18,7 @@ listed=$($S1A list | tr -d '\r')
 [ "$(echo "$listed" | tr '\n' ' ' | sed 's/ $//')" = "$AGENTS" ] || fail "list printed: $listed"
 echo "list: $AGENTS"
 
-for agent in allrecipes desktop flights game2048 injection_guard millionaire ticket_router; do
+for agent in allrecipes desktop flights game2048 injection_guard millionaire sokoban ticket_router; do
   $S1A run "$agent" --help >/dev/null || fail "run $agent --help failed"
   echo "help: $agent"
 done
@@ -64,7 +64,7 @@ async def main() -> None:
     async with create_connected_server_and_client_session(mcp_server.server) as session:
         result = await session.call_tool("list_agents", {})
     rows = result.structuredContent["result"] if result.structuredContent else json.loads(result.content[0].text)
-    assert not result.isError and len(rows) == 9, rows
+    assert not result.isError and len(rows) == 10, rows
     for row in rows:
         print(f"mcp list_agents: {row['name']} ({row['front']})")
 
