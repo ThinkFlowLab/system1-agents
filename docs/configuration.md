@@ -35,6 +35,11 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `CUA_S1_CHECKPOINT` | `cua` model | `cua-ai/cua-s1-nano-0.1` | Hugging Face checkpoint ID or local directory for Cua-S1 Nano option scorer. |
 | `CUA_S1_SUBFOLDER` | `cua` model | `text` | Subfolder within checkpoint directory containing text option scoring weights. |
 | `CUA_S1_DEVICE` | `cua` model | `auto` | PyTorch device used for Cua-S1 Nano evaluation (`auto`, `cpu`, `cuda`, or `mps`). |
+| `OMNIJEV_REPO` | `omnijev` model | *(unset, required)* | Local clone of the OmniJev repository; its `mso` package is imported from there. |
+| `OMNIJEV_CHECKPOINT` | `omnijev` model | `tinnel123/OmniJev-0.8B` | Hugging Face ID or local directory of the OmniJev adapter and heads (`OmniJev-2B`, `OmniJev` for 4B). |
+| `OMNIJEV_REVISION` | `omnijev` model | `v1.1` | Revision of a Hugging Face `OMNIJEV_CHECKPOINT`. |
+| `OMNIJEV_BASE` | `omnijev` model | `Qwen/Qwen3.5-0.8B` | Hugging Face ID or local directory of the Qwen3.5 backbone of the same size as the checkpoint. |
+| `OMNIJEV_PROMPT` | `omnijev` model | `full` | `full` sends the text state, goal and rules with each question; `short` sends the goal and the ask only, the screenshot carrying the page. |
 | `CUA_DRIVER_BIN` | `desktop` agent | `cua-driver` | Path to the `cua-driver` executable on Windows or macOS when not located on `PATH`. |
 | `CUA_DRIVER_PERMISSION_MODE` | `desktop` agent | `standard` | Permission mode passed to `cua-driver mcp` (`standard`, or `bounded` for restricted capability manifests). |
 | `HF_HOME` | Hugging Face runtime | `~/.cache/huggingface` | Cache directory where Laya and Cua-S1 checkpoints are downloaded on first run. |

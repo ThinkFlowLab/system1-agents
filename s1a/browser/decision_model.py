@@ -15,6 +15,7 @@ model_name alike.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import re
 import statistics
@@ -41,7 +42,7 @@ from s1a.browser.action_space import (
     top_probabilities,
 )
 from s1a.browser.probe_js import POLICY_PROBE_JS, STAMP_ATTRIBUTE
-from s1a.decision_models import DecisionModel
+from s1a.decision_models import DecisionModel, Image, Observation
 from s1a.spec import BrowserAgentSpec
 
 BROWSER_TURN_TOOL = "browser_click"
@@ -82,6 +83,14 @@ ACTION_SETTLE_BUDGET_MS = 1000  # total in-page wait one action gets before the 
 MAX_PROBE_SETTLE_MS = 1500  # keeps load(3s)+settle+1s JS lastResort >=1s under the 30s transport request timeout
 WAIT_SETTLE_BUDGET_MS = 3000  # total in-page settle time one WAIT streak may spend before the step gives up
 URL_RE = re.compile(r"https?://[^\s'\"<>]+")
+# The viewport as PNG, for a decision model that reads images; one run-code call through the probe's own executor.
+# A background tab renders no frames, so the page is brought to the front first; the capture waits 15 s at most.
+SCREENSHOT_JS = (
+    "async (page) => { await page.bringToFront(); "
+    'const png = await page.screenshot({type: "png", timeout: 15000}); '
+    "return JSON.stringify({png: png.toString('base64')}); }"
+)
+_SCREENSHOT_RE = re.compile(r'png\\*"\s*:\s*\\*"([A-Za-z0-9+/=]+)')
 
 
 @dataclass(frozen=True)
@@ -258,6 +267,11 @@ class BrowserDecisionModel(Model):
                     run.values = []
                 values = run.values
             observation = build_observation(space, snapshot, run.history)
+            screenshot_ms = None
+            if self._decision_model.supports_images:
+                screenshot, screenshot_ms = await self._screenshot()
+                if screenshot is not None:
+                    observation = Observation(observation.state, images=(screenshot,))
             questions = build_questions(
                 space, goal=run.goal, values=values, rules=self._spec.rules, language=self._language
             )
@@ -287,6 +301,8 @@ class BrowserDecisionModel(Model):
                 "probabilities": probabilities,  # the replay's bars: the settled head's top keys
                 "candidates": candidates,
             }
+            if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
+                record["screenshot_ms"] = screenshot_ms
             run.ticks.append(record)
             if move.operation == "WAIT":
                 run.consecutive_waits += 1
@@ -396,6 +412,24 @@ class BrowserDecisionModel(Model):
                 snapshot["revisiting"] = True
         self._prefetch_values(run, snapshot)
         return snapshot, round((time.perf_counter() - started) * 1000)
+
+    async def _screenshot(self) -> tuple[Image | None, int]:
+        """The viewport as PNG and the milliseconds the capture took. ``None`` when it fails: the step goes on
+        without the picture and the decision model says whether it can decide without one."""
+        started = time.perf_counter()
+        executor = getattr(self._runtime, "code_executor", None)
+        raw: Any = None
+        if callable(executor):
+            try:
+                raw = await executor(SCREENSHOT_JS)
+            except Exception:  # noqa: BLE001 - a failed capture degrades to a text-only observation
+                logger.warning("[BrowserDecisionModel] screenshot failed", exc_info=True)
+        ms = round((time.perf_counter() - started) * 1000)
+        found = _SCREENSHOT_RE.search(json.dumps(raw, default=str)) if raw is not None else None
+        if found is None:
+            logger.warning("[BrowserDecisionModel] no screenshot in the run-code result")
+            return None, ms
+        return Image(base64.b64decode(found.group(1))), ms
 
     async def _raw_probe(self, *, settle_ms: int, quiet_ms: int, after: dict[str, Any] | None) -> dict[str, Any]:
         params = {

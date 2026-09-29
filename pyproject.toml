@@ -45,7 +45,17 @@ cua = [  # Cua-S1 Nano behind --model cua; pinned to the Cua PR that ships the c
     "cua-s1 @ git+https://github.com/trycua/cua.git@aea61b6eb97e2d8c0f6f71eb804e5769fe910af4#subdirectory=libs/cua-s1/python",
     "huggingface-hub>=0.24",
 ]
-dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "ty>=0.0.83"]
+omnijev = [  # OmniJev behind --model omnijev; the model code itself is a clone named by OMNIJEV_REPO (not a package)
+    "torch>=2.4",
+    "torchvision>=0.15",  # transformers' Qwen3-VL video processor imports it; OmniJev's requirements.txt omits it
+    "transformers>=5.0",
+    "peft>=0.15",
+    "accelerate",
+    "safetensors",
+    "pillow",
+    "huggingface-hub>=0.24",
+]
+dev =["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "ty>=0.0.83"]
 
 [build-system]
 requires = ["hatchling"]
@@ -76,6 +86,7 @@ include = [
     "s1a/agents/blackjack.py",
     "s1a/decision_models/cua.py",
     "s1a/decision_models/laya.py",
+    "s1a/decision_models/omnijev.py",
 ]
 
 [tool.ty.overrides.rules]

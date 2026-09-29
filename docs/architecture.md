@@ -62,7 +62,7 @@ the first import of both, routes the harness logs to files under `runs/logs` bef
 MCP stdio protocol only.
 
 Every `run` prints one JSON object on stdout: a tool agent's series summary with its `job_dir`, a browser agent's
-answer, a rail's evaluation. A browser agent takes `--model jev|laya|cua|llm`; its policy switches are run-time flags:
+answer, a rail's evaluation. A browser agent takes `--model jev|laya|cua|omnijev|llm`; its policy switches are run-time flags:
 `--batch on|off`, `--prefetch on|off`, `--goal-values on|off`. `s1a-mcp` serves the same agents to an MCP host over stdio,
 one Runner for the server's lifetime and one run at a time. `uv run python -m evals.table evals/results`
 aggregates every job folder per eval and model into one table. `scripts/showcase.sh` plays one visual episode per
@@ -71,7 +71,7 @@ eval and model outside the matrix and `python -m evals.replay` renders a pair si
 
 Every tool agent, `desktop` included, takes `--model jev|laya|cua|llm|random|rule`, `--rethink on|off`,
 `--episodes N`, `--seed S`, `--max-steps`, `--timeout` and `--headed`, and writes a Harbor-shaped job folder under
-`evals/results/<agent>/`. Every browser agent takes `--model jev|laya|cua|llm` and `--goal`. A rail takes
+`evals/results/<agent>/`. Every browser agent takes `--model jev|laya|cua|omnijev|llm` and `--goal`. A rail takes
 `--model jev|laya`, the two models that answer `noul`. `decide` and `probe` take `--model jev|laya|cua`. On a browser
 agent `laya` needs `LAYA_MAX_LEN` raised to the page's size; `cua` reads a 256-byte context (header, goal, state,
 then rules) and 96 bytes per option, a baseline on any page. Exit codes: 0 for a finished run, including one whose

@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `--model omnijev` on the browser agents: [OmniJev](https://github.com/tinnel123666888/OmniJev) (Apache-2.0), a
+  Qwen3.5 vision-language decision model, in process behind `uv sync --extra omnijev` and a local clone named by
+  `OMNIJEV_REPO`. It decides over a screenshot; `docs/decision-models.md`, `docs/configuration.md`.
+- Browser front: a decision model that reads images (`supports_images`) gets a viewport PNG with every tick's
+  observation, captured through the probe's run-code executor; the tick records its `screenshot_ms`. Jev, Laya and
+  Cua-S1 read text only and see no change.
 - The MCP `decide` tool accepts `model="jev"|"laya"|"cua"`, defaulting to `jev`. Local backends use their
   optional extras and need no Jev API key.
 - `docs/benchmarks.md`: the Google Flights driver comparison rerun on 2026-09-23 from Poland, every arm three times on
