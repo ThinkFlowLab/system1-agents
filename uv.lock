@@ -5180,8 +5180,11 @@ cua = [
     { name = "huggingface-hub" },
 ]
 dev = [
+    { name = "jsonschema" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pyyaml" },
+    { name = "referencing" },
     { name = "ruff" },
     { name = "ty" },
 ]
@@ -5200,6 +5203,7 @@ requires-dist = [
     { name = "cua-s1", marker = "extra == 'cua'", git = "https://github.com/trycua/cua.git?subdirectory=libs%2Fcua-s1%2Fpython&rev=aea61b6eb97e2d8c0f6f71eb804e5769fe910af4" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "huggingface-hub", marker = "extra == 'cua'", specifier = ">=0.24" },
+    { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.18" },
     { name = "laya", marker = "extra == 'laya'", specifier = ">=0.3.20" },
     { name = "mcp", specifier = ">=1.26" },
     { name = "opencv-python-headless", marker = "extra == 'alfworld-visual'", specifier = ">=4.10" },
@@ -5209,6 +5213,8 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
     { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6" },
+    { name = "referencing", marker = "extra == 'dev'", specifier = ">=0.30" },
     { name = "rlcard", marker = "extra == 'blackjack'", specifier = ">=1.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
     { name = "system1-agents", extras = ["alfworld"], marker = "extra == 'alfworld-visual'" },

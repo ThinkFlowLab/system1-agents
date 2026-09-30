@@ -45,7 +45,7 @@ cua = [  # Cua-S1 Nano behind --model cua; pinned to the Cua PR that ships the c
     "cua-s1 @ git+https://github.com/trycua/cua.git@aea61b6eb97e2d8c0f6f71eb804e5769fe910af4#subdirectory=libs/cua-s1/python",
     "huggingface-hub>=0.24",
 ]
-dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "ty>=0.0.83"]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "ty>=0.0.83", "jsonschema>=4.18", "pyyaml>=6", "referencing>=0.30"]  # the last three check tests/data/served_laya against docs/api
 
 [build-system]
 requires = ["hatchling"]

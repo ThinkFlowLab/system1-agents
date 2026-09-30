@@ -32,6 +32,23 @@ def laya_question(question: Question) -> Json:
     return {"type": "noul", "instructions": question.question, **criteria}
 
 
+def check_window(usage: Usage, questions: int, max_len: int, hint: str) -> None:
+    """Laya cuts each option to 48 tokens, shrinks every option when the head overflows, and cuts the state to
+    what is left, all silently. A filled window raises: a decision over a cut state is a guess.
+    ``input_tokens`` is the attention-mask sum over every question's row and a row is at most ``max_len`` long,
+    so the sum reaches ``questions * max_len`` only when every row hit the window. Exact for one question; with
+    several, a cut on the widest head alone goes unseen. Shared by the in-process and the served Laya."""
+    window = max_len * questions
+    if usage.input_tokens >= window:
+        raise build_error(
+            StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+            error_msg=(
+                f"the laya {window}-token window filled ({usage.input_tokens} tokens over {questions} question(s)): "
+                f"the state or the options were cut; {hint}"
+            ),
+        )
+
+
 class LayaModel(DecisionModel):
     """Laya's ``Agent`` (or anything with ``system_one(state, questions)`` and a ``cfg``) behind the interface."""
 
@@ -68,20 +85,12 @@ class LayaModel(DecisionModel):
         )
 
     def _check_the_window(self, usage: Usage, questions: int) -> None:
-        """Laya cuts each option to 48 tokens, shrinks every option when the head overflows, and cuts the state to
-        what is left, all silently. A filled window raises: a decision over a cut state is a guess.
-        ``input_tokens`` is the attention-mask sum over every question's row and a row is at most ``max_len`` long,
-        so the sum reaches ``questions * max_len`` only when every row hit the window. Exact for one question; with
-        several, a cut on the widest head alone goes unseen."""
-        window = int(self._agent.cfg.get("max_len", LAYA_DEFAULT_MAX_LEN)) * questions
-        if usage.input_tokens >= window:
-            raise build_error(
-                StatusCode.MODEL_SERVICE_CONFIG_ERROR,
-                error_msg=(
-                    f"the laya {window}-token window filled ({usage.input_tokens} tokens over {questions} question(s)): "
-                    "the state or the options were cut; raise LAYA_MAX_LEN / LAYA_HEAD_MAX_LEN or shorten the state"
-                ),
-            )
+        check_window(
+            usage,
+            questions,
+            int(self._agent.cfg.get("max_len", LAYA_DEFAULT_MAX_LEN)),
+            "raise LAYA_MAX_LEN / LAYA_HEAD_MAX_LEN or shorten the state",
+        )
 
     # ponytail: warm() with one tiny forward pass so CUDA kernels compile before the first real turn
 

@@ -1,0 +1,15 @@
+{
+ "status": 502,
+ "content_type": "text/plain",
+ "body": "backend unavailable\n",
+ "request": {
+  "model": "english",
+  "state": "I was charged twice for my order. Please refund the duplicate today.",
+  "questions": {
+   "refund": {
+    "type": "noul",
+    "instructions": "Does the customer ask for a refund?"
+   }
+  }
+ }
+}
