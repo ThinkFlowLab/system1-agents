@@ -154,3 +154,6 @@ environment: set it in the host's MCP server entry, or in `.env` at the reposito
 Each tool-front step records `source: laya-served`, `model` as `<checkpoint>@<revision>` and
 `served_by` with the device, dtypes, compile mode and the time of the `/health` reading it came from.
 Against plain laya-serve, `served_by` has the checkpoint only.
+
+In-process and served Laya routed all 90 ticket-router decisions the same on an M1 Pro; the numbers are in
+[evals/ticket_router/SERVED_LAYA.md](../evals/ticket_router/SERVED_LAYA.md).
