@@ -37,9 +37,10 @@ Answer = dict[str, Any]
 BROWSER_MODEL_NAMES = (
     "jev",
     "laya",
+    "laya-served",
     "cua",
     "llm",
-)  # a decision model (Jev over HTTP, Laya or Cua-S1 in process) or the chat model
+)  # a decision model (Jev or Laya over HTTP, Laya or Cua-S1 in process) or the chat model
 RUNS_DIR = HOME / "runs" / "browser"
 
 
@@ -164,7 +165,7 @@ async def browse(
     workspace = str(logs_dir / "workspace")  # the harness scaffolds SOUL.md, memory/ and friends here, not in the cwd
     instance = BrowserInstanceConfig(launch_args=browser_launch_args(headless))
     match model_name:
-        case "jev" | "laya" | "cua":
+        case "jev" | "laya" | "laya-served" | "cua":
             if decision_model is None:
                 raise RuntimeError(f"--model {model_name} needs a decision model")
             slot_model = BrowserDecisionModel(spec, policy, counted, decision_model=decision_model, value_model=None)

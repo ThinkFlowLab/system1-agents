@@ -8,10 +8,12 @@ from s1a.decision_models.baselines import RandomModel, Rule, RuleModel
 from s1a.decision_models.cua import CuaS1Model
 from s1a.decision_models.jev import JevModel
 from s1a.decision_models.laya import LayaModel
+from s1a.decision_models.served import ServedLayaModel
 
 DECISION_MODEL_NAMES = (
     "jev",
     "laya",
+    "laya-served",
     "cua",
     "random",
     "rule",
@@ -19,12 +21,14 @@ DECISION_MODEL_NAMES = (
 
 
 def build_model(model_name: str, *, seed: int = 0, rule: tuple[str, Rule] | None = None) -> DecisionModel:
-    """``jev``, ``laya`` and ``cua`` from the environment, ``random`` from the seed, ``rule`` from the agent's baseline."""
+    """``jev``, ``laya``, ``laya-served`` and ``cua`` from the environment, ``random`` from the seed, ``rule`` from the agent's baseline."""
     match model_name:
         case "jev":
             return JevModel.from_env()
         case "laya":
             return LayaModel.from_env()  # the laya import happens inside
+        case "laya-served":
+            return ServedLayaModel.from_env()  # Laya over HTTP; no torch, no cloud key
         case "cua":
             return CuaS1Model.from_env()  # the cua_s1 import happens inside
         case "random":

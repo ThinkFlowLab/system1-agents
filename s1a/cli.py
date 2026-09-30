@@ -22,6 +22,7 @@ from s1a.spec import Json
 DECIDE_MODEL_NAMES = (
     "jev",
     "laya",
+    "laya-served",
     "cua",
 )  # the decision models that answer one question on their own: no env, no rule, no chance
 
@@ -45,7 +46,10 @@ def parser() -> argparse.ArgumentParser:
     )
     decide.add_argument("--rules", required=True, help="the facts the model applies when it picks")
     decide.add_argument(
-        "--model", choices=DECIDE_MODEL_NAMES, default="jev", help="who answers: jev, or laya and cua in process"
+        "--model",
+        choices=DECIDE_MODEL_NAMES,
+        default="jev",
+        help="who answers: jev or laya-served over HTTP, laya and cua in process",
     )
     fit = commands.add_parser("probe", help="the fit probe: hand-written choice cases from a JSONL file")
     fit.add_argument(
@@ -54,7 +58,10 @@ def parser() -> argparse.ArgumentParser:
         help="JSONL, one case per line: state (object), options (key to text), rules, accept (list of right keys), note",
     )
     fit.add_argument(
-        "--model", choices=DECIDE_MODEL_NAMES, default="jev", help="who answers: jev, or laya and cua in process"
+        "--model",
+        choices=DECIDE_MODEL_NAMES,
+        default="jev",
+        help="who answers: jev or laya-served over HTTP, laya and cua in process",
     )
     return build
 
