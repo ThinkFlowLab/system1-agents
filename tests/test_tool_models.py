@@ -16,6 +16,9 @@ from openjiuwen.core.foundation.llm import AssistantMessage, AssistantMessageChu
 from s1a.decision_models import (
     DecisionModel,
     JevModel,
+    Observation,
+    Question,
+    Reply,
     RandomModel,
     RuleModel,
     ScriptedTransport,
@@ -188,7 +191,38 @@ class TestToolDecisionModelOverJev(IsolatedAsyncioTestCase):
         self.assertEqual(chunks[0].finish_reason, "tool_calls")
 
 
+SERVED_BY = {"checkpoint": "convaiinnovations/laya", "revision": "55cf4c4", "device": "mps", "source": "health"}
+
+
+class ServedStub(DecisionModel):
+    """Answers the way the served model does: an identity in ``model``, the server's facts in ``raw``."""
+
+    name = "laya-served"
+
+    @property
+    def model(self) -> str:
+        return "convaiinnovations/laya@55cf4c4"
+
+    async def _decide(self, observation: Observation, questions: dict[str, Question]) -> Reply:
+        answers = {"pick": {"choice": "inc", "confidence": 0.8, "probabilities": {"inc": 0.9, "noop": 0.1}}}
+        raw = {"answers": answers, "served_by": SERVED_BY, "url": "http://127.0.0.1:8000", "server_timing": {}}
+        return Reply(answers, latency_ms=7, model=self.model, raw=raw)
+
+
 class TestOtherModels(IsolatedAsyncioTestCase):
+    async def test_a_tick_names_the_answering_model_and_where_a_served_answer_came_from(self) -> None:
+        state = EvalState()
+        await _model(CountingEnv(), state, ServedStub()).invoke([], tools=TOOLS)
+        tick = state.ticks[0]
+        self.assertEqual((tick["source"], tick["model"]), ("laya-served", "convaiinnovations/laya@55cf4c4"))
+        self.assertEqual(
+            (tick["served_by"], tick["url"], tick["server_timing"]), (SERVED_BY, "http://127.0.0.1:8000", {})
+        )
+        self.assertNotIn("answers", tick)
+        in_process = EvalState()
+        await _model(CountingEnv(), in_process, RandomModel(1)).invoke([], tools=TOOLS)
+        self.assertNotIn("served_by", in_process.ticks[0])
+
     async def test_random_picks_an_offered_key_with_a_uniform_distribution(self) -> None:
         state = EvalState()
         message = await _model(CountingEnv(), state, RandomModel(1)).invoke([], tools=TOOLS)

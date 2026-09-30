@@ -157,6 +157,8 @@ class ToolDecisionModel(Model):
                 "plan": bool(state.plan),
                 "blocked": sorted(state.blocked),
                 "source": self.name,
+                "model": decision.model,
+                **decision.provenance,
             }
         )
         state.blocked = set()  # a block, the notices and the plan last one turn
