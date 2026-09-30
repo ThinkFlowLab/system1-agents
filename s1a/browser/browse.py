@@ -225,7 +225,7 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
         "--model",
         choices=BROWSER_MODEL_NAMES,
         required=True,
-        help="who decides each browser step: jev (over HTTP), laya or cua (in process), or llm (the chat model in MODEL_NAME)",
+        help="who decides each browser step: jev or laya-served (over HTTP), laya or cua (in process), or llm (the chat model in MODEL_NAME)",
     )
     build.add_argument(
         "--goal", default=spec.goal, required=spec.goal is None, help="the task; the spec's goal when it has one"

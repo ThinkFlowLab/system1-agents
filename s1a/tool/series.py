@@ -22,7 +22,7 @@ def parser(spec: ToolAgentSpec) -> argparse.ArgumentParser:
         "--model",
         choices=MODEL_NAMES,
         required=True,
-        help="who decides: jev (over HTTP), laya or cua (in process), llm (the chat model in MODEL_NAME), random, or rule (the agent's baseline)",
+        help="who decides: jev or laya-served (over HTTP), laya or cua (in process), llm (the chat model in MODEL_NAME), random, or rule (the agent's baseline)",
     )
     build.add_argument(
         "--rethink",

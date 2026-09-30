@@ -38,7 +38,8 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("agent", help=f"one of: {', '.join(agents.names())}")
     run.add_argument("flags", nargs=argparse.REMAINDER)
     decide = commands.add_parser(
-        "decide", help="one choice question to a decision model: jev over HTTP, or laya and cua in process"
+        "decide",
+        help="one choice question to a decision model: jev or laya-served over HTTP, or laya and cua in process",
     )
     decide.add_argument("--state", required=True, help="a JSON object, or @path to a file holding one")
     decide.add_argument(

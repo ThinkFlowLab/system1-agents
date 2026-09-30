@@ -151,6 +151,10 @@ class ServedLayaClient:
                 if not retried:
                     retried = True
                     continue
+                if isinstance(exc, httpx.ConnectError):
+                    raise build_error(
+                        StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"no served Laya at {self.url}: {_NOT_UP}"
+                    ) from exc
                 raise build_error(
                     StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"served Laya unreachable at {self.url}: {exc}"
                 ) from exc
@@ -274,7 +278,8 @@ class ServedLayaModel(DecisionModel):
         except Exception:
             if strict:
                 raise
-            logger.warning("[laya-served] kept the previous /health reading from %s", self._health_read_at)
+            if self._health_read_at is not None:  # with no reading yet, the decision itself reports the failure
+                logger.warning("[laya-served] kept the previous /health reading from %s", self._health_read_at)
             return
         if health:
             self._health = health

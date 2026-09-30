@@ -217,8 +217,10 @@ class ErrorTests(IsolatedAsyncioTestCase):
 
     async def test_a_second_dropped_connection_fails(self) -> None:
         server = Server(script=[httpx.ConnectError("refused"), httpx.ConnectError("refused")])
-        await self.assert_fails(server, StatusCode.MODEL_CALL_FAILED, "unreachable at http://laya.test")
+        await self.assert_fails(server, StatusCode.MODEL_CALL_FAILED, "no served Laya at http://laya.test")
         self.assertEqual(len(server.decisions), 2)
+        dropped = Server(script=[httpx.ReadError("reset"), httpx.ReadError("reset")])
+        await self.assert_fails(dropped, StatusCode.MODEL_CALL_FAILED, "unreachable at http://laya.test")
 
     async def test_502_and_504_from_the_frontend_are_retried_once(self) -> None:
         for status in (502, 504):
