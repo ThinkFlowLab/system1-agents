@@ -1,0 +1,508 @@
+openapi: 3.1.0
+info:
+  title: Laya decisions (System 1) — /v1/systemone
+  version: 1.0.0-draft
+  summary: Target interface for typed decisions from Laya over HTTP.
+  description: |
+    Design of the interface between decision clients (system1-agents) and Laya served by
+    system1-omni: the Laya worker (`src/models/laya/worker.py`), optionally behind the Rust
+    frontend (`omni-jev`).
+
+    Every operation, header and field carries `x-status`: `implemented` where the server already
+    behaves this way, `planned` where it does not yet. `laya-systemone.current.openapi.yaml`
+    describes today's behaviour exactly; `../served-laya.md` says where each planned item is built.
+
+    **Semantics.** A decision has no side effects, and the same request returns the same answers
+    for a given checkpoint, device and precision. Any request may be retried; no idempotency key is
+    needed.
+
+    **Retries.** The client owns retries and their deadline. Servers do not retry.
+
+    **Compatibility.** Within `/v1`, changes are additive: new optional request fields, new response
+    fields and headers. Clients ignore fields they do not know. A breaking change gets a new major
+    path (`/v2`) and the old one announces its end with `Deprecation` and `Sunset` headers.
+  license:
+    name: Apache-2.0
+servers:
+  - url: http://127.0.0.1:8000
+    description: Laya worker directly
+  - url: http://127.0.0.1:8080
+    description: Rust frontend in front of the worker
+security:
+  - {}
+  - bearerAuth: []
+tags:
+  - name: decisions
+  - name: health
+paths:
+  /v1/systemone:
+    post:
+      tags: [decisions]
+      operationId: decide
+      x-status: implemented
+      summary: Answer typed questions about one state
+      description: |
+        All questions are answered in one forward pass. Question ids are chosen by the client and
+        echoed as the keys of `answers`.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/Traceparent'
+      requestBody:
+        required: true
+        description: '`application/json`, at most 2 MiB.'
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DecisionRequest' }
+            examples:
+              combined:
+                value:
+                  model: english
+                  state: I was charged twice for my order. Please refund the duplicate today.
+                  questions:
+                    department:
+                      type: choice
+                      instructions: Which team should handle this?
+                      criteria: { billing: Charges and refunds, technical: Software problems }
+                    urgency:
+                      type: score
+                      instructions: How urgent is the request?
+                      criteria: [Not urgent, Needs attention soon, Needs attention immediately]
+                    refund:
+                      type: noul
+                      instructions: Does the customer ask for a refund?
+      responses:
+        '200':
+          description: One answer per question id.
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
+            Server-Timing: { $ref: '#/components/headers/Server-Timing' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecisionResponse' }
+              examples:
+                combined:
+                  value:
+                    model: english
+                    served_by:
+                      checkpoint: convaiinnovations/laya
+                      revision: 55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851
+                      device: mps
+                      weights_dtype: float16
+                      compile: 'on'
+                    answers:
+                      department:
+                        type: choice
+                        choice: billing
+                        probabilities: { billing: 0.952, technical: 0.048 }
+                        confidence: 0.7222
+                        answer_confidence: 0.952
+                        action: { act_probability: 1.0 }
+                      urgency:
+                        type: score
+                        score: 1.7841
+                        legend: { '0': Not urgent, '1': Needs attention soon, '2': Needs attention immediately }
+                        probabilities: { '0': 0.0241, '1': 0.1677, '2': 0.8082 }
+                        confidence: 0.4891
+                        answer_confidence: 0.8082
+                        action: { act_probability: 1.0 }
+                      refund:
+                        type: noul
+                        noul: 0.9161
+                        confidence: 0.9161
+                        answer_confidence: 0.9161
+                        action: { act_probability: 1.0 }
+                    usage: { input_tokens: 137, output_tokens: 0 }
+                    routing: { model: english, repo: convaiinnovations/laya, reason: explicit model='english', detection: null, workflow: null }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/InvalidQuestion' }
+        '500': { $ref: '#/components/responses/InferenceFailed' }
+        '502': { $ref: '#/components/responses/BackendUnavailable' }
+        '503': { $ref: '#/components/responses/Overloaded' }
+        '504': { $ref: '#/components/responses/BackendTimeout' }
+  /livez:
+    get:
+      tags: [health]
+      operationId: livez
+      x-status: planned
+      summary: The process is up
+      description: 200 as soon as the server accepts connections, before loading. For supervisors deciding whether to restart the process.
+      security: [{}]
+      responses:
+        '200':
+          description: Alive.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { const: ok }
+  /readyz:
+    get:
+      tags: [health]
+      operationId: readyz
+      x-status: planned
+      summary: Ready to serve decisions
+      description: |
+        200 once every model is loaded and warmed up; 503 with `Retry-After` before that. Clients and
+        load balancers send decisions only after 200. The body is the same as `/health`.
+      security: [{}]
+      responses:
+        '200':
+          description: Ready.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: Starting, loading or warming up.
+          headers:
+            Retry-After: { $ref: '#/components/headers/Retry-After' }
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              example: { type: 'urn:laya:problem:not-ready', title: Not ready, status: 503, code: not_ready, detail: 'warming up: 2 of 5 shapes done' }
+  /health:
+    get:
+      tags: [health]
+      operationId: health
+      x-status: implemented
+      summary: What the server is running (kept as an alias of /readyz)
+      description: Today the worker listens only after warmup, so any response means ready. Planned — same body and status codes as `/readyz`.
+      security: [{}]
+      responses:
+        '200':
+          description: Ready.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      x-status: implemented
+      description: Required when the worker is started with `LAYA_API_KEY`; the frontend forwards the header.
+  parameters:
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      x-status: planned
+      description: Client-chosen id for this request (1–128 visible ASCII characters). Echoed in the response and in problem `instance`; the server generates one if absent. The frontend forwards it.
+      schema: { type: string, minLength: 1, maxLength: 128, pattern: '^[\x21-\x7E]+$' }
+    Traceparent:
+      name: traceparent
+      in: header
+      required: false
+      x-status: planned
+      description: W3C Trace Context. Propagated through the frontend to the worker.
+      schema: { type: string }
+  headers:
+    X-Request-Id:
+      x-status: planned
+      description: The request id, as sent by the client or generated by the server.
+      schema: { type: string }
+    Server-Timing:
+      x-status: planned
+      description: |
+        W3C Server-Timing with the server's own durations in ms: `queue` (waiting for the inference
+        thread), `infer` (tokenisation, forward pass, decoding). The frontend appends `proxy`.
+        Example: `queue;dur=0.2, infer;dur=27.4, proxy;dur=0.3`.
+      schema: { type: string }
+    Retry-After:
+      x-status: planned
+      description: Seconds to wait before retrying.
+      schema: { type: integer, minimum: 1 }
+  responses:
+    BadRequest:
+      description: The body is not a JSON object with a `questions` object.
+      headers: { X-Request-Id: { $ref: '#/components/headers/X-Request-Id' } }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example: { type: 'urn:laya:problem:malformed-request', title: Malformed request, status: 400, code: malformed_request, detail: request body must be valid JSON, instance: 'urn:request:7f3a' }
+    Unauthorized:
+      description: Missing or wrong bearer token.
+      headers:
+        WWW-Authenticate: { description: '`Bearer`', schema: { type: string } }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example: { type: 'urn:laya:problem:unauthorized', title: Unauthorized, status: 401, code: unauthorized }
+    TooLarge:
+      description: Body over 2 MiB, more than 64 questions, or a state over 50,000 characters.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example: { type: 'urn:laya:problem:too-large', title: Request too large, status: 413, code: too_many_questions, detail: too many questions (65 > 64), limit: 64 }
+    UnsupportedMediaType:
+      description: The body is not `application/json`.
+      x-status: planned
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InvalidQuestion:
+      description: A question is invalid. `errors` lists every invalid question, not only the first.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: 'urn:laya:problem:invalid-question'
+            title: Invalid question
+            status: 422
+            code: invalid_question
+            errors:
+              - { question: q, field: type, detail: "unknown type 'bogus'; use one of choice, noul, score" }
+    InferenceFailed:
+      description: The forward pass failed. Retrying the same request fails the same way.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example: { type: 'urn:laya:problem:inference-failed', title: Inference failed, status: 500, code: inference_failed }
+    BackendUnavailable:
+      description: Frontend only — the worker could not be reached. Safe to retry.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example: { type: 'urn:laya:problem:backend-unavailable', title: Backend unavailable, status: 502, code: backend_unavailable }
+    Overloaded:
+      description: |
+        The worker's queue is full (it runs one forward pass at a time), or it is not ready yet.
+        Retry after `Retry-After` seconds.
+      x-status: planned
+      headers:
+        Retry-After: { $ref: '#/components/headers/Retry-After' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example: { type: 'urn:laya:problem:overloaded', title: Overloaded, status: 503, code: overloaded, queue_depth: 32 }
+    BackendTimeout:
+      description: Frontend only — the worker did not answer within the frontend's timeout (60 s). Safe to retry.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example: { type: 'urn:laya:problem:backend-timeout', title: Backend timeout, status: 504, code: backend_timeout }
+  schemas:
+    Problem:
+      description: RFC 9457 problem details. Clients branch on `code`; `detail` is for people.
+      x-status: planned
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code:
+          type: string
+          description: Stable machine-readable reason.
+          enum: [malformed_request, unauthorized, too_large, too_many_questions, state_too_large,
+                 unsupported_media_type, invalid_question, inference_failed, backend_unavailable,
+                 backend_timeout, overloaded, not_ready]
+        detail: { type: string }
+        instance: { type: string, description: The request id. }
+        errors:
+          type: array
+          description: For `invalid_question`, one entry per invalid question.
+          items:
+            type: object
+            required: [question, detail]
+            properties:
+              question: { type: string }
+              field: { type: string }
+              detail: { type: string }
+      additionalProperties: true
+    DecisionRequest:
+      type: object
+      required: [questions]
+      description: Unknown fields are ignored, so fields added later in /v1 stay compatible with older servers.
+      properties:
+        model:
+          type: string
+          description: Checkpoint name (`english`, `multilingual`, `typed-decisions`) or alias. Omitted, the server picks one from the state's language.
+        state:
+          description: What the questions are about. At most 50,000 characters as text or serialised JSON.
+          oneOf: [{ type: string }, { type: object }, { type: array }]
+        questions:
+          type: object
+          description: Question id → question; 1 to 64.
+          minProperties: 1
+          maxProperties: 64
+          propertyNames: { minLength: 1, maxLength: 128 }
+          additionalProperties: { $ref: '#/components/schemas/Question' }
+    Question:
+      oneOf:
+        - $ref: '#/components/schemas/ChoiceQuestion'
+        - $ref: '#/components/schemas/ScoreQuestion'
+        - $ref: '#/components/schemas/NoulQuestion'
+      discriminator:
+        propertyName: type
+        mapping:
+          choice: '#/components/schemas/ChoiceQuestion'
+          score: '#/components/schemas/ScoreQuestion'
+          noul: '#/components/schemas/NoulQuestion'
+    Instructions:
+      oneOf: [{ type: string }, { type: object }]
+    ChoiceQuestion:
+      type: object
+      required: [type, instructions, criteria]
+      properties:
+        type: { const: choice }
+        instructions: { $ref: '#/components/schemas/Instructions' }
+        criteria:
+          oneOf:
+            - { type: object, minProperties: 1 }
+            - { type: array, minItems: 1, items: { type: string } }
+    ScoreQuestion:
+      type: object
+      required: [type, instructions, criteria]
+      properties:
+        type: { const: score }
+        instructions: { $ref: '#/components/schemas/Instructions' }
+        criteria: { type: array, minItems: 1, description: Level descriptions, level 0 first. }
+    NoulQuestion:
+      type: object
+      required: [type, instructions]
+      properties:
+        type: { const: noul }
+        instructions: { $ref: '#/components/schemas/Instructions' }
+        criteria:
+          type: object
+          description: Optional texts for the outcomes, keyed `true` and/or `false`.
+          propertyNames: { enum: ['true', 'false'] }
+        labels:
+          type: object
+          required: ['false', 'true']
+          additionalProperties: false
+          properties:
+            'false': { type: string, minLength: 1 }
+            'true': { type: string, minLength: 1 }
+    DecisionResponse:
+      type: object
+      required: [model, served_by, answers, usage]
+      properties:
+        model:
+          type: string
+          description: The checkpoint that answered (`english`, …).
+          x-status: planned
+        served_by: { $ref: '#/components/schemas/ServedBy' }
+        answers:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/Answer' }
+        usage: { $ref: '#/components/schemas/Usage' }
+        routing: { $ref: '#/components/schemas/Routing' }
+    ServedBy:
+      type: object
+      x-status: planned
+      description: What produced these answers, per response, so a record needs no separate /health call.
+      required: [checkpoint, revision, device, weights_dtype]
+      properties:
+        checkpoint: { type: string }
+        revision: { type: [string, 'null'], description: Null for a local checkpoint. }
+        device: { type: string }
+        weights_dtype: { enum: [float32, float16, bfloat16] }
+        compile: { enum: ['off', 'on'] }
+    Answer:
+      oneOf:
+        - $ref: '#/components/schemas/ChoiceAnswer'
+        - $ref: '#/components/schemas/ScoreAnswer'
+        - $ref: '#/components/schemas/NoulAnswer'
+      discriminator:
+        propertyName: type
+        mapping:
+          choice: '#/components/schemas/ChoiceAnswer'
+          score: '#/components/schemas/ScoreAnswer'
+          noul: '#/components/schemas/NoulAnswer'
+    Probability: { type: number, minimum: 0, maximum: 1 }
+    AnswerCommon:
+      type: object
+      required: [type, confidence, answer_confidence, action]
+      properties:
+        confidence: { $ref: '#/components/schemas/Probability' }
+        answer_confidence: { $ref: '#/components/schemas/Probability' }
+        action:
+          type: object
+          required: [act_probability]
+          properties:
+            act_probability: { $ref: '#/components/schemas/Probability' }
+    ChoiceAnswer:
+      allOf:
+        - $ref: '#/components/schemas/AnswerCommon'
+        - type: object
+          required: [type, choice, probabilities]
+          properties:
+            type: { const: choice }
+            choice: { type: string }
+            probabilities: { type: object, additionalProperties: { $ref: '#/components/schemas/Probability' } }
+    ScoreAnswer:
+      allOf:
+        - $ref: '#/components/schemas/AnswerCommon'
+        - type: object
+          required: [type, score, legend, probabilities]
+          properties:
+            type: { const: score }
+            score: { type: number, minimum: 0 }
+            legend: { type: object }
+            probabilities: { type: object, additionalProperties: { $ref: '#/components/schemas/Probability' } }
+    NoulAnswer:
+      allOf:
+        - $ref: '#/components/schemas/AnswerCommon'
+        - type: object
+          required: [type, noul]
+          properties:
+            type: { const: noul }
+            noul: { $ref: '#/components/schemas/Probability' }
+    Usage:
+      type: object
+      required: [input_tokens, output_tokens]
+      properties:
+        input_tokens: { type: integer, minimum: 0 }
+        output_tokens: { type: integer, const: 0 }
+    Routing:
+      type: object
+      properties:
+        model: { type: string }
+        repo: { type: string }
+        reason: { type: string }
+        detection: { type: [object, 'null'] }
+        workflow: { type: [object, 'null'] }
+    ModelHealth:
+      type: object
+      required: [device, requested_device, device_mismatch]
+      properties:
+        device: { type: string }
+        requested_device: { type: string }
+        device_mismatch: { type: boolean }
+        weights_dtype: { type: [string, 'null'] }
+        autocast_dtype: { type: string }
+        checkpoint: { type: [string, 'null'] }
+        revision: { type: [string, 'null'] }
+        warmup_ms: { type: number }
+    Health:
+      allOf:
+        - $ref: '#/components/schemas/ModelHealth'
+        - type: object
+          required: [status, ready, loaded, models, compile]
+          properties:
+            status: { const: ok }
+            ready: { const: true }
+            loaded: { type: array, items: { type: string } }
+            models: { type: object, additionalProperties: { $ref: '#/components/schemas/ModelHealth' } }
+            compile:
+              type: object
+              required: [mode]
+              properties:
+                mode: { enum: ['off', 'on'] }
+                graphs_at_ready: { type: integer }
+                graphs_now: { type: integer }
+                recompiled_after_ready: { type: boolean }
+            limits:
+              x-status: planned
+              type: object
+              description: Request limits, so clients can check before sending.
+              properties:
+                max_questions: { const: 64 }
+                max_state_chars: { const: 50000 }
+                max_body_bytes: { const: 2097152 }
