@@ -23,7 +23,7 @@ gets built, and how the client works with both in the meantime.
 agent step ──► ServedLayaModel (s1a) ──HTTP──► [omni-jev frontend :8080] ──► Laya worker :8000 ──► laya (MPS/CPU)
                  │  laya_question()              forwards unchanged           warmup before listen
                  │  answer validation            502/504 if worker down       /health: device, revision, compile
-                 └─ run record: /health snapshot + client round trip
+                 └─ run record: identity (served_by) + client round trip
 ```
 
 ## 3. Interface (target; full spec in [api/laya-systemone.openapi.yaml](api/laya-systemone.openapi.yaml))
@@ -69,11 +69,20 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
 - **Selection.** `--model laya-served`, a new name so run records say served Laya, not Jev or in-process Laya.
 - **Configuration.** `LAYA_SERVED_URL` (required), `LAYA_SERVED_MODEL` (default `english`),
   `LAYA_SERVED_API_KEY` (optional), `LAYA_SERVED_TIMEOUT_S` (default 5, one deadline per decision,
-  retries included).
+  retries included), `LAYA_SERVED_MAX_LEN` (default 512, the server's window per question, for the
+  same full-window check as in-process Laya).
 - **Request.** Questions serialised with the existing `laya_question()`, which keeps Laya's own `noul`
   shape (a plain-string instruction). `score` is not sent until an agent needs it.
-- **Identity.** Each response's `served_by` goes into the run record; until servers send it, `warm()`
-  reads `/health` once and records checkpoint, revision, device, dtypes and compile mode.
+- **Identity.** Each response's `served_by` goes into the run record. Until servers send it, the client
+  reads `/health` at warm-up and again whenever its reading is older than 30 s (the worker reports the
+  live device, and laya moves a model to the CPU on a GPU out-of-memory error), records the reading's
+  time as `read_at`, and each decision takes the entry for the model that answered
+  (`models[routing.model]` on the system1-omni worker, else its top-level fields). Plain laya-serve
+  reports no checkpoint or revision, so the record falls back to the response's `routing.repo`.
+- **Servers.** The system1-omni worker is the recommended server; plain laya-serve works with reduced
+  identity. On MPS the worker's fast setting is `LAYA_WORKER_COMPILE=on LAYA_WORKER_WEIGHTS=fp16`.
+  Both apply on the GPU only: on the CPU, including after a fallback, the worker runs Laya's fp32
+  model uncompiled.
 - **Errors → agent errors.**
 
   | outcome | handling |
@@ -87,8 +96,10 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
   | deadline passed | fail with a timeout error naming the URL |
 
 - **Timing.** The record keeps the client round trip per decision and, when present, `Server-Timing`'s
-  `queue` and `infer`, so network, queueing and model time separate.
-- **Tracing.** The client sends an `X-Request-Id` per decision and stores it with the step.
+  `queue` and `infer`, so network, queueing and model time separate. Today's servers send no
+  `Server-Timing`, so `server_timing` is `{}` until the worker adds it.
+- **Tracing.** The client sends an `X-Request-Id` per decision, the same on its retry, and stores it
+  with the step.
 
 ## 6. Trade-offs
 
@@ -110,3 +121,36 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
 - A second model family (ThinkFlowLab/system1-omni#9) reuses `/v1/systemone`: move `served_by` and the problem codes into a
   shared contract instead of the Laya spec.
 - `score` becomes useful to an agent: extend the client; the server already answers it.
+
+## 8. Run it
+
+Start the server once, from a system1-omni checkout, with its
+[Apple Silicon recipe](https://github.com/cacheline999/system1-omni/blob/laya-apple-silicon/recipe/laya/apple-silicon.md)
+(ThinkFlowLab/system1-omni#30, until it merges):
+
+```sh
+LAYA_WORKER_COMPILE=on LAYA_WORKER_WEIGHTS=fp16 LAYA_HOST=127.0.0.1 LAYA_PORT=8000 LAYA_DEVICE=mps \
+LAYA_MODELS=english LAYA_REQUIRE_DEVICE=1 \
+  .venv/bin/python src/models/laya/worker.py
+```
+
+The worker listens once it is warm, after about 40 s on an M1 Pro with these options; until then a
+decision fails with "not up or still warming". On a Mac without MPS, or on Linux, drop the two
+`LAYA_WORKER_*` options and set `LAYA_DEVICE=cpu`. The Rust frontend (`omni-jev`, port 8080) can sit in
+front of it; point `LAYA_SERVED_URL` at whichever you call.
+
+Then, from this repository, with no extra installed:
+
+```sh
+export LAYA_SERVED_URL=http://127.0.0.1:8000
+uv run s1a decide --model laya-served --state '{"ticket": "I was charged twice"}' \
+  --option billing='a payment problem' --option technical='a product fault' --rules 'route the ticket'
+uv run s1a run ticket_router --model laya-served --rethink off --seed 0 --episodes 1
+```
+
+Over MCP, the `decide` tool takes `model="laya-served"`. `s1a-mcp` reads `LAYA_SERVED_URL` from its own
+environment: set it in the host's MCP server entry, or in `.env` at the repository root.
+
+Each tool-front step records `source: laya-served`, `model` as `<checkpoint>@<revision>` and
+`served_by` with the device, dtypes, compile mode and the time of the `/health` reading it came from.
+Against plain laya-serve, `served_by` has the checkpoint only.

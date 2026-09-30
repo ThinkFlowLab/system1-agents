@@ -396,7 +396,7 @@ components:
     ServedBy:
       type: object
       x-status: planned
-      description: What produced these answers, per response, so a record needs no separate /health call.
+      description: What produced these answers, per response, so a record needs no separate /health call and stays exact when laya moves a model to the CPU mid-run.
       required: [checkpoint, revision, device, weights_dtype]
       properties:
         checkpoint: { type: string }
