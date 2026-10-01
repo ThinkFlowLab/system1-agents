@@ -300,3 +300,32 @@ class TestFromEnv(TestCase):
             with self.assertRaises(BaseError) as caught:
                 JevModel.from_env()
         self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
+
+
+class TestDecisionTimeout(TestCase):
+    """``S1A_DECISION_TIMEOUT_S`` sets the deadline of one decision; Jev keeps 5 s when it is not set."""
+
+    ENV = {"TYPESAFE_API_KEY": "", "OPENROUTER_API_KEY": "r", "TYPESAFE_MODEL": "", "TYPESAFE_API_URL": ""}
+
+    def test_the_deadline_stays_5_s_without_the_variable(self) -> None:
+        with patch.dict(os.environ, {**self.ENV, "S1A_DECISION_TIMEOUT_S": ""}):
+            decision_model = JevModel.from_env()
+        self.assertEqual(decision_model._transport._timeout_s, wire.DECISIONS_TIMEOUT_S)
+
+    def test_the_variable_sets_the_deadline(self) -> None:
+        with patch.dict(os.environ, {**self.ENV, "S1A_DECISION_TIMEOUT_S": "30"}):
+            decision_model = JevModel.from_env()
+        self.assertEqual(decision_model._transport._timeout_s, 30.0)
+
+    def test_an_explicit_deadline_wins_over_the_variable(self) -> None:
+        with patch.dict(os.environ, {**self.ENV, "S1A_DECISION_TIMEOUT_S": "30"}):
+            decision_model = JevModel.from_env(timeout_s=2.0)
+        self.assertEqual(decision_model._transport._timeout_s, 2.0)
+
+    def test_a_value_that_is_not_a_finite_positive_number_is_a_config_error(self) -> None:
+        for raw in ("abc", "0", "-3", "nan", "inf", "-inf", "1e9999"):
+            with self.subTest(raw=raw), patch.dict(os.environ, {**self.ENV, "S1A_DECISION_TIMEOUT_S": raw}):
+                with self.assertRaises(BaseError) as caught:
+                    JevModel.from_env()
+                self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
+                self.assertIn("S1A_DECISION_TIMEOUT_S", str(caught.exception))

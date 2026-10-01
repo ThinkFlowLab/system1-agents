@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from s1a.decision_models.base import DecisionModel, JevTransport
 from s1a.decision_models.types import ChoiceQuestion, Json, NoulQuestion, Observation, Question, Reply, Usage
-from s1a.decision_models.wire import DECISIONS_TIMEOUT_S, client_from_env, decisions_backend_from_env
+from s1a.decision_models.wire import client_from_env, decisions_backend_from_env, decisions_timeout_from_env
 
 
 def jev_question(question: Question) -> Json:
@@ -67,6 +67,8 @@ class JevModel(DecisionModel):
         await self._transport.close()
 
     @classmethod
-    def from_env(cls, *, timeout_s: float = DECISIONS_TIMEOUT_S) -> "JevModel":
-        """TypeSafe directly or the OpenRouter proxy, whichever the environment names."""
-        return cls(client_from_env(decisions_backend_from_env(), timeout_s=timeout_s))
+    def from_env(cls, *, timeout_s: float | None = None) -> "JevModel":
+        """TypeSafe directly or the OpenRouter proxy, whichever the environment names; the decision deadline is
+        ``timeout_s`` when given, else ``S1A_DECISION_TIMEOUT_S``, else 5 s."""
+        deadline = timeout_s if timeout_s is not None else decisions_timeout_from_env()
+        return cls(client_from_env(decisions_backend_from_env(), timeout_s=deadline))

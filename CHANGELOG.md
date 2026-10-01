@@ -12,6 +12,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `S1A_DECISION_TIMEOUT_S`: the deadline of one decision on the `jev` backend, 5 s when unset. A local System One
+  server behind `TYPESAFE_API_URL` can be slower than Jev: on Google Flights, OneJev-27B on an A100 takes about 3.7 s
+  a decision and more on the calendar page, so the 5 s deadline stopped every run at the eighth step; with 30 s it
+  completed the task. `docs/configuration.md`.
 - The MCP `decide` tool accepts `model="jev"|"laya"|"cua"`, defaulting to `jev`. Local backends use their
   optional extras and need no Jev API key.
 - `docs/benchmarks.md`: the Google Flights driver comparison rerun on 2026-09-23 from Poland, every arm three times on
