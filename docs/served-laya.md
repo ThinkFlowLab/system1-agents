@@ -80,7 +80,7 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
   (`models[routing.model]` on the system1-omni worker, else its top-level fields). Plain laya-serve
   reports no checkpoint or revision, so the record falls back to the response's `routing.repo`.
 - **Servers.** The system1-omni worker is the recommended server; plain laya-serve works with reduced
-  identity. On MPS the worker's fast setting is `LAYA_WORKER_COMPILE=on LAYA_WORKER_WEIGHTS=fp16`.
+  identity. On MPS the worker's fast setting is `--compile --weights fp16`.
   Both apply on the GPU only: on the CPU, including after a fallback, the worker runs Laya's fp32
   model uncompiled.
 - **Errors → agent errors.**
@@ -129,14 +129,14 @@ Start the server once, from a system1-omni checkout, with its
 (ThinkFlowLab/system1-omni#30, until it merges):
 
 ```sh
-LAYA_WORKER_COMPILE=on LAYA_WORKER_WEIGHTS=fp16 LAYA_HOST=127.0.0.1 LAYA_PORT=8000 LAYA_DEVICE=mps \
-LAYA_MODELS=english LAYA_REQUIRE_DEVICE=1 \
-  .venv/bin/python src/models/laya/worker.py
+PYTHONPATH=src .venv/bin/python -m frontend.laya_mps --device mps --model english --require-device \
+  --compile --weights fp16 --port 8000
 ```
 
 The worker listens once it is warm, after about 40 s on an M1 Pro with these options; until then a
-decision fails with "not up or still warming". On a Mac without MPS, or on Linux, drop the two
-`LAYA_WORKER_*` options and set `LAYA_DEVICE=cpu`. The Rust frontend (`omni-jev`, port 8080) can sit in
+decision fails with "not up or still warming". On a Mac without MPS, or on Linux, drop `--compile`
+and `--weights fp16` and use `--device cpu`. laya-serve's `LAYA_API_KEY` still turns on bearer auth; set the
+same value in `LAYA_SERVED_API_KEY`. The Rust frontend (`omni-jev`, port 8080) can sit in
 front of it; point `LAYA_SERVED_URL` at whichever you call.
 
 Then, from this repository, with no extra installed:
@@ -152,7 +152,8 @@ Over MCP, the `decide` tool takes `model="laya-served"`. `s1a-mcp` reads `LAYA_S
 environment: set it in the host's MCP server entry, or in `.env` at the repository root.
 
 Each tool-front step records `source: laya-served`, `model` as `<checkpoint>@<revision>` and
-`served_by` with the device, dtypes, compile mode and the time of the `/health` reading it came from.
+`served_by` with the device, dtypes, whether the model was compiled and the time of the `/health` reading it
+came from.
 Against plain laya-serve, `served_by` has the checkpoint only.
 
 In-process and served Laya routed all 90 ticket-router decisions the same on an M1 Pro; the numbers are in

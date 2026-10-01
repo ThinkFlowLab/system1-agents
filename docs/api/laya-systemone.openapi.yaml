@@ -5,7 +5,7 @@ info:
   summary: Target interface for typed decisions from Laya over HTTP.
   description: |
     Design of the interface between decision clients (system1-agents) and Laya served by
-    system1-omni: the Laya worker (`src/models/laya/worker.py`), optionally behind the Rust
+    system1-omni: the Laya worker (`python -m frontend.laya_mps`), optionally behind the Rust
     frontend (`omni-jev`).
 
     Every operation, header and field carries `x-status`: `implemented` where the server already
@@ -88,7 +88,7 @@ paths:
                       revision: 55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851
                       device: mps
                       weights_dtype: float16
-                      compile: 'on'
+                      compiled: true
                     answers:
                       department:
                         type: choice
@@ -403,7 +403,7 @@ components:
         revision: { type: [string, 'null'], description: Null for a local checkpoint. }
         device: { type: string }
         weights_dtype: { enum: [float32, float16, bfloat16] }
-        compile: { enum: ['off', 'on'] }
+        compiled: { type: boolean, description: The answer came from the worker's compiled model. }
     Answer:
       oneOf:
         - $ref: '#/components/schemas/ChoiceAnswer'
@@ -492,9 +492,9 @@ components:
             models: { type: object, additionalProperties: { $ref: '#/components/schemas/ModelHealth' } }
             compile:
               type: object
-              required: [mode]
+              required: [enabled]
               properties:
-                mode: { enum: ['off', 'on'] }
+                enabled: { type: boolean }
                 graphs_at_ready: { type: integer }
                 graphs_now: { type: integer }
                 recompiled_after_ready: { type: boolean }

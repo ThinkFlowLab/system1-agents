@@ -5,7 +5,7 @@ info:
   summary: Typed decisions from a Laya checkpoint over HTTP.
   description: |
     The interface a client such as system1-agents uses to get decisions from Laya served by
-    system1-omni: the Laya worker (`src/models/laya/worker.py`, laya-serve 0.3.20 underneath), either
+    system1-omni: the Laya worker (`python -m frontend.laya_mps`, laya-serve 0.3.20 underneath), either
     directly or behind the Rust frontend (`omni-jev`), which forwards requests and responses unchanged.
 
     This document describes the behaviour of laya-serve 0.3.20, the worker and the frontend as they
@@ -201,7 +201,7 @@ paths:
                     checkpoint: convaiinnovations/laya
                     revision: 55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851
                     warmup_ms: 34426.6
-                compile: { mode: 'on', graphs_at_ready: 3, graphs_now: 3, recompiled_after_ready: false }
+                compile: { enabled: true, graphs_at_ready: 3, graphs_now: 3, recompiled_after_ready: false }
         '502':
           description: Frontend only. The worker could not be reached.
           content:
@@ -426,7 +426,7 @@ components:
         - $ref: '#/components/schemas/ModelHealth'
         - type: object
           required: [status, ready, loaded, models, compile]
-          description: Top-level model fields describe LAYA_WORKER_MODEL; `models` has every loaded model.
+          description: Top-level model fields describe the `--model` the worker serves; `models` has every loaded model.
           properties:
             status: { const: ok }
             ready: { const: true }
@@ -436,9 +436,9 @@ components:
               additionalProperties: { $ref: '#/components/schemas/ModelHealth' }
             compile:
               type: object
-              required: [mode]
+              required: [enabled]
               properties:
-                mode: { enum: ['off', 'on'] }
+                enabled: { type: boolean, description: "Started with --compile." }
                 graphs_at_ready: { type: integer }
                 graphs_now: { type: integer }
                 recompiled_after_ready: { type: boolean }

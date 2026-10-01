@@ -15,7 +15,7 @@
   "mps_amp_min_rows": 5,
   "checkpoint": "convaiinnovations/laya",
   "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
-  "warmup_ms": 29202.8,
+  "warmup_ms": 32915.6,
   "models": {
    "english": {
     "device": "mps",
@@ -26,11 +26,11 @@
     "mps_amp_min_rows": 5,
     "checkpoint": "convaiinnovations/laya",
     "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
-    "warmup_ms": 29202.8
+    "warmup_ms": 32915.6
    }
   },
   "compile": {
-   "mode": "on",
+   "enabled": true,
    "graphs_at_ready": 3,
    "graphs_now": 3,
    "recompiled_after_ready": false

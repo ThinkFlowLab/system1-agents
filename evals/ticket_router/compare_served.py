@@ -63,7 +63,11 @@ def row(name: str, trials: list[Trial]) -> str:
     where = "in process"
     if served_by:
         dtype = (served_by.get("weights_dtype") or "").removeprefix("torch.")
-        parts = [str(part) for part in (served_by.get("device"), dtype, served_by.get("compile")) if part]
+        parts = [
+            str(part)
+            for part in (served_by.get("device"), dtype, "compiled" if served_by.get("compiled") else "")
+            if part
+        ]
         where = f"{' '.join(parts) or 'device not reported'} via {ticks[0]['url']}"
     return (
         f"| {name} | {correct}/{total} | {statistics.median(ms):.0f} | {percentile(ms, 0.95):.0f} | "

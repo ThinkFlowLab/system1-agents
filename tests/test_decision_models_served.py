@@ -341,12 +341,12 @@ class IdentityTests(IsolatedAsyncioTestCase):
         self.assertEqual(decision.model, "convaiinnovations/laya@55cf4c4ebb4e")
         served_by = raw["served_by"]
         self.assertEqual(
-            {k: served_by[k] for k in ("checkpoint", "device", "weights_dtype", "compile", "source")},
+            {k: served_by[k] for k in ("checkpoint", "device", "weights_dtype", "compiled", "source")},
             {
                 "checkpoint": "convaiinnovations/laya",
                 "device": "mps",
                 "weights_dtype": "torch.float16",
-                "compile": "on",
+                "compiled": True,
                 "source": "health",
             },
         )

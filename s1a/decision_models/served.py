@@ -38,7 +38,7 @@ _RETRIED_TRANSPORT = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProt
 _RETRIED_STATUSES = frozenset({502, 504})  # the frontend could not reach the worker, or it was too slow
 _REQUEST_ERRORS = frozenset({400, 413, 422})
 _NOT_UP = (
-    "the system1-omni worker listens only after loading and warming up (35-39 s with LAYA_WORKER_COMPILE=on "
+    "the system1-omni worker listens only after loading and warming up (35-39 s with --compile "
     "and fp16 weights on an M1 Pro); start it per system1-omni's recipe/laya/apple-silicon.md"
 )
 
@@ -231,7 +231,7 @@ def served_by_from_health(health: Json, routing: Any, read_at: str | None) -> Js
         "device": entry.get("device"),
         "weights_dtype": entry.get("weights_dtype"),
         "autocast_dtype": entry.get("autocast_dtype"),
-        "compile": compile_state.get("mode"),
+        "compiled": compile_state.get("enabled"),
         "source": "health",
         "read_at": read_at,
     }
