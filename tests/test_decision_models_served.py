@@ -98,6 +98,8 @@ class Server:
             self.health_calls += 1
             if isinstance(self.health, Exception):
                 raise self.health
+            if callable(self.health):
+                return self.health(request)
             if isinstance(self.health, httpx.Response):
                 return self.health
             return ok(self.health)
@@ -293,6 +295,24 @@ class ErrorTests(IsolatedAsyncioTestCase):
         server = Server(script=[slow_refusal])
         await self.assert_fails(server, StatusCode.MODEL_CALL_FAILED, "within 5 s", clock=clock)
         self.assertEqual(len(server.decisions), 1)
+
+    async def test_a_stalled_identity_refresh_stays_inside_the_deadline(self) -> None:
+        clock = Clock()
+        given: dict[str, float] = {}
+
+        def stalled_health(request: httpx.Request) -> httpx.Response:
+            given["health"] = request.extensions["timeout"]["read"]
+            clock.now += given["health"]  # waits out its whole share
+            raise httpx.ReadTimeout("stalled")
+
+        def answer(request: httpx.Request) -> httpx.Response:
+            given["decide"] = request.extensions["timeout"]["read"]
+            return server.answer(request)
+
+        server = Server(health=stalled_health, script=[answer])
+        model, _ = make_model(server, timeout_s=3.0, clock=clock)
+        await model.decide_many(OBSERVATION, {"pick": PICK})
+        self.assertEqual(given, {"health": 1.5, "decide": 1.5})  # half the budget each, 3 s in all
 
     async def test_a_body_without_answers_is_malformed(self) -> None:
         for response in (httpx.Response(200, text="not json"), ok({"model": "x"}), httpx.Response(200, json=[1])):

@@ -45,12 +45,23 @@ def percentile(values: list[float], q: float) -> float:
     return ordered[min(len(ordered) - 1, round(q * (len(ordered) - 1)))]
 
 
+def decided(trial: Trial) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    """(route, tick) per processed ticket. An episode that stopped early has fewer of both than its batch."""
+    pairs = list(zip(trial.router["routes"], trial.ticks, strict=True))
+    for route, tick in pairs:
+        if route["predicted"] != tick["key"]:
+            raise ValueError(
+                f"seed {trial.seed}: {route['id']} routed {route['predicted']}, its tick says {tick['key']}"
+            )
+    return pairs
+
+
 def routes(trials: list[Trial]) -> dict[tuple[int, str], tuple[str, dict[str, float]]]:
-    """(seed, ticket id) -> (predicted queue, probabilities); ticks follow the batch's ticket order."""
+    """(seed, ticket id) -> (predicted queue, probabilities) for every processed ticket."""
     return {
-        (trial.seed, ticket_id): (tick["key"], tick["probabilities"])
+        (trial.seed, route["id"]): (tick["key"], tick["probabilities"])
         for trial in trials
-        for ticket_id, tick in zip(trial.router["ticket_ids"], trial.ticks, strict=True)
+        for route, tick in decided(trial)
     }
 
 
@@ -79,7 +90,7 @@ def records(trials: list[Trial]) -> list[dict[str, Any]]:
     """One row per decision; ``served_by`` and ``url`` only on the first row and where they change."""
     rows, last = [], None
     for trial in trials:
-        for route, tick in zip(trial.router["routes"], trial.ticks, strict=True):
+        for route, tick in decided(trial):
             row = {"seed": trial.seed, "ticket": route["id"], "expected": route["expected"]}
             row |= {k: tick.get(k) for k in ("key", "probabilities", "ms", "input_tokens", "model")}
             source = {k: tick[k] for k in ("served_by", "url") if k in tick}

@@ -100,10 +100,20 @@ class ServedLayaClient:
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         self._client = httpx.AsyncClient(timeout=timeout_s, headers=headers, transport=transport)
 
-    async def health(self) -> Json:
-        """``GET /health`` once. Refused or unreachable raises; any other failure returns ``{}`` with a warning."""
+    def deadline(self) -> float:
+        """The end of one decision's time budget, on this client's clock."""
+        return self._clock() + self._timeout_s
+
+    async def health(self, deadline: float | None = None) -> Json:
+        """``GET /health`` once. Refused or unreachable raises; any other failure returns ``{}`` with a warning.
+        Within a decision's ``deadline`` it takes at most half of what is left, so the decision keeps the rest."""
+        timeout = HEALTH_TIMEOUT_S
+        if deadline is not None:
+            timeout = min(timeout, (deadline - self._clock()) / 2)
+            if timeout <= 0:
+                return {}
         try:
-            response = await self._client.get(f"{self.url}/health", timeout=HEALTH_TIMEOUT_S)
+            response = await self._client.get(f"{self.url}/health", timeout=timeout)
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
             raise build_error(
                 StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"no served Laya at {self.url}: {_NOT_UP}"
@@ -121,10 +131,13 @@ class ServedLayaClient:
             return {}
         return body if isinstance(body, dict) else {}
 
-    async def decide(self, body: Json, request_id: str) -> tuple[Json, dict[str, str], int]:
+    async def decide(
+        self, body: Json, request_id: str, deadline: float | None = None
+    ) -> tuple[Json, dict[str, str], int]:
         """One decision: the payload, the response headers and the last attempt's round trip in ms. Every attempt
-        sends the same ``X-Request-Id``, so the server's logs tie a retry to its first try."""
-        deadline = self._clock() + self._timeout_s
+        sends the same ``X-Request-Id``, so the server's logs tie a retry to its first try. ``deadline`` (from
+        ``deadline()``) is shared with a ``/health`` read made for the same decision; a fresh one starts otherwise."""
+        deadline = self.deadline() if deadline is None else deadline
         retried = False
         while True:
             remaining = deadline - self._clock()
@@ -271,10 +284,10 @@ class ServedLayaModel(DecisionModel):
     def model(self) -> str:
         return self._model
 
-    async def _read_health(self, *, strict: bool) -> None:
+    async def _read_health(self, *, strict: bool, deadline: float | None = None) -> None:
         self._health_tried = self._clock()
         try:
-            health = await self._client.health()
+            health = await self._client.health(deadline)
         except Exception:
             if strict:
                 raise
@@ -290,15 +303,16 @@ class ServedLayaModel(DecisionModel):
         await self._read_health(strict=True)
 
     async def _decide(self, observation: Observation, questions: dict[str, Question]) -> Reply:
+        deadline = self._client.deadline()  # one budget for the identity refresh and the decision
         if self._health_tried is None or self._clock() - self._health_tried >= HEALTH_MAX_AGE_S:
-            await self._read_health(strict=False)
+            await self._read_health(strict=False, deadline=deadline)
         body = {
             "model": self._model,
             "state": observation.state,
             "questions": {name: laya_question(question) for name, question in questions.items()},
         }
         request_id = uuid.uuid4().hex
-        payload, headers, ms = await self._client.decide(body, request_id)
+        payload, headers, ms = await self._client.decide(body, request_id, deadline)
         usage = Usage.from_payload(payload.get("usage"))
         check_window(
             usage,

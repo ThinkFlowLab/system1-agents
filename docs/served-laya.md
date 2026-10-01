@@ -74,7 +74,8 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
 - **Request.** Questions serialised with the existing `laya_question()`, which keeps Laya's own `noul`
   shape (a plain-string instruction). `score` is not sent until an agent needs it.
 - **Identity.** Each response's `served_by` goes into the run record. Until servers send it, the client
-  reads `/health` at warm-up and again whenever its reading is older than 30 s (the worker reports the
+  reads `/health` at warm-up and again whenever its reading is older than 30 s, inside the decision's
+  deadline and with at most half of it (the worker reports the
   live device, and laya moves a model to the CPU on a GPU out-of-memory error), records the reading's
   time as `read_at`, and each decision takes the entry for the model that answered
   (`models[routing.model]` on the system1-omni worker, else its top-level fields). Plain laya-serve
