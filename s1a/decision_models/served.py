@@ -29,7 +29,9 @@ from s1a.decision_models.types import Json, Observation, Question, Reply, Usage
 
 logger = logging.getLogger(__name__)
 
-SERVED_TIMEOUT_S = 5.0  # one decision, retries included; a warm Laya answers in 25-160 ms on MPS
+SERVED_TIMEOUT_S = (
+    5.0  # one decision, retry included: room for a slow answer and one retry, short enough to fail a step
+)
 HEALTH_TIMEOUT_S = 2.0
 HEALTH_MAX_AGE_S = 30.0  # the worker reports the live device; laya moves a model to the CPU on a GPU OOM
 DEFAULT_SERVED_MODEL = "english"
@@ -38,8 +40,8 @@ _RETRIED_TRANSPORT = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProt
 _RETRIED_STATUSES = frozenset({502, 504})  # the frontend could not reach the worker, or it was too slow
 _REQUEST_ERRORS = frozenset({400, 413, 422})
 _NOT_UP = (
-    "the system1-omni worker listens only after loading and warming up (35-39 s with --compile "
-    "and fp16 weights on an M1 Pro); start it per system1-omni's recipe/laya/apple-silicon.md"
+    "the system1-omni worker listens only once it has loaded and warmed up, so it may still be starting; "
+    "start it per system1-omni's recipe/laya/apple-silicon.md"
 )
 
 

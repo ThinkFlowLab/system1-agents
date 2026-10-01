@@ -40,7 +40,7 @@ BROWSER_MODEL_NAMES = (
     "laya-served",
     "cua",
     "llm",
-)  # a decision model (Jev or Laya over HTTP, Laya or Cua-S1 in process) or the chat model
+)  # a decision model (Jev or served Laya over HTTP, Laya or Cua-S1 in process) or the chat model
 RUNS_DIR = HOME / "runs" / "browser"
 
 

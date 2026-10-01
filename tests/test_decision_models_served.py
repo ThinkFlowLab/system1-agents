@@ -338,7 +338,7 @@ class WarmTests(IsolatedAsyncioTestCase):
         with self.assertRaises(BaseError) as caught:
             await model.warm()
         self.assertEqual(caught.exception.status, StatusCode.MODEL_CALL_FAILED)
-        self.assertIn("listens only after loading and warming up", str(caught.exception))
+        self.assertIn("listens only once it has loaded and warmed up", str(caught.exception))
 
     async def test_an_unusable_health_is_a_warning_not_an_error(self) -> None:
         for health in (httpx.Response(404), httpx.Response(200, text="ok")):

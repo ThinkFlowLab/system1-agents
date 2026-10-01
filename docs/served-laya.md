@@ -135,7 +135,7 @@ PYTHONPATH=src .venv/bin/python -m frontend.laya_mps --device mps --model englis
 ```
 
 The worker listens once it is warm, after about 40 s on an M1 Pro with these options; until then a
-decision fails with "not up or still warming". On a Mac without MPS, or on Linux, drop `--compile`
+decision fails with "no served Laya at …", saying it may still be starting. On a Mac without MPS, or on Linux, drop `--compile`
 and `--weights fp16` and use `--device cpu`. laya-serve's `LAYA_API_KEY` still turns on bearer auth; set the
 same value in `LAYA_SERVED_API_KEY`. The Rust frontend (`omni-jev`, port 8080) can sit in
 front of it; point `LAYA_SERVED_URL` at whichever you call.
