@@ -32,8 +32,8 @@ class Trial:
 def load(job_dir: Path) -> list[Trial]:
     trials = []
     for trial_dir in sorted(path.parent for path in job_dir.glob("*/result.json")):
-        episode = json.loads((trial_dir / "agent" / "episode.json").read_text())
-        result = json.loads((trial_dir / "result.json").read_text())
+        episode = json.loads((trial_dir / "agent" / "episode.json").read_text(encoding="utf-8"))
+        result = json.loads((trial_dir / "result.json").read_text(encoding="utf-8"))
         router = episode["extra"]["ticket_router"]
         elapsed = float(result["agent_result"]["metadata"]["elapsed_s"])
         trials.append(Trial(router["seed"], router, episode["decisions"], elapsed))
@@ -101,7 +101,7 @@ def main(arguments: list[str]) -> None:
             json.dumps(name) + ": [\n" + ",\n".join(json.dumps(row) for row in records(trials)) + "\n]"
             for name, trials in configs.items()
         ]
-        json_path.write_text("{\n" + ",\n".join(blocks) + "\n}\n")  # one decision per line, for diffs
+        json_path.write_text("{\n" + ",\n".join(blocks) + "\n}\n", encoding="utf-8")  # one decision per line, for diffs
     print("| config | correct | p50 ms | p95 ms | episodes s | model | served on |")
     print("|---|---:|---:|---:|---:|---|---|")
     for name, trials in configs.items():

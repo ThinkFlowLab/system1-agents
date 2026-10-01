@@ -36,7 +36,7 @@ CHECK = NoulQuestion("Does the customer ask for a refund?")
 
 
 def fixture(name: str) -> dict[str, Any]:
-    return json.loads((FIXTURES / f"{name}.json").read_text())
+    return json.loads((FIXTURES / f"{name}.json").read_text(encoding="utf-8"))
 
 
 WORKER_HEALTH = fixture("worker.health")["body"]

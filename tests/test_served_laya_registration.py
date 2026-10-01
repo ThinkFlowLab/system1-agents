@@ -24,7 +24,7 @@ def constants(node: ast.AST) -> set[str]:
 def places_missing_served() -> list[str]:
     missing = []
     for path in sorted(SOURCE.rglob("*.py")):
-        tree = ast.parse(path.read_text())
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, (ast.Tuple, ast.List, ast.Set)):
                 values = {e.value for e in node.elts if isinstance(e, ast.Constant)}
@@ -38,7 +38,7 @@ def places_missing_served() -> list[str]:
             else:
                 continue
             if "laya" in values and "laya-served" not in values:
-                missing.append(f"{path.relative_to(SOURCE.parent)}:{node.lineno}")
+                missing.append(f"{path.relative_to(SOURCE.parent).as_posix()}:{node.lineno}")
     return missing
 
 
@@ -57,6 +57,6 @@ def test_the_named_lists() -> None:
 
 def test_the_check_would_catch_a_missing_place(tmp_path: Path, monkeypatch) -> None:
     (tmp_path / "s1a").mkdir()
-    (tmp_path / "s1a" / "new_front.py").write_text('NAMES = ("jev", "laya")\n')
+    (tmp_path / "s1a" / "new_front.py").write_text('NAMES = ("jev", "laya")\n', encoding="utf-8")
     monkeypatch.setattr(__name__ + ".SOURCE", tmp_path / "s1a")
     assert places_missing_served() == ["s1a/new_front.py:1"]

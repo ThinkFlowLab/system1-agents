@@ -112,5 +112,5 @@ for name, (m, p, b, a, raw) in cases.items():
     rec = req(m, p, b, a, raw)
     if not raw and b is not None and name != "too_many_questions":
         rec["request"] = b
-    (out / f"{server}.{name}.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False) + "\n")
+    (out / f"{server}.{name}.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{server:14} {name:18} {rec['status']} {rec['content_type']}")
