@@ -71,7 +71,7 @@ Everything outside `openjiuwen` is an extra. An agent whose extra is missing say
 | `report` | pillow, playwright | `python -m evals.replay`, the showcase pages and GIFs; `--gif` also needs `uv run playwright install chromium` |
 | `laya` | laya (torch, transformers) | `--model laya` on every agent and on `decide` and `probe`: Laya in process, no Jev key; the checkpoint downloads into the Hugging Face cache (`HF_HOME`) on first use |
 | `cua` | cua-s1 (torch), huggingface-hub | `--model cua` on tool and browser agents and on `decide` and `probe`: Cua-S1 Nano in process; the 3 MB checkpoint downloads into the Hugging Face cache (`HF_HOME`) on first use |
-| `dev` | pytest, pytest-asyncio, ruff, ty | the test suite, `scripts/smoke.sh` and the lint and type checks |
+| `dev` | pytest, pytest-asyncio, ruff, ty, jsonschema, pyyaml, referencing | the test suite, `scripts/smoke.sh` and the lint and type checks; the last three check the served-Laya fixtures against `docs/api/` |
 
 `uv sync --all-extras` installs all seven. The CLI runs from a checkout; a wheel install (`uv tool install`,
 `pip install`) is unsupported, because the data folders (`evals/2048`, `evals/millionaire`, `evals/labelled`) sit
