@@ -29,9 +29,7 @@ from s1a.decision_models.types import Json, Observation, Question, Reply, Usage
 
 logger = logging.getLogger(__name__)
 
-SERVED_TIMEOUT_S = (
-    5.0  # one decision, retry included: room for a slow answer and one retry, short enough to fail a step
-)
+SERVED_TIMEOUT_S = 5.0  # room for one retry, short enough to fail a step
 HEALTH_TIMEOUT_S = 2.0
 HEALTH_MAX_AGE_S = 30.0  # the worker reports the live device; laya moves a model to the CPU on a GPU OOM
 DEFAULT_SERVED_MODEL = "english"
@@ -83,7 +81,9 @@ def parse_server_timing(header: str | None) -> dict[str, float]:
 
 
 class ServedLayaClient:
-    """HTTP to one ``/v1/systemone`` server: one deadline per decision, one retry, the error mapping."""
+    """HTTP to one ``/v1/systemone`` server: one deadline per decision, one retry, the error mapping.
+    httpx's timeout bounds each read, not a request, so every request also runs under ``asyncio.wait_for``: a
+    server that trickles its body would otherwise outlast the deadline."""
 
     def __init__(
         self,
@@ -103,7 +103,6 @@ class ServedLayaClient:
         self._client = httpx.AsyncClient(timeout=timeout_s, headers=headers, transport=transport)
 
     def deadline(self) -> float:
-        """The end of one decision's time budget, on this client's clock."""
         return self._clock() + self._timeout_s
 
     async def health(self, deadline: float | None = None) -> Json:
@@ -114,7 +113,7 @@ class ServedLayaClient:
             timeout = min(timeout, (deadline - self._clock()) / 2)
             if timeout <= 0:
                 return {}
-        try:  # httpx's timeout bounds each read, not the request, so the whole GET gets its share
+        try:
             response = await asyncio.wait_for(self._client.get(f"{self.url}/health", timeout=timeout), timeout)
         except TimeoutError:
             logger.warning("[laya-served] /health at %s took longer than %.1f s", self.url, timeout)
@@ -155,7 +154,7 @@ class ServedLayaClient:
             post = self._client.post(
                 f"{self.url}/v1/systemone", json=body, headers={"X-Request-Id": request_id}, timeout=remaining
             )
-            try:  # the outer wait bounds the whole request: a server trickling bytes resets httpx's read timeout
+            try:
                 response = await asyncio.wait_for(post, remaining)
             except TimeoutError as exc:
                 raise build_error(
@@ -238,19 +237,19 @@ class ServedLayaClient:
 
 
 def served_by_from_health(health: Json, routing: Any, read_at: str | None) -> Json:
-    """Who answered, from a ``/health`` reading: the answering model's entry on the system1-omni worker, its
-    top-level fields otherwise; plain laya-serve names no checkpoint, so only the response's ``routing.repo``."""
+    """Who answered, from a ``/health`` reading: the worker's entry for ``routing.model``, else its top-level fields
+    when they describe ``routing.repo`` (the top level is one model, the worker's primary), else ``routing.repo``
+    alone. The last covers plain laya-serve, whose ``/health`` names no checkpoint and reports the configured device,
+    and a model the worker loaded after startup, which its ``/health`` does not list."""
     routing = routing if isinstance(routing, dict) else {}
     raw_models = health.get("models")
     models: dict[str, Any] = raw_models if isinstance(raw_models, dict) else {}
     entry = models.get(routing.get("model")) if routing.get("model") in models else None
     if entry is None and health.get("checkpoint") and health.get("checkpoint") == routing.get("repo"):
-        entry = health  # the top level describes one model; use it only for the checkpoint that answered
+        entry = health
     raw_compile = health.get("compile")
     compile_state: dict[str, Any] = raw_compile if isinstance(raw_compile, dict) else {}
     if not isinstance(entry, dict):
-        # plain laya-serve (its /health device is the configured one, not a fact), or a model the worker loaded
-        # after startup, which its /health does not list: only the checkpoint is known
         return {"checkpoint": routing.get("repo"), "revision": None, "device": None, "source": "routing"}
     return {
         "checkpoint": entry.get("checkpoint") or routing.get("repo"),
@@ -273,7 +272,6 @@ def compiled(enabled: Any, device: Any) -> bool | None:
 
 
 def identity(served_by: Json, fallback: str) -> str:
-    """``checkpoint@revision`` (12 characters of it), the checkpoint alone, or the configured model name."""
     checkpoint, revision = served_by.get("checkpoint"), served_by.get("revision")
     if checkpoint and revision:
         return f"{checkpoint}@{str(revision)[:12]}"

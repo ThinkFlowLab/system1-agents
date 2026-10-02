@@ -10,7 +10,7 @@ from typing import Any, Literal, Union
 
 Json = dict[str, Any]
 QuestionType = Literal["choice", "noul"]
-PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing")  # the raw fields a step record keeps
+PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing")
 
 
 @dataclass(frozen=True)
