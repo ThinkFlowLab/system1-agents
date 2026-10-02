@@ -7,8 +7,10 @@ A ``httpx.MockTransport`` stands in for the server; its answers follow the respo
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any
 from unittest import IsolatedAsyncioTestCase
@@ -25,6 +27,7 @@ from s1a.decision_models.served import (
     ServedLayaClient,
     ServedLayaModel,
     parse_server_timing,
+    served_by_from_health,
 )
 from tests.decision_model_contract import DecisionModelContract
 
@@ -319,6 +322,42 @@ class ErrorTests(IsolatedAsyncioTestCase):
             await self.assert_fails(Server(script=[response]), StatusCode.MODEL_CALL_FAILED, "served Laya returned")
 
 
+def trickle(seconds: float, every: float = 0.025) -> httpx.Response:
+    """A response whose body arrives a few bytes at a time, each chunk sooner than any read timeout."""
+
+    async def chunks():
+        for _ in range(round(seconds / every)):
+            await asyncio.sleep(every)
+            yield b" "
+        yield b"{}"
+
+    return httpx.Response(200, headers={"content-type": "application/json"}, content=chunks())
+
+
+class WallClockDeadlineTests(IsolatedAsyncioTestCase):
+    """On the real clock: httpx's timeout bounds each read, so these need the outer wait to hold."""
+
+    def model(self, server: Server, timeout_s: float) -> ServedLayaModel:
+        client = ServedLayaClient(url=URL, timeout_s=timeout_s, transport=httpx.MockTransport(server.handler))
+        return ServedLayaModel(client)
+
+    async def test_a_trickling_answer_fails_at_the_deadline(self) -> None:
+        model = self.model(Server(script=[lambda request: trickle(0.5)]), timeout_s=0.1)
+        started = time.monotonic()
+        with self.assertRaises(BaseError) as caught:
+            await model.decide_many(OBSERVATION, {"pick": PICK})
+        self.assertIn("within 0.1 s", str(caught.exception))
+        self.assertLess(time.monotonic() - started, 0.45)  # the body alone takes 0.5 s
+
+    async def test_a_trickling_health_read_keeps_to_its_share(self) -> None:
+        model = self.model(Server(health=lambda request: trickle(0.5)), timeout_s=0.2)
+        started = time.monotonic()
+        with self.assertLogs("s1a.decision_models.served", level="WARNING"):
+            decision = await model.decide_many(OBSERVATION, {"pick": PICK})
+        self.assertEqual(decision.choice("pick").key, "billing")
+        self.assertLess(time.monotonic() - started, 0.45)  # the health body alone takes 0.5 s
+
+
 class WindowTests(IsolatedAsyncioTestCase):
     async def test_a_filled_window_is_an_error(self) -> None:
         model, _ = make_model(Server(usage=512), max_len=512)
@@ -347,6 +386,34 @@ class WarmTests(IsolatedAsyncioTestCase):
                 await model.warm()
             decision = await model.decide_many(OBSERVATION, {"pick": PICK})
             self.assertEqual(decision.model, "convaiinnovations/laya")  # from the response's routing
+
+
+class IdentityFromHealthTests(IsolatedAsyncioTestCase):
+    def test_a_model_loaded_after_startup_is_not_given_the_primary_identity(self) -> None:
+        routing = {"model": "multilingual", "repo": "convaiinnovations/laya/multilingual"}
+        served_by = served_by_from_health(WORKER_HEALTH, routing, "2026-10-02T00:00:00+00:00")
+        self.assertEqual(
+            served_by,
+            {
+                "checkpoint": "convaiinnovations/laya/multilingual",
+                "revision": None,
+                "device": None,
+                "source": "routing",
+            },
+        )
+
+    def test_the_top_level_is_used_for_the_checkpoint_it_describes(self) -> None:
+        health = {k: v for k, v in WORKER_HEALTH.items() if k != "models"}
+        served_by = served_by_from_health(health, {"repo": "convaiinnovations/laya"}, None)
+        self.assertEqual((served_by["source"], served_by["device"]), ("health", "mps"))
+
+    def test_compiled_is_where_the_model_runs_not_the_startup_flag(self) -> None:
+        on_cpu = json.loads(json.dumps(WORKER_HEALTH))
+        on_cpu["models"]["english"]["device"] = "cpu"  # after a fallback; --compile was given
+        self.assertIs(served_by_from_health(on_cpu, ROUTING, None)["compiled"], False)
+        self.assertIs(served_by_from_health(WORKER_HEALTH, ROUTING, None)["compiled"], True)
+        unknown = {k: v for k, v in WORKER_HEALTH.items() if k != "compile"}
+        self.assertIsNone(served_by_from_health(unknown, ROUTING, None)["compiled"])
 
 
 class IdentityTests(IsolatedAsyncioTestCase):

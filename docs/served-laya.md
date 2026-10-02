@@ -78,8 +78,11 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
   deadline and with at most half of it (the worker reports the
   live device, and laya moves a model to the CPU on a GPU out-of-memory error), records the reading's
   time as `read_at`, and each decision takes the entry for the model that answered
-  (`models[routing.model]` on the system1-omni worker, else its top-level fields). Plain laya-serve
-  reports no checkpoint or revision, so the record falls back to the response's `routing.repo`.
+  (`models[routing.model]` on the system1-omni worker, else its top-level fields when they name the
+  checkpoint in `routing.repo`). `compiled` is true only for a model on the GPU of a worker started with
+  `--compile`, since the worker runs every model on the CPU uncompiled. Plain laya-serve reports no
+  checkpoint or revision, and the worker's `/health` lists only the models it loaded at startup, so for
+  those the record keeps the response's `routing.repo` and leaves revision and device unknown.
 - **Servers.** The system1-omni worker is the recommended server; plain laya-serve works with reduced
   identity. On MPS the worker's fast setting is `--compile --weights fp16`.
   Both apply on the GPU only: on the CPU, including after a fallback, the worker runs Laya's fp32
@@ -94,7 +97,7 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
   | 400, 413, 422 | fail at once: the request is wrong, a retry returns the same |
   | 401 | fail at once as a configuration error |
   | 500 | fail at once: the same request fails the same way |
-  | deadline passed | fail with a timeout error naming the URL |
+  | deadline passed | fail with a timeout error naming the URL; the deadline bounds the whole request, also a body that keeps trickling in |
 
 - **Timing.** The record keeps the client round trip per decision and, when present, `Server-Timing`'s
   `queue` and `infer`, so network, queueing and model time separate. Today's servers send no

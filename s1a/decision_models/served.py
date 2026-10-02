@@ -114,8 +114,11 @@ class ServedLayaClient:
             timeout = min(timeout, (deadline - self._clock()) / 2)
             if timeout <= 0:
                 return {}
-        try:
-            response = await self._client.get(f"{self.url}/health", timeout=timeout)
+        try:  # httpx's timeout bounds each read, not the request, so the whole GET gets its share
+            response = await asyncio.wait_for(self._client.get(f"{self.url}/health", timeout=timeout), timeout)
+        except TimeoutError:
+            logger.warning("[laya-served] /health at %s took longer than %.1f s", self.url, timeout)
+            return {}
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
             raise build_error(
                 StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"no served Laya at {self.url}: {_NOT_UP}"
@@ -149,10 +152,17 @@ class ServedLayaClient:
                     error_msg=f"no answer from served Laya at {self.url} within {self._timeout_s:g} s",
                 )
             started = time.perf_counter()
-            try:
-                response = await self._client.post(
-                    f"{self.url}/v1/systemone", json=body, headers={"X-Request-Id": request_id}, timeout=remaining
-                )
+            post = self._client.post(
+                f"{self.url}/v1/systemone", json=body, headers={"X-Request-Id": request_id}, timeout=remaining
+            )
+            try:  # the outer wait bounds the whole request: a server trickling bytes resets httpx's read timeout
+                response = await asyncio.wait_for(post, remaining)
+            except TimeoutError as exc:
+                raise build_error(
+                    StatusCode.MODEL_CALL_FAILED,
+                    cause=exc,
+                    error_msg=f"no answer from served Laya at {self.url} within {self._timeout_s:g} s",
+                ) from exc
             except httpx.TimeoutException as exc:
                 if isinstance(exc, httpx.ConnectTimeout) and not retried:
                     retried = True
@@ -234,11 +244,13 @@ def served_by_from_health(health: Json, routing: Any, read_at: str | None) -> Js
     raw_models = health.get("models")
     models: dict[str, Any] = raw_models if isinstance(raw_models, dict) else {}
     entry = models.get(routing.get("model")) if routing.get("model") in models else None
-    if entry is None and "checkpoint" in health:
-        entry = health
+    if entry is None and health.get("checkpoint") and health.get("checkpoint") == routing.get("repo"):
+        entry = health  # the top level describes one model; use it only for the checkpoint that answered
     raw_compile = health.get("compile")
     compile_state: dict[str, Any] = raw_compile if isinstance(raw_compile, dict) else {}
-    if not isinstance(entry, dict):  # plain laya-serve: its /health device is the configured one, not a fact
+    if not isinstance(entry, dict):
+        # plain laya-serve (its /health device is the configured one, not a fact), or a model the worker loaded
+        # after startup, which its /health does not list: only the checkpoint is known
         return {"checkpoint": routing.get("repo"), "revision": None, "device": None, "source": "routing"}
     return {
         "checkpoint": entry.get("checkpoint") or routing.get("repo"),
@@ -246,10 +258,18 @@ def served_by_from_health(health: Json, routing: Any, read_at: str | None) -> Js
         "device": entry.get("device"),
         "weights_dtype": entry.get("weights_dtype"),
         "autocast_dtype": entry.get("autocast_dtype"),
-        "compiled": compile_state.get("enabled"),
+        "compiled": compiled(compile_state.get("enabled"), entry.get("device")),
         "source": "health",
         "read_at": read_at,
     }
+
+
+def compiled(enabled: Any, device: Any) -> bool | None:
+    """Whether the answer ran a compiled model. ``--compile`` applies on the GPU only: the worker runs every model on
+    the CPU uncompiled, also after a fallback. ``None`` when the server does not say."""
+    if not isinstance(enabled, bool) or not isinstance(device, str):
+        return None
+    return enabled and not device.startswith("cpu")
 
 
 def identity(served_by: Json, fallback: str) -> str:
