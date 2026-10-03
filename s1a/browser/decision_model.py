@@ -290,10 +290,12 @@ class BrowserDecisionModel(Model):
             run.ticks.append(record)
             if move.operation == "WAIT":
                 run.consecutive_waits += 1
-                run.history.append({"action": "wait", "kind": "wait", "text": None, "page_changed": None})
+                wait_entry = {"action": "wait", "kind": "wait", "text": None, "page_changed": None}
+                run.history.append(wait_entry)
                 if run.consecutive_waits > MAX_CONSECUTIVE_WAITS:
                     return await self._final(run, "BLOCKED", snapshot, "waited without progress")
                 snapshot, settle_probes, settle_ms, progressed = await self._settle_wait(run, snapshot)
+                wait_entry["page_changed"] = progressed  # the next state shows whether the wait moved the page
                 if not progressed:
                     record["settle_probes"] += settle_probes
                     record["settle_ms"] += settle_ms

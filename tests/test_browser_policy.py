@@ -670,6 +670,17 @@ class TestJevWaitCollapsesIntoInPageSettling(IsolatedAsyncioTestCase):
             len(runtime.calls), 2, "the extra waiting must show up as extra probes, not extra decide() calls"
         )
 
+    async def test_a_wait_that_moved_the_page_is_recorded_as_progress(self) -> None:
+        runtime = _ScriptedPageKeyRuntime(["k1", "k1", "k2"])
+        slot_model = _slot_model(
+            [_op_answer("WAIT"), _answers("CLICK", "none")], goal_value_cache=False, runtime=runtime
+        )
+
+        await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+
+        wait_entry = next(entry for entry in slot_model._run.history if entry["kind"] == "wait")
+        self.assertIs(wait_entry["page_changed"], True, "the next state must not show the wait as '(no change)'")
+
     async def test_escalating_settle_doubles_and_clamps_at_the_probe(self) -> None:
         runtime = _ScriptedPageKeyRuntime(["k1"] * 8)
         slot_model = _slot_model([_op_answer("WAIT"), _op_answer("DONE")], goal_value_cache=False, runtime=runtime)

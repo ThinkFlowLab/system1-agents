@@ -89,7 +89,37 @@ real; `bodies` records every request). `ScriptedModel` fakes the interface for f
    plus the backend's mapping tests; a fake for its SDK lives in that file.
 4. An optional extra in `pyproject.toml` and an env block in `.env.example` when it needs a dependency.
 
+### Laya browser input shaping
+
 Laya is text only and reads a 512 to 1024 token window; it fits the tool front first. The browser front's element
-tables are wider than that window. The window check sums `input_tokens` over the request's questions. On the
-browser front (two to four questions per tick) only a cut on every head raises the config error above; a cut on
-one head goes unseen. `--model laya` on a browser agent needs `LAYA_MAX_LEN` raised to the page's size.
+tables, sent to Jev as-is, ran well past that window on a real page before a single instruction token was spent:
+a JSON object per row, the full page text, and ten actions of history. The window check sums `input_tokens` over
+the request's questions. On the browser front (two to four questions per tick) only a cut on every head raises
+the config error above; a cut on one head goes unseen.
+
+`laya_state` (`s1a/decision_models/laya.py`) folds a browser-shaped state before every call: `page.text` dropped
+(the choice heads already carry each candidate's own text; the free-form dump is for the chat model's DONE
+answer, which Laya never writes), each element row rendered as one short line instead of a JSON object, and the
+last three actions kept instead of ten. On the WebVoyager-style pages measured while adding this, that is
+roughly a tenfold reduction in the JSON-shaped state's size before the tokenizer sees it — the difference between
+routinely filling a 512-token window and, on most pages, comfortably fitting it. It is on by default and skips
+anything that is not the browser front's shape; `LAYA_COMPACT_BROWSER_STATE=0` turns it off. `--model laya` on a
+page whose element table is still too wide for the window needs `LAYA_MAX_LEN` raised, same as before.
+
+The questions need the same care. Laya builds each question's row as `[CLS] instruction [SEP] options [SEP] state`
+and fits the instruction and every option into one `head_max_len` budget (192 by default): past it, every option
+is cut to an equal share and the instruction to what is left. The browser front's target options are JSON
+objects, so a 23-element click head left each option about six tokens, `12: {"element": "[`, and Laya never
+saw an element's name. With a folded state, `laya_browser_question` rewrites each browser question: the
+instruction becomes the goal and the operation (the agent's rules, 446 tokens and about 550 on a target head, are
+dropped), and each target option becomes its element's label and value, `Where from? = Zurich`. Each head keeps its own ask (`text_value` asks which value to type, not which operation comes next); two options that shorten to the same text keep their key in front (`[2] Select flight: Swiss LX 318,`); a blocked row keeps its overlay's name (`(blocked by Cookie consent)`). Measured on a
+Google Flights run with this shape: 157 to 206 tokens for the operation head, 73 to 101 for the TYPE_TEXT and
+PRESS_ENTER heads, 92 to 915 for the CLICK head (a calendar page offers 66 days), and 98 to 1,002 tokens of folded
+state. Browser runs therefore want `LAYA_MAX_LEN=1536` and `LAYA_HEAD_MAX_LEN=1024`.
+
+Both folds make the request fit; they do not make the stock checkpoint drive a web form. On 2026-09-28, with both
+on and those two settings, `s1a run flights --model laya` on CPU answered DONE at the first step (DONE 0.55, CLICK
+0.23; 12.4 s, 1,254 input tokens over four questions) where Jev needs twelve steps. Replayed offline over Jev's
+twelve recorded steps of the same task, the checkpoint picks Jev's answer on 4 of 23 questions (the operation head
+and the chosen operation's target head). Laya's model card names email triage, routing, guardrails and moderation
+as what its checkpoints are for; browser use would need a checkpoint fine-tuned on browser steps.

@@ -138,6 +138,180 @@ class TestMapping(IsolatedAsyncioTestCase):
         self.assertEqual((decision_model.name, decision_model.model), ("laya", "convaiinnovations/laya"))
 
 
+_BROWSER_STATE = {
+    "page": {"url": "https://example.com/flights", "title": "Google Flights" + "!" * 100, "text": "x" * 5000},
+    "elements": [
+        {
+            "index": "1",
+            "role": "textbox",
+            "label": "Where from?" + " padding" * 20,
+            "value": "",
+            "operations": ["TYPE_TEXT"],
+        },
+        {
+            "index": "2",
+            "role": "button",
+            "label": "Search",
+            "value": "",
+            "checked": True,
+            "operations": ["CLICK"],
+        },
+    ],
+    "recent_actions": [
+        {"action": f"step-{i}", "kind": "click", "text": "", "page_changed": i % 2 == 0} for i in range(10)
+    ],
+}
+
+
+class TestLayaState(TestCase):
+    """``laya_state`` folds the browser front's state to fit Laya's window; anything else passes through."""
+
+    def test_a_non_browser_state_passes_through(self) -> None:
+        for state in ({"page": "x"}, "plain text", {"score": 1}, {"page": {"url": "u"}, "elements": "not a list"}):
+            self.assertEqual(laya_module.laya_state(state), state)
+
+    def test_page_text_is_dropped_and_the_title_is_capped(self) -> None:
+        compact = laya_module.laya_state(_BROWSER_STATE)
+        self.assertEqual(compact["page"]["url"], "https://example.com/flights")
+        self.assertNotIn("text", compact["page"])
+        self.assertLessEqual(len(compact["page"]["title"]), laya_module.LAYA_BROWSER_TITLE_CHARS)
+
+    def test_each_element_row_becomes_one_short_line_not_a_json_object(self) -> None:
+        compact = laya_module.laya_state(_BROWSER_STATE)
+        self.assertEqual(len(compact["elements"]), 2)
+        self.assertTrue(all(isinstance(row, str) for row in compact["elements"]))
+        self.assertLess(len(compact["elements"][0]), len("label") * 20)  # far short of the padded label
+        self.assertIn("[C]", compact["elements"][1])  # the checked flag survives as a letter, not a key
+
+    def test_history_is_capped_at_the_last_few_actions(self) -> None:
+        compact = laya_module.laya_state(_BROWSER_STATE)
+        self.assertEqual(len(compact["recent_actions"]), laya_module.LAYA_BROWSER_HISTORY_KEPT)
+        self.assertEqual(compact["recent_actions"][-1], "click:step-9 (no change)")
+
+    def test_the_probes_string_flags_are_read_strictly(self) -> None:
+        """The probe sends aria-* and checkbox state as strings; ``"false"`` must not light a flag."""
+        rows = [
+            {"index": "1", "role": "button", "label": "Menu", "expanded": "false"},
+            {"index": "2", "role": "checkbox", "label": "Nonstop", "checked": "false"},
+            {"index": "3", "role": "button", "label": "Open", "expanded": "true", "checked": "TRUE"},
+            {"index": "4", "role": "button", "label": "Dead", "click_did_nothing": True},
+        ]
+        lines = laya_module.laya_state({"page": {"url": "u"}, "elements": rows})["elements"]
+        self.assertEqual(lines[0], "1 button Menu")
+        self.assertEqual(lines[1], "2 checkbox Nonstop")
+        self.assertIn("[CX]", lines[2])
+        self.assertIn("[D]", lines[3])
+
+    def test_an_action_not_yet_measured_is_not_shown_as_no_change(self) -> None:
+        history = [
+            {"action": "wait", "kind": "wait", "text": None, "page_changed": None},
+            {"action": "Search", "kind": "click", "text": "", "page_changed": True},
+            {"action": "Done", "kind": "click", "text": "", "page_changed": False},
+        ]
+        compact = laya_module.laya_state({"page": {"url": "u"}, "elements": [], "recent_actions": history})
+        self.assertEqual(compact["recent_actions"], ["wait:wait", "click:Search", "click:Done (no change)"])
+
+    def test_compaction_shrinks_the_json_size_by_an_order_of_magnitude(self) -> None:
+        import json
+
+        raw = json.dumps(_BROWSER_STATE)
+        compact = json.dumps(laya_module.laya_state(_BROWSER_STATE))
+        self.assertGreater(len(raw) / len(compact), 8)
+
+
+_TARGET_QUESTION = ChoiceQuestion(
+    {
+        "12": {"element": "[12] Where from?", "current_value": "Zurich", "role": "combobox"},
+        "19": {"element": "[19] Search", "current_value": ""},
+    },
+    goal="find flights from Zurich to London",
+    operation="CLICK",
+    rules=("a long rule " * 50, "another long rule " * 50),
+)
+
+
+class TestLayaBrowserQuestion(TestCase):
+    """``laya_browser_question`` fits a browser head into Laya's one shared option budget."""
+
+    def test_a_target_option_becomes_its_label_and_value(self) -> None:
+        asked = laya_module.laya_browser_question(jev_question(_TARGET_QUESTION))
+        self.assertEqual(asked["criteria"], {"12": "Where from? = Zurich", "19": "Search"})
+
+    def test_the_rules_are_dropped_and_the_instruction_keeps_the_goal_and_the_operation(self) -> None:
+        asked = laya_module.laya_browser_question(jev_question(_TARGET_QUESTION))
+        self.assertIsInstance(asked["instructions"], str)
+        self.assertIn("find flights from Zurich to London", asked["instructions"])
+        self.assertIn("CLICK", asked["instructions"])
+        self.assertNotIn("long rule", asked["instructions"])
+
+    def test_the_operation_head_keeps_its_string_options(self) -> None:
+        operation = ChoiceQuestion({"CLICK": "Press a control", "DONE": "Finished"}, goal="g", rules="r")
+        asked = laya_module.laya_browser_question(jev_question(operation), "operation")
+        self.assertEqual(asked["criteria"], {"CLICK": "Press a control", "DONE": "Finished"})
+        self.assertEqual(asked["instructions"], "Task: g Which operation comes next?")
+
+    def test_the_text_value_head_asks_for_a_value_not_an_operation(self) -> None:
+        values = ChoiceQuestion({"London": "London", "Zurich": "Zurich", "none": "No value fits."}, goal="g", rules="r")
+        asked = laya_module.laya_browser_question(jev_question(values), "text_value")
+        self.assertEqual(asked["instructions"], "Task: g Which value should be typed into the field?")
+
+    def test_options_that_shorten_to_the_same_text_keep_their_key(self) -> None:
+        flights = ChoiceQuestion(
+            {
+                "2": {"element": "[2] Select flight: Swiss LX 318, departs 07:10"},
+                "3": {"element": "[3] Select flight: Swiss LX 318, departs 09:40"},
+                "4": {"element": "[4] Search"},
+            },
+            goal="g",
+            operation="CLICK",
+        )
+        criteria = laya_module.laya_browser_question(jev_question(flights), "click_target")["criteria"]
+        self.assertEqual(len(set(criteria.values())), 3)
+        self.assertTrue(criteria["2"].startswith("[2] ") and criteria["3"].startswith("[3] "))
+        self.assertEqual(criteria["4"], "Search")
+
+    def test_a_blocked_row_keeps_the_name_of_its_overlay(self) -> None:
+        row = {"index": "7", "role": "button", "label": "Search", "blocked_by": "Before you continue to Google"}
+        self.assertIn(
+            "(blocked by Before you continue to G)",
+            laya_module.laya_state({"page": {"url": "u"}, "elements": [row]})["elements"][0],
+        )
+
+    def test_a_question_without_a_goal_passes_through(self) -> None:
+        for asked in (jev_question(PICK), {"type": "noul", "instructions": "safe?"}):
+            self.assertEqual(laya_module.laya_browser_question(asked), asked)
+
+
+class TestLayaModelCompaction(IsolatedAsyncioTestCase):
+    async def test_browser_questions_reach_the_agent_folded_with_the_state(self) -> None:
+        agent = FakeLayaAgent()
+        await _model(agent).decide_many(Observation(_BROWSER_STATE), {"click_target": _TARGET_QUESTION})
+        ((_state, asked),) = agent.calls
+        self.assertEqual(asked["click_target"]["criteria"]["12"], "Where from? = Zurich")
+
+    async def test_questions_over_a_non_browser_state_are_not_folded(self) -> None:
+        agent = FakeLayaAgent()
+        await _model(agent).decide_many(Observation({"score": 1}), {"click_target": _TARGET_QUESTION})
+        ((_state, asked),) = agent.calls
+        self.assertEqual(asked["click_target"], jev_question(_TARGET_QUESTION))
+
+    async def test_the_browser_state_reaching_the_agent_is_compacted_by_default(self) -> None:
+        agent = FakeLayaAgent()
+        question = ChoiceQuestion({"1": {"element": "[1] Search"}})
+        await _model(agent).decide_many(Observation(_BROWSER_STATE), {"operation": question})
+        ((state, _asked),) = agent.calls
+        self.assertEqual(state, laya_module.laya_state(_BROWSER_STATE))
+        self.assertNotIn("text", state["page"])
+
+    async def test_compaction_turns_off_with_compact_browser_state_false(self) -> None:
+        agent = FakeLayaAgent()
+        question = ChoiceQuestion({"1": {"element": "[1] Search"}})
+        model = LayaModel(agent, model="convaiinnovations/laya", compact_browser_state=False)
+        await model.decide_many(Observation(_BROWSER_STATE), {"operation": question})
+        ((state, _asked),) = agent.calls
+        self.assertEqual(state, _BROWSER_STATE)
+
+
 class TestFailures(IsolatedAsyncioTestCase):
     async def test_option_overflow_and_torch_errors_are_model_call_failures(self) -> None:
         for error in (ValueError("question 'pick' options exceed head_max_len=192"), RuntimeError("CUDA error")):
@@ -257,3 +431,13 @@ class TestFromEnv(TestCase):
                 decision_model = LayaModel.from_env()
         self.assertEqual(decision_model.model, laya_module.LAYA_DEFAULT_MODEL)
         self.assertEqual(decision_model._agent.cfg, {"max_len": 512, "head_max_len": 192})
+        self.assertTrue(decision_model._compact_browser_state)
+
+    def test_laya_compact_browser_state_env_var_turns_compaction_off(self) -> None:
+        for off in ("0", "false", "False", "no"):
+            with self.subTest(off=off):
+                env = {"LAYA_COMPACT_BROWSER_STATE": off}
+                with patch.dict(sys.modules, {"laya": SimpleNamespace(load=lambda *a, **k: FakeLayaAgent())}):
+                    with patch.dict(os.environ, env):
+                        decision_model = LayaModel.from_env()
+                self.assertFalse(decision_model._compact_browser_state)

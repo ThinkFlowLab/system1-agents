@@ -30,8 +30,9 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `LAYA_MODEL` | `laya` model | `convaiinnovations/laya` | Hugging Face repository ID or local path for the resident Laya decision model checkpoint. |
 | `LAYA_SUBFOLDER` | `laya` model | *(unset)* | Optional subfolder in the checkpoint repo (e.g. `multilingual` or `typed-decisions`). |
 | `LAYA_DEVICE` | `laya` model | `(library default)` | PyTorch device for Laya model evaluation; passes None so the library selects CUDA, MPS, or CPU. |
-| `LAYA_MAX_LEN` | `laya` model | `(checkpoint default)` | Maximum token sequence length for Laya state representation; overrides checkpoint window only when set. |
-| `LAYA_HEAD_MAX_LEN` | `laya` model | `(checkpoint default)` | Maximum token sequence length for Laya decision head options; overrides checkpoint window only when set. |
+| `LAYA_MAX_LEN` | `laya` model | `(checkpoint default)` | Maximum token sequence length for Laya state representation; overrides checkpoint window only when set. Browser agents want `1536`. |
+| `LAYA_HEAD_MAX_LEN` | `laya` model | `(checkpoint default)` | Maximum token sequence length for Laya decision head options; overrides checkpoint window only when set. Browser agents want `1024`. |
+| `LAYA_COMPACT_BROWSER_STATE` | `laya` model | `1` | Folds a browser-front state and its questions to fit Laya's window (`laya_state`, `laya_browser_question`); `0`, `false` or `no` sends them as Jev gets them. |
 | `CUA_S1_CHECKPOINT` | `cua` model | `cua-ai/cua-s1-nano-0.1` | Hugging Face checkpoint ID or local directory for Cua-S1 Nano option scorer. |
 | `CUA_S1_SUBFOLDER` | `cua` model | `text` | Subfolder within checkpoint directory containing text option scoring weights. |
 | `CUA_S1_DEVICE` | `cua` model | `auto` | PyTorch device used for Cua-S1 Nano evaluation (`auto`, `cpu`, `cuda`, or `mps`). |
