@@ -271,6 +271,21 @@ def compiled(enabled: Any, device: Any) -> bool | None:
     return enabled and not device.startswith("cpu")
 
 
+def check_named(model: str, routing: Any) -> None:
+    """laya-serve routes a ``model`` it does not know by the state's language instead of rejecting it, so a
+    mistyped name would be answered by whichever checkpoint the state suits. The window check and the record
+    assume the configured one, so a routing reason other than the explicit name raises."""
+    reason = routing.get("reason") if isinstance(routing, dict) else None
+    if isinstance(reason, str) and not reason.startswith("explicit model"):
+        raise build_error(
+            StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+            error_msg=(
+                f"served Laya does not know LAYA_SERVED_MODEL={model!r} and chose {routing.get('model')!r} "
+                f"itself ({reason}); name a checkpoint it serves: english, multilingual or typed-decisions"
+            ),
+        )
+
+
 def identity(served_by: Json, fallback: str) -> str:
     checkpoint, revision = served_by.get("checkpoint"), served_by.get("revision")
     if checkpoint and revision:
@@ -333,6 +348,7 @@ class ServedLayaModel(DecisionModel):
         }
         request_id = uuid.uuid4().hex
         payload, headers, ms = await self._client.decide(body, request_id, deadline)
+        check_named(self._model, payload.get("routing"))
         usage = Usage.from_payload(payload.get("usage"))
         check_window(
             usage,

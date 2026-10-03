@@ -369,6 +369,28 @@ class WindowTests(IsolatedAsyncioTestCase):
         self.assertIn("LAYA_SERVED_MAX_LEN", str(caught.exception))
         self.assertNotIn("LAYA_MAX_LEN", str(caught.exception))  # no server reads it
 
+    async def test_a_name_the_server_routed_itself_is_a_config_error(self) -> None:
+        routed = lambda request: ok(  # noqa: E731 -- laya-serve's answer to a model name it does not know
+            {
+                "model": "laya-rl-agent",
+                "answers": {"pick": laya_answer(laya_question(PICK))},
+                "usage": {"input_tokens": 40},
+                "routing": {"model": "english", "repo": "convaiinnovations/laya", "reason": "default (english)"},
+            }
+        )
+        model, _ = make_model(Server(script=[routed]))
+        with self.assertRaises(BaseError) as caught:
+            await model.decide_many(OBSERVATION, {"pick": PICK})
+        self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
+        self.assertIn("does not know LAYA_SERVED_MODEL='english'", str(caught.exception))
+
+    async def test_a_server_that_gives_no_routing_reason_is_not_checked(self) -> None:
+        bare = lambda request: ok(  # noqa: E731
+            {"model": "m", "answers": {"pick": laya_answer(laya_question(PICK))}, "usage": {"input_tokens": 40}}
+        )
+        model, _ = make_model(Server(script=[bare]))
+        await model.decide_many(OBSERVATION, {"pick": PICK})
+
     async def test_the_window_scales_with_the_questions(self) -> None:
         model, _ = make_model(Server(usage=600), max_len=512)
         await model.decide_many(OBSERVATION, {"pick": PICK, "check": CHECK})  # 600 < 2 * 512
