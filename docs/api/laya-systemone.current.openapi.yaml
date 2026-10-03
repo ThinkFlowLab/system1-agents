@@ -181,6 +181,7 @@ paths:
                 status: ok
                 ready: true
                 loaded: [english]
+                preparing: []
                 device: mps
                 requested_device: mps
                 device_mismatch: false
@@ -201,7 +202,7 @@ paths:
                     checkpoint: convaiinnovations/laya
                     revision: 55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851
                     warmup_ms: 34426.6
-                compile: { enabled: true, graphs_at_ready: 3, graphs_now: 3, recompiled_after_ready: false }
+                compile: { enabled: true, active: true, graphs_at_ready: 3, graphs_now: 3, recompiled_after_ready: false }
         '502':
           description: Frontend only. The worker could not be reached.
           content:
@@ -426,11 +427,17 @@ components:
         - $ref: '#/components/schemas/ModelHealth'
         - type: object
           required: [status, ready, loaded, models, compile]
-          description: Top-level model fields describe the `--model` the worker serves; `models` has every loaded model.
+          description: >-
+            Top-level model fields describe the `--model` the worker serves; `models` has every prepared model,
+            also the ones loaded while serving.
           properties:
             status: { const: ok }
             ready: { const: true }
             loaded: { type: array, items: { type: string } }
+            preparing:
+              type: array
+              items: { type: string }
+              description: Checkpoints being loaded and warmed inside a request; other requests wait for them.
             models:
               type: object
               additionalProperties: { $ref: '#/components/schemas/ModelHealth' }
@@ -439,6 +446,7 @@ components:
               required: [enabled]
               properties:
                 enabled: { type: boolean, description: "Started with --compile." }
+                active: { type: boolean, description: Some model runs its compiled paths now; false on the CPU. }
                 graphs_at_ready: { type: integer }
                 graphs_now: { type: integer }
                 recompiled_after_ready: { type: boolean }

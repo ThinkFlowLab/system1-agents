@@ -286,7 +286,9 @@ class ErrorTests(IsolatedAsyncioTestCase):
 
     async def test_a_read_timeout_fails_with_the_deadline(self) -> None:
         server = Server(script=[httpx.ReadTimeout("slow")])
-        await self.assert_fails(server, StatusCode.MODEL_CALL_FAILED, "within 5 s")
+        await self.assert_fails(
+            server, StatusCode.MODEL_CALL_FAILED, "within 5 s; a worker that is loading another checkpoint"
+        )
 
     async def test_the_deadline_covers_the_retry(self) -> None:
         clock = Clock()

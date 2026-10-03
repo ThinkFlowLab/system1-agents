@@ -81,8 +81,8 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
   (`models[routing.model]` on the system1-omni worker, else its top-level fields when they name the
   checkpoint in `routing.repo`). `compiled` is true only for a model on the GPU of a worker started with
   `--compile`, since the worker runs every model on the CPU uncompiled. Plain laya-serve reports no
-  checkpoint or revision, and the worker's `/health` lists only the models it loaded at startup, so for
-  those the record keeps the response's `routing.repo` and leaves revision and device unknown.
+  checkpoint or revision, and a checkpoint the worker loaded since the last reading is in the next one,
+  so for those the record keeps the response's `routing.repo` and leaves revision and device unknown.
 - **Servers.** The system1-omni worker is the recommended server; plain laya-serve works with reduced
   identity. On MPS the worker's fast setting is `--compile --weights fp16`.
   Both apply on the GPU only: on the CPU, including after a fallback, the worker runs Laya's fp32
@@ -98,6 +98,11 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
   | 401 | fail at once as a configuration error |
   | 500 | fail at once: the same request fails the same way |
   | deadline passed | fail with a timeout error naming the URL; the deadline bounds the whole request, also a body that keeps trickling in |
+
+  A worker that loads another checkpoint while serving (a request names it, or Laya's routing picks it
+  for a non-English state) prepares it inside that request and holds every other request until it is
+  ready, which takes longer than the default deadline. Decisions fail with the timeout error meanwhile
+  and answer again once the worker is ready; see "Run it" for how to load such a checkpoint ahead.
 
 - **Timing.** The record keeps the client round trip per decision and, when present, `Server-Timing`'s
   `queue` and `infer`, so network, queueing and model time separate. Today's servers send no
@@ -129,8 +134,7 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
 ## 8. Run it
 
 Start the server once, from a system1-omni checkout, with its
-[Apple Silicon recipe](https://github.com/cacheline999/system1-omni/blob/laya-apple-silicon/recipe/laya/apple-silicon.md)
-(ThinkFlowLab/system1-omni#30, until it merges):
+[Apple Silicon recipe](https://github.com/ThinkFlowLab/system1-omni/blob/main/recipe/laya/apple-silicon.md):
 
 ```sh
 PYTHONPATH=src .venv/bin/python -m frontend.laya_mps --device mps --model english --require-device \
@@ -142,6 +146,11 @@ decision fails with "no served Laya at …", saying it may still be starting. On
 and `--weights fp16` and use `--device cpu`. laya-serve's `LAYA_API_KEY` still turns on bearer auth; set the
 same value in `LAYA_SERVED_API_KEY`. The Rust frontend (`omni-jev`, port 8080) can sit in
 front of it; point `LAYA_SERVED_URL` at whichever you call.
+
+The worker loads a further checkpoint when a request names it or Laya's routing picks it (a non-English
+state), and prepares it inside that request, which outlasts the client's deadline. For agents that may
+see such states, send the worker one request per further checkpoint after startup, as the recipe says,
+or raise `LAYA_SERVED_TIMEOUT_S` for the first one.
 
 Then, from this repository, with no extra installed:
 

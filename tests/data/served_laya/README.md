@@ -1,11 +1,12 @@
 # Served Laya fixtures
 
-Responses recorded from running servers on 2026-10-01, one JSON file per case: `status`,
+Responses recorded from running servers on 2026-10-01 and checked again on 2026-10-03 (only the two
+worker `/health` files changed), one JSON file per case: `status`,
 `content_type`, `body` and, where it was sent, the `request`.
 
 | prefix | server |
 |---|---|
-| `worker.` | system1-omni's Laya worker at `3d6cb57` (PR #30): `python -m frontend.laya_mps --device mps --model english --require-device --compile --weights fp16`, `LAYA_API_KEY=fixture-token` |
+| `worker.` | system1-omni's Laya worker at `58b8cbe` (the merge of #30): `python -m frontend.laya_mps --device mps --model english --require-device --compile --weights fp16`, `LAYA_API_KEY=fixture-token` |
 | `frontend.` | the same worker behind `omni-jev` (system1-omni#2) |
 | `frontend-down.` | `omni-jev` with the worker stopped |
 | `laya-serve.` | plain `laya-serve`, no API key, MPS |

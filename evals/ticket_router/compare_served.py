@@ -70,6 +70,9 @@ def row(name: str, trials: list[Trial]) -> str:
     ms = [tick["ms"] for tick in ticks]
     correct = sum(trial.router["correct"] for trial in trials)
     total = sum(trial.router["total"] for trial in trials)
+    elapsed = sum(trial.elapsed_s for trial in trials)
+    if not ticks:  # every episode stopped before its first decision
+        return f"| {name} | {correct}/{total} | | | {elapsed:.1f} | | no decision recorded |"
     served_by = ticks[0].get("served_by") or {}
     where = "in process"
     if served_by:
@@ -82,7 +85,7 @@ def row(name: str, trials: list[Trial]) -> str:
         where = f"{' '.join(parts) or 'device not reported'} via {ticks[0]['url']}"
     return (
         f"| {name} | {correct}/{total} | {statistics.median(ms):.0f} | {percentile(ms, 0.95):.0f} | "
-        f"{sum(trial.elapsed_s for trial in trials):.1f} | {ticks[0].get('model') or ticks[0]['source']} | {where} |"
+        f"{elapsed:.1f} | {ticks[0].get('model') or ticks[0]['source']} | {where} |"
     )
 
 

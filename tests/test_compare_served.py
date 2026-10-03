@@ -47,6 +47,15 @@ def test_a_job_that_stopped_early_is_compared_on_what_it_decided(tmp_path: Path,
     assert "- A and B route 1 of 1 (seed, ticket) pairs the same" in out
 
 
+def test_a_job_that_decided_nothing_still_gets_its_row(tmp_path: Path, capsys) -> None:
+    full = write_job(tmp_path, "full", ["payment", "returns", "human"])
+    none = write_job(tmp_path, "none", [])  # the server was down: every episode stopped at its first decision
+    compare_served.main([f"A={full}", f"B={none}"])
+    out = capsys.readouterr().out
+    assert "| B | 0/3 | | | 1.0 | | no decision recorded |" in out
+    assert "- A and B route 0 of 0 (seed, ticket) pairs the same" in out
+
+
 def test_a_tick_that_does_not_match_its_route_is_an_error(tmp_path: Path) -> None:
     job = write_job(tmp_path, "job", ["payment", "returns"])
     episode_path = next(job.glob("*/agent/episode.json"))

@@ -41,6 +41,10 @@ _NOT_UP = (
     "the system1-omni worker listens only once it has loaded and warmed up, so it may still be starting; "
     "start it per system1-omni's recipe/laya/apple-silicon.md"
 )
+_SLOW = (
+    "a worker that is loading another checkpoint holds every request until it is ready; "
+    "send again, or raise LAYA_SERVED_TIMEOUT_S"
+)
 
 
 def _reason(response: httpx.Response) -> str:
@@ -146,10 +150,7 @@ class ServedLayaClient:
         while True:
             remaining = deadline - self._clock()
             if remaining <= 0:
-                raise build_error(
-                    StatusCode.MODEL_CALL_FAILED,
-                    error_msg=f"no answer from served Laya at {self.url} within {self._timeout_s:g} s",
-                )
+                raise self._no_answer(None)
             started = time.perf_counter()
             post = self._client.post(
                 f"{self.url}/v1/systemone", json=body, headers={"X-Request-Id": request_id}, timeout=remaining
@@ -157,20 +158,12 @@ class ServedLayaClient:
             try:
                 response = await asyncio.wait_for(post, remaining)
             except TimeoutError as exc:
-                raise build_error(
-                    StatusCode.MODEL_CALL_FAILED,
-                    cause=exc,
-                    error_msg=f"no answer from served Laya at {self.url} within {self._timeout_s:g} s",
-                ) from exc
+                raise self._no_answer(exc) from exc
             except httpx.TimeoutException as exc:
                 if isinstance(exc, httpx.ConnectTimeout) and not retried:
                     retried = True
                     continue
-                raise build_error(
-                    StatusCode.MODEL_CALL_FAILED,
-                    cause=exc,
-                    error_msg=f"no answer from served Laya at {self.url} within {self._timeout_s:g} s",
-                ) from exc
+                raise self._no_answer(exc) from exc
             except _RETRIED_TRANSPORT as exc:
                 if not retried:
                     retried = True
@@ -232,6 +225,13 @@ class ServedLayaClient:
                 raise build_error(StatusCode.MODEL_CALL_FAILED, error_msg="served Laya returned no answers object")
             return payload, dict(response.headers), ms
 
+    def _no_answer(self, cause: Exception | None) -> Exception:
+        return build_error(
+            StatusCode.MODEL_CALL_FAILED,
+            cause=cause,
+            error_msg=f"no answer from served Laya at {self.url} within {self._timeout_s:g} s; {_SLOW}",
+        )
+
     async def close(self) -> None:
         await self._client.aclose()
 
@@ -240,7 +240,7 @@ def served_by_from_health(health: Json, routing: Any, read_at: str | None) -> Js
     """Who answered, from a ``/health`` reading: the worker's entry for ``routing.model``, else its top-level fields
     when they describe ``routing.repo`` (the top level is one model, the worker's primary), else ``routing.repo``
     alone. The last covers plain laya-serve, whose ``/health`` names no checkpoint and reports the configured device,
-    and a model the worker loaded after startup, which its ``/health`` does not list."""
+    and a checkpoint the worker loaded since this reading, which the next reading lists."""
     routing = routing if isinstance(routing, dict) else {}
     raw_models = health.get("models")
     models: dict[str, Any] = raw_models if isinstance(raw_models, dict) else {}
