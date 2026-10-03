@@ -42,7 +42,7 @@ _NOT_UP = (
     "start it per system1-omni's recipe/laya/apple-silicon.md"
 )
 _SLOW = (
-    "a worker that is loading another checkpoint holds every request until it is ready; "
+    "if the worker is loading another checkpoint it holds every request until that is ready: "
     "send again, or raise LAYA_SERVED_TIMEOUT_S"
 )
 

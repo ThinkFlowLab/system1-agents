@@ -13,7 +13,7 @@ Date: 2026-10-03, on the merged worker; first run on 2026-10-01. The plan below 
 - Checkpoint `convaiinnovations/laya` at `55cf4c4`, laya 0.3.20, torch 2.14.0.
 - Hardware: M1 Pro (16 GB), macOS 26.1, on AC power.
 - system1-omni at `58b8cbe`, the merge of ThinkFlowLab/system1-omni#30; `omni-jev` built from the same commit.
-- system1-agents on branch `served-laya`, the commit that adds this file.
+- system1-agents on branch `served-laya`, the commit that last changed the results below.
 - Each configuration ran `s1a run ticket_router --model <m> --rethink off --seed 0 --episodes 3`. Seeds 0, 1 and 2 shuffle the same 30 tickets, giving 90 decisions per configuration.
 - Order: the worker started once and was ready after 39 s. C-direct and C-front ran against it. The worker was then stopped and C-in ran, so no two models shared the GPU.
 - The one-minute load average was 5.2–6.4 at the start of each configuration, from other work on the machine.
