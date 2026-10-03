@@ -2287,7 +2287,7 @@ wheels = [
 
 [[package]]
 name = "laya"
-version = "0.3.5"
+version = "0.3.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -2297,9 +2297,9 @@ dependencies = [
     { name = "torch" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/f1/12459ecda42123f93da36f9f1e0c9b7b9191648fa68e7e0b09d292cc6dce/laya-0.3.5.tar.gz", hash = "sha256:5e8a4c2b38dbddc0febe7443f26f74fd9d7571fb172648b1481830c667d59219", size = 69616, upload-time = "2026-09-21T18:20:10.029Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4f/89/6eec1f50cbc421fa5b1733d166387eae6bc0dc222a8928ac875c271c8cf1/laya-0.3.9.tar.gz", hash = "sha256:3d255a778a1c70e2ed1fb4129147ccbb7fa96f3d0a0c910b2f41ddacb49ea5f6", size = 201267, upload-time = "2026-09-23T14:55:16.694Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/1c/a9903d5c3c51579f45f9656f733c8a2d985b16a3cb7594edf45369d1f995/laya-0.3.5-py3-none-any.whl", hash = "sha256:4c57f64cbaf893bb5c7b4affddc2bf21a819f55df51941689f11868583be2903", size = 41658, upload-time = "2026-09-21T18:20:08.641Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/cc/75f6b030f26b78a0ac0165c455866ab897eee251f7edb115733d4675fcf6/laya-0.3.9-py3-none-any.whl", hash = "sha256:8080d99792867096c970b1b24464e888f3c37d902f2c947be1f8baa3677c9717", size = 93224, upload-time = "2026-09-23T14:55:15.288Z" },
 ]
 
 [[package]]
@@ -5200,7 +5200,7 @@ requires-dist = [
     { name = "cua-s1", marker = "extra == 'cua'", git = "https://github.com/trycua/cua.git?subdirectory=libs%2Fcua-s1%2Fpython&rev=aea61b6eb97e2d8c0f6f71eb804e5769fe910af4" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "huggingface-hub", marker = "extra == 'cua'", specifier = ">=0.24" },
-    { name = "laya", marker = "extra == 'laya'", specifier = ">=0.3.4" },
+    { name = "laya", marker = "extra == 'laya'", specifier = ">=0.3.9" },
     { name = "mcp", specifier = ">=1.26" },
     { name = "opencv-python-headless", marker = "extra == 'alfworld-visual'", specifier = ">=4.10" },
     { name = "openjiuwen", git = "https://github.com/ThinkFlowLab/agent-core?rev=jj-0.1.0" },

@@ -20,8 +20,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
-- `--model laya` loads in about 3 s instead of about 35 s: the encoder is built with transformers' weight init
-  off, since the checkpoint replaces every weight. Weights and answers are unchanged.
+- `--model laya` loads in about 3 s instead of about 35 s: the `laya` extra now needs laya 0.3.9 or later, which
+  builds the encoder with transformers' weight init off, since the checkpoint replaces every weight.
 - `--model` picks the model on every agent, on `decide` and on `probe`: `jev`, `laya`, `cua`, `llm`, `random` or
   `rule`. The results table's column, the replay page's badge data and a browser run's `answer.json` name it
   `model` as well; the replay still reads the `slot` key of records written by 0.1.0.

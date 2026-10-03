@@ -40,7 +40,7 @@ alfworld-visual = [
     "torchvision>=0.15",
 ]
 report = ["pillow>=10", "playwright>=1.45"]  # evals.replay: pages, GIFs; never imported by a runner
-laya = ["laya>=0.3.4"]  # the in-process decision model behind --model laya; pulls torch and transformers
+laya = ["laya>=0.3.9"]  # the in-process decision model behind --model laya; pulls torch and transformers
 cua = [  # Cua-S1 Nano behind --model cua; pinned to the Cua PR that ships the checkpoints (trycua/cua#4023), pulls torch
     "cua-s1 @ git+https://github.com/trycua/cua.git@aea61b6eb97e2d8c0f6f71eb804e5769fe910af4#subdirectory=libs/cua-s1/python",
     "huggingface-hub>=0.24",

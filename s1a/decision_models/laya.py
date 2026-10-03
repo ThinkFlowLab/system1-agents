@@ -7,10 +7,8 @@
 from __future__ import annotations
 
 import asyncio
-import importlib
 import os
 import time
-from contextlib import AbstractContextManager, nullcontext
 from importlib import metadata
 from typing import Any
 
@@ -32,19 +30,6 @@ def laya_question(question: Question) -> Json:
         return jev_question(question)
     criteria = {"criteria": dict(question.criteria)} if question.criteria else {}
     return {"type": "noul", "instructions": question.question, **criteria}
-
-
-def without_weight_init() -> AbstractContextManager[Any]:
-    """transformers' ``no_init_weights``. ``laya.load`` builds the encoder from its config, which draws every weight
-    at random (about 30 s of the load on CPU), then loads the checkpoint over all of them with ``strict=True``, so
-    the draw is thrown away. The helper sits in ``transformers.initialization`` from 5.0 and in
-    ``transformers.modeling_utils`` before; without either the load runs as it is."""
-    for module in ("transformers.initialization", "transformers.modeling_utils"):
-        try:
-            return importlib.import_module(module).no_init_weights()
-        except (ImportError, AttributeError):
-            continue
-    return nullcontext()
 
 
 class LayaModel(DecisionModel):
@@ -113,8 +98,7 @@ class LayaModel(DecisionModel):
             ) from exc
         model = os.getenv("LAYA_MODEL") or LAYA_DEFAULT_MODEL
         subfolder = os.getenv("LAYA_SUBFOLDER") or None
-        with without_weight_init():
-            agent = laya.load(model, device=os.getenv("LAYA_DEVICE") or None, subfolder=subfolder)
+        agent = laya.load(model, device=os.getenv("LAYA_DEVICE") or None, subfolder=subfolder)
         if not callable(getattr(agent, "system_one", None)):
             try:
                 version = metadata.version("laya")
