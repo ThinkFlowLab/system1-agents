@@ -11,6 +11,7 @@ Date: 2026-10-03, on the merged worker; first run on 2026-10-01. The plan below 
 | C-front | `--model laya-served`, `LAYA_SERVED_URL=http://127.0.0.1:8080` | the same worker process behind `omni-jev` |
 
 - Checkpoint `convaiinnovations/laya` at `55cf4c4`, laya 0.3.20, torch 2.14.0.
+- C-in ran with laya 0.3.20 installed over the locked version (`uv pip install 'laya==0.3.20'`), so both sides ran the library the worker pins.
 - Hardware: M1 Pro (16 GB), macOS 26.1, on AC power.
 - system1-omni at `58b8cbe`, the merge of ThinkFlowLab/system1-omni#30; `omni-jev` built from the same commit.
 - system1-agents on branch `served-laya`, the commit that last changed the results below.
@@ -50,8 +51,8 @@ Start the worker and the frontend as in [docs/served-laya.md](../../docs/served-
 ```sh
 LAYA_SERVED_URL=http://127.0.0.1:8000 uv run s1a run ticket_router --model laya-served --rethink off --seed 0 --episodes 3
 LAYA_SERVED_URL=http://127.0.0.1:8080 uv run s1a run ticket_router --model laya-served --rethink off --seed 0 --episodes 3
-# stop the worker, then
-LAYA_DEVICE=mps uv run s1a run ticket_router --model laya --rethink off --seed 0 --episodes 3
+# stop the worker, then, with laya 0.3.20 installed (uv pip install 'laya==0.3.20'; --no-sync keeps it)
+LAYA_DEVICE=mps uv run --no-sync s1a run ticket_router --model laya --rethink off --seed 0 --episodes 3
 uv run python evals/ticket_router/compare_served.py C-in=<job dir> C-direct=<job dir> C-front=<job dir> \
   --json evals/ticket_router/served_laya_records.json
 ```
