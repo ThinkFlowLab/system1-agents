@@ -58,7 +58,7 @@ matches. Most of it sits in the worker, which wraps laya-serve's app, so laya it
 | `/livez`, `/readyz` | worker binds after warmup, `/health` only | worker: bind first, gate `/readyz` on warmup |
 | 503 + `Retry-After` on overload | requests queue without bound | worker: bounded queue in front of laya-serve's single inference thread |
 | 415 on non-JSON bodies | parsed regardless of Content-Type | worker middleware |
-| limits in `/readyz` | not advertised | worker |
+| limits in `/readyz`, each model's window included | not advertised; the client is told the window | worker |
 
 Client compatibility during the change: branch on the status code, read `code` when the body is
 problem+json and fall back to `detail`; read identity from `served_by` when present, else from the
@@ -69,8 +69,10 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
 - **Selection.** `--model laya-served`, a new name so run records say served Laya, not Jev or in-process Laya.
 - **Configuration.** `LAYA_SERVED_URL` (required), `LAYA_SERVED_MODEL` (default `english`),
   `LAYA_SERVED_API_KEY` (optional), `LAYA_SERVED_TIMEOUT_S` (default 5, one deadline per decision,
-  retries included), `LAYA_SERVED_MAX_LEN` (default 512, the server's window per question, for the
-  same full-window check as in-process Laya).
+  retries included), `LAYA_SERVED_MAX_LEN` (default 512, the served checkpoint's window per question, for
+  the same full-window check as in-process Laya). The server takes the window from the checkpoint
+  (`english` 512, `multilingual` 1024) and does not report it, so the client's value has to match it: a
+  higher one lets a cut state through.
 - **Request.** Questions serialised with the existing `laya_question()`, which keeps Laya's own `noul`
   shape (a plain-string instruction). `score` is not sent until an agent needs it.
 - **Identity.** Each response's `served_by` goes into the run record. Until servers send it, the client
@@ -99,9 +101,10 @@ problem+json and fall back to `detail`; read identity from `served_by` when pres
   | 500 | fail at once: the same request fails the same way |
   | deadline passed | fail with a timeout error naming the URL; the deadline bounds the whole request, also a body that keeps trickling in |
 
-  A worker that loads another checkpoint while serving (a request names it, or Laya's routing picks it
-  for a non-English state) prepares it inside that request and holds every other request until it is
-  ready, which takes longer than the default deadline. Decisions fail with the timeout error meanwhile
+  A worker that loads another checkpoint while serving prepares it inside that request and holds every
+  other request until it is ready, which takes longer than the default deadline. This client names its
+  model in every request, so it causes such a load only when `LAYA_SERVED_MODEL` is not the model the
+  worker started with; another client of the same worker can cause one too. Decisions fail with the timeout error meanwhile
   and answer again once the worker is ready; see "Run it" for how to load such a checkpoint ahead.
 
 - **Timing.** The record keeps the client round trip per decision and, when present, `Server-Timing`'s
@@ -147,10 +150,10 @@ and `--weights fp16` and use `--device cpu`. laya-serve's `LAYA_API_KEY` still t
 same value in `LAYA_SERVED_API_KEY`. The Rust frontend (`omni-jev`, port 8080) can sit in
 front of it; point `LAYA_SERVED_URL` at whichever you call.
 
-The worker loads a further checkpoint when a request names it or Laya's routing picks it (a non-English
-state), and prepares it inside that request, which outlasts the client's deadline. For agents that may
-see such states, send the worker one request per further checkpoint after startup, as the recipe says,
-or raise `LAYA_SERVED_TIMEOUT_S` for the first one.
+Start the worker with the model in `LAYA_SERVED_MODEL`. Asked for another one, the worker loads and
+prepares it inside that request, which outlasts the client's deadline: send the worker one request for
+it after startup, as the recipe says, or raise `LAYA_SERVED_TIMEOUT_S` for the first one. For
+`multilingual`, also set `LAYA_SERVED_MAX_LEN=1024`, its window.
 
 Then, from this repository, with no extra installed:
 

@@ -367,6 +367,7 @@ class WindowTests(IsolatedAsyncioTestCase):
             await model.decide_many(OBSERVATION, {"pick": PICK})
         self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
         self.assertIn("LAYA_SERVED_MAX_LEN", str(caught.exception))
+        self.assertNotIn("LAYA_MAX_LEN", str(caught.exception))  # no server reads it
 
     async def test_the_window_scales_with_the_questions(self) -> None:
         model, _ = make_model(Server(usage=600), max_len=512)

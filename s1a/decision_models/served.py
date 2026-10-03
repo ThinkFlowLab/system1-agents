@@ -338,7 +338,8 @@ class ServedLayaModel(DecisionModel):
             usage,
             len(questions),
             self._max_len,
-            "shorten the state, or raise the worker's LAYA_MAX_LEN and LAYA_SERVED_MAX_LEN together",
+            "shorten the state; if the served checkpoint's window is larger (english 512, multilingual 1024), "
+            "set LAYA_SERVED_MAX_LEN to it",
         )
         sent = payload.get("served_by")
         if isinstance(sent, dict):

@@ -456,4 +456,5 @@ x-known-gaps:
   - Overload has no 429/503 with Retry-After; requests queue behind the single inference thread.
   - The response `model` field does not identify the checkpoint (always `laya-rl-agent`).
   - The response carries no server-side inference time; only the client round trip can be measured.
+  - No response or `/health` field reports a checkpoint's token window; clients that check for a cut state are told it.
   - '`score` answers are returned by the server; system1-agents does not ask score questions yet.'

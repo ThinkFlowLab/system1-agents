@@ -36,7 +36,7 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `LAYA_SERVED_MODEL` | `laya-served` model | `english` | Name of the served model to ask, one the server loaded. |
 | `LAYA_SERVED_API_KEY` | `laya-served` model | *(unset)* | Bearer token, the server's `LAYA_API_KEY` when it sets one. |
 | `LAYA_SERVED_TIMEOUT_S` | `laya-served` model | `5` | Deadline per decision in seconds, the one retry and any `/health` refresh included. |
-| `LAYA_SERVED_MAX_LEN` | `laya-served` model | `512` | The server's token window per question (its `LAYA_MAX_LEN`); a request that fills it raises. |
+| `LAYA_SERVED_MAX_LEN` | `laya-served` model | `512` | The served checkpoint's token window per question (`english` 512, `multilingual` 1024); a request that fills it raises. The server takes the window from the checkpoint, so set this to match and nothing higher. |
 | `CUA_S1_CHECKPOINT` | `cua` model | `cua-ai/cua-s1-nano-0.1` | Hugging Face checkpoint ID or local directory for Cua-S1 Nano option scorer. |
 | `CUA_S1_SUBFOLDER` | `cua` model | `text` | Subfolder within checkpoint directory containing text option scoring weights. |
 | `CUA_S1_DEVICE` | `cua` model | `auto` | PyTorch device used for Cua-S1 Nano evaluation (`auto`, `cpu`, `cuda`, or `mps`). |
