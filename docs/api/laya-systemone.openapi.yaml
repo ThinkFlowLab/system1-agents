@@ -480,6 +480,14 @@ components:
         checkpoint: { type: [string, 'null'] }
         revision: { type: [string, 'null'] }
         warmup_ms: { type: number }
+        max_len:
+          x-status: planned
+          type: integer
+          description: The checkpoint's token window per question; a request that fills it had its state cut.
+        head_max_len:
+          x-status: planned
+          type: integer
+          description: The part of the window the options may take.
     Health:
       allOf:
         - $ref: '#/components/schemas/ModelHealth'

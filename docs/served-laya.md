@@ -58,7 +58,7 @@ matches. Most of it sits in the worker, which wraps laya-serve's app, so laya it
 | `/livez`, `/readyz` | worker binds after warmup, `/health` only | worker: bind first, gate `/readyz` on warmup |
 | 503 + `Retry-After` on overload | requests queue without bound | worker: bounded queue in front of laya-serve's single inference thread |
 | 415 on non-JSON bodies | parsed regardless of Content-Type | worker middleware |
-| limits in `/readyz`, each model's window included | not advertised; the client is told the window | worker |
+| limits in `/readyz`, and each model's `max_len` and `head_max_len` | not advertised; the client is told the window | worker |
 
 Client compatibility during the change: branch on the status code, read `code` when the body is
 problem+json and fall back to `detail`; read identity from `served_by` when present, else from the
