@@ -56,7 +56,7 @@ class TestParser(TestCase):
             self.assertEqual(caught.exception.code, 2)
 
     def test_the_model_flag_takes_a_decision_model_or_the_chat_model(self) -> None:
-        self.assertEqual(browse.BROWSER_MODEL_NAMES, ("jev", "laya", "cua", "llm"))
+        self.assertEqual(browse.BROWSER_MODEL_NAMES, ("jev", "laya", "laya-served", "cua", "llm"))
         for model_name in browse.BROWSER_MODEL_NAMES:
             self.assertEqual(browse.parser(SPEC).parse_args(["--model", model_name, "--goal", "x"]).model, model_name)
         with self.assertRaises(SystemExit):

@@ -151,12 +151,12 @@ class TestMcpServer(IsolatedAsyncioTestCase):
         async with create_connected_server_and_client_session(mcp_server.server) as session:
             tools = await session.list_tools()
         schema = next(tool.inputSchema for tool in tools.tools if tool.name == "decide")
-        self.assertEqual(schema["properties"]["model"]["enum"], ["jev", "laya", "cua"])
+        self.assertEqual(schema["properties"]["model"]["enum"], ["jev", "laya", "laya-served", "cua"])
         self.assertEqual(schema["properties"]["model"]["default"], "jev")
         self.assertNotIn("model", schema["required"])
 
     async def test_decide_selects_and_closes_each_local_model_without_api_keys(self) -> None:
-        for model_name in ("laya", "cua"):
+        for model_name in ("laya", "laya-served", "cua"):
             with self.subTest(model=model_name):
                 decision_model = ScriptedModel(choose="inc")
                 with (
@@ -248,7 +248,7 @@ class TestMcpServer(IsolatedAsyncioTestCase):
         flags = {name: {row["flag"]: row for row in rows[name]["flags"]} for name in ("game2048", "flights")}
         self.assertEqual(
             (flags["game2048"]["--model"]["required"], flags["game2048"]["--model"]["choices"]),
-            (True, ["jev", "llm", "random", "rule", "laya", "cua"]),
+            (True, ["jev", "llm", "random", "rule", "laya", "laya-served", "cua"]),
         )
         max_steps = str(agents.load("game2048").budget.max_steps)
         self.assertEqual(
