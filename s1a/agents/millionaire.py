@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Who Wants to Be a Millionaire (self-hosted page, Open Trivia DB): ``s1a run millionaire --slot jev --rethink off --episodes 5``."""
+"""Who Wants to Be a Millionaire (self-hosted page, Open Trivia DB): ``s1a run millionaire --model jev --rethink off --episodes 5``."""
 
 from __future__ import annotations
 

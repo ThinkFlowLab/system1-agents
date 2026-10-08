@@ -1,5 +1,5 @@
 # coding: utf-8
-"""The results table: job folders from write_job, one row per eval and slot."""
+"""The results table: job folders from write_job, one row per eval and model."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest import TestCase
 
 from s1a.jobs import Episode, write_job
-from evals.table import markdown, read_results, rows, slot_label
+from evals.table import markdown, read_results, rows, model_label
 
 
 def _episode(seed: int, score: float, cost: float | None) -> Episode:
@@ -39,12 +39,12 @@ def _episode(seed: int, score: float, cost: float | None) -> Episode:
 
 
 class TestTable(TestCase):
-    def test_slot_label_drops_any_suite_prefix(self) -> None:
-        self.assertEqual(slot_label({"agent_info": {"name": "s1a-evals/jev"}}), "jev")
-        self.assertEqual(slot_label({"agent_info": {"name": "jiuwen-jev-evals/llm"}}), "llm")
-        self.assertEqual(slot_label({"agent_info": {"name": "basic"}}), "basic")
+    def test_model_label_drops_any_suite_prefix(self) -> None:
+        self.assertEqual(model_label({"agent_info": {"name": "s1a-evals/jev"}}), "jev")
+        self.assertEqual(model_label({"agent_info": {"name": "jiuwen-jev-evals/llm"}}), "llm")
+        self.assertEqual(model_label({"agent_info": {"name": "basic"}}), "basic")
 
-    def test_rows_merge_job_folders_per_slot(self) -> None:
+    def test_rows_merge_job_folders_per_model(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             write_job("blackjack", [_episode(0, 1.0, 0.0001), _episode(1, -1.0, 0.0001)], results_dir=root)
@@ -52,7 +52,7 @@ class TestTable(TestCase):
 
             table = rows(read_results(root))
 
-        by_key = {(row["eval"], row["slot"]): row for row in table}
+        by_key = {(row["eval"], row["model"]): row for row in table}
         blackjack = by_key[("blackjack", "jev")]
         self.assertEqual((blackjack["N"], blackjack["mean_score"], blackjack["median_s"]), (3, 0.333, 1.5))
         self.assertEqual(
@@ -72,7 +72,7 @@ class TestTable(TestCase):
         self.assertEqual((row["N"], row["errors"], row["mean_score"], row["mean_cost_usd"]), (1, 2, 1.0, 0.0001))
         self.assertIn("| blackjack | jev | 1 | 2 | 1.0 [1.0, 1.0] |", markdown([row]))
 
-    def test_a_slot_whose_every_trial_errored_has_no_score(self) -> None:
+    def test_a_model_whose_every_trial_errored_has_no_score(self) -> None:
         failed = _episode(0, 0.0, None)
         failed.error = "decision failed: HTTP 401"
         with tempfile.TemporaryDirectory() as tmp:
@@ -92,7 +92,7 @@ class TestTable(TestCase):
             [("blackjack", 1, 1.0), ("blackjack_before_fixes", 1, 0.0)],
         )
 
-    def test_an_unknown_cost_makes_the_slot_cost_unknown(self) -> None:
+    def test_an_unknown_cost_makes_the_model_cost_unknown(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             write_job("blackjack", [_episode(0, 1.0, 0.0001), _episode(1, 1.0, None)], results_dir=root)

@@ -1,5 +1,5 @@
 # coding: utf-8
-"""ALFWorld text games (TextWorld): ``s1a run alfworld --slot jev --rethink on --episodes 10``.
+"""ALFWorld text games (TextWorld): ``s1a run alfworld --model jev --rethink on --episodes 10``.
 
 Needs the ``alfworld`` and ``textworld`` packages and ``ALFWORLD_DATA`` (Python 3.11; see the README).
 """
@@ -198,7 +198,7 @@ def make_series(flags: argparse.Namespace) -> Series:
             f"--episodes {flags.episodes} but only {len(indices)} games from --offset {flags.offset} with "
             f"--stride {flags.stride} ({len(files)} solvable games)"
         )
-    env = AlfworldEnv([files[index] for index in indices], flags.max_steps, every_command=flags.slot == "rule")
+    env = AlfworldEnv([files[index] for index in indices], flags.max_steps, every_command=flags.model == "rule")
 
     def annotate(_env: Env, episode: Episode) -> None:
         episode.extra["game"] = env.game_name

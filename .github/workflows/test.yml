@@ -14,11 +14,22 @@ concurrency:
 jobs:
   core:
     # The install the README promises: openjiuwen alone, no game or report extras, no keys.
-    runs-on: ubuntu-latest
+    # Keep these names in sync with main's required status checks.
+    name: ${{ matrix.check_name }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       matrix:
-        python: ["3.11", "3.13"]
+        include:
+          - os: ubuntu-latest
+            python: "3.11"
+            check_name: core (3.11)
+          - os: ubuntu-latest
+            python: "3.13"
+            check_name: core (3.13)
+          - os: windows-latest
+            python: "3.11"
+            check_name: core (windows, 3.11)
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
@@ -32,6 +43,7 @@ jobs:
       - run: uv run ty check
       - run: uv build
       - run: scripts/smoke.sh
+        shell: bash
       - run: uv run pytest -q
 
   full:
@@ -45,7 +57,7 @@ jobs:
           python-version: "3.11"
           enable-cache: true
       - run: uv sync --extra dev --extra blackjack --extra report
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}

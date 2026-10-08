@@ -1,0 +1,260 @@
+{
+ "report": {
+  "elapsed_ms": 64041,
+  "decisions": 6,
+  "interactions": 5,
+  "waits": 0,
+  "median_decision_ms": 8810,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 680,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 0,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Sign in",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Create account",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Create account",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Create account",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Create account",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 676,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 3891,
+   "input_tokens": 438,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Sign in",
+   "confidence": 0.051,
+   "elements": 3,
+   "elapsed_ms": 5707,
+   "probabilities": {
+    "2": 0.547,
+    "3": 0.361,
+    "1": 0.092
+   },
+   "candidates": {
+    "2": "Sign in",
+    "3": "cookies (Opens in a new tab)",
+    "1": "Language: English"
+   },
+   "text": null
+  },
+  {
+   "tick": 2,
+   "probe_ms": 678,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 8312,
+   "input_tokens": 973,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Create account",
+   "confidence": 0.084,
+   "elements": 9,
+   "elapsed_ms": 16626,
+   "probabilities": {
+    "5": 0.212,
+    "9": 0.179,
+    "4": 0.144,
+    "7": 0.117,
+    "2": 0.105,
+    "3": 0.089
+   },
+   "candidates": {
+    "5": "Create account",
+    "9": "Google Terms of Service (external, opens in a new window)",
+    "4": "Next",
+    "7": "Open Google Account Help Center (external, opens in a new window)",
+    "2": "Forgot email?",
+    "3": "Learn more about using Guest mode (external, opens in a new window)"
+   },
+   "text": null
+  },
+  {
+   "tick": 3,
+   "probe_ms": 707,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 9309,
+   "input_tokens": 1156,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Create account",
+   "confidence": 0.06,
+   "elements": 12,
+   "elapsed_ms": 27847,
+   "probabilities": {
+    "5": 0.285,
+    "4": 0.135,
+    "6": 0.121,
+    "3": 0.11,
+    "12": 0.09,
+    "8": 0.079
+   },
+   "candidates": {
+    "5": "Create account",
+    "4": "Next",
+    "6": "For my personal use",
+    "3": "Learn more about using Guest mode (external, opens in a new window)",
+    "12": "Google Terms of Service (external, opens in a new window)",
+    "8": "For work or my business"
+   },
+   "text": null
+  },
+  {
+   "tick": 4,
+   "probe_ms": 682,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 8280,
+   "input_tokens": 1009,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Create account",
+   "confidence": 0.119,
+   "elements": 9,
+   "elapsed_ms": 37438,
+   "probabilities": {
+    "5": 0.25,
+    "4": 0.189,
+    "7": 0.137,
+    "2": 0.11,
+    "3": 0.106,
+    "9": 0.083
+   },
+   "candidates": {
+    "5": "Create account",
+    "4": "Next",
+    "7": "Open Google Account Help Center (external, opens in a new window)",
+    "2": "Forgot email?",
+    "3": "Learn more about using Guest mode (external, opens in a new window)",
+    "9": "Google Terms of Service (external, opens in a new window)"
+   },
+   "text": null
+  },
+  {
+   "tick": 5,
+   "probe_ms": 672,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 9626,
+   "input_tokens": 1174,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Create account",
+   "confidence": 0.016,
+   "elements": 12,
+   "elapsed_ms": 48862,
+   "probabilities": {
+    "5": 0.202,
+    "3": 0.145,
+    "4": 0.128,
+    "6": 0.12,
+    "12": 0.105,
+    "2": 0.088
+   },
+   "candidates": {
+    "5": "Create account",
+    "3": "Learn more about using Guest mode (external, opens in a new window)",
+    "4": "Next",
+    "6": "For my personal use",
+    "12": "Google Terms of Service (external, opens in a new window)",
+    "2": "Forgot email?"
+   },
+   "text": null
+  },
+  {
+   "tick": 6,
+   "probe_ms": 695,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 9803,
+   "input_tokens": 1009,
+   "output_tokens": 0,
+   "operation": "DONE",
+   "target": null,
+   "confidence": 0.043,
+   "elements": 9,
+   "elapsed_ms": 59982,
+   "probabilities": {
+    "DONE": 0.34,
+    "CLICK": 0.218,
+    "BLOCKED": 0.175,
+    "TYPE_TEXT": 0.141,
+    "WAIT": 0.125
+   },
+   "candidates": {
+    "DONE": "The page shows every requirement of the task met.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "WAIT": "Give the page time to finish updating."
+   }
+  }
+ ],
+ "final": {
+  "status": "DONE",
+  "reason": "",
+  "url": "https://accounts.google.com/v3/signin/identifier?continue=https://www.google.com/travel/flights?hl%3Den&gae=cb-&hl=en&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S439708080:1791277458414763",
+  "title": "Sign in - Google Accounts",
+  "steps": 5,
+  "elapsed_ms": 61956,
+  "page_text": "Sign in\nUse your Google Account\nForgot email?\nNot your computer? Use Guest mode to sign in privately.\nLearn more about using Guest mode\nNext\nCreate account\nHelp\nPrivacy\nTerms",
+  "answer": "The requested page does not show flight options. It is a sign-in page for a Google account."
+ },
+ "usage": {
+  "decisions": 6,
+  "chat_calls": 3,
+  "chat_input_tokens": 696,
+  "chat_output_tokens": 27,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.000276
+ }
+}

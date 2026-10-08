@@ -1,0 +1,400 @@
+{
+  "recorded_at": "2026-10-06T14:52:31.863329+08:00",
+  "agent_source_revision": "c60cb3eec0657c9eebeba36330390f93ff37079d",
+  "working_tree_scope": "Recipe/docs additions and synthetic fixture; agent runtime unchanged from the recorded revision.",
+  "dataset_sha256": "86fa3daab6e15a8b0812707e6e46c176f75b5b81481012b7079f70d75a7b6816",
+  "environment": {
+    "platform": "Linux x86_64",
+    "python": "Python 3.12.13",
+    "openjiuwen": "0.1.18",
+    "execution": "CPU rule baseline; no neural inference or API calls"
+  },
+  "command": "MODEL_NAME= S1A_HOME=<task-owned output root> python -m s1a run ticket_router --model rule --rethink off --dataset recipes/ticket-routing/tickets.jsonl --batch-size 5 --episodes 1 --seed 0 --max-steps 5 --timeout 60 --showcase --log",
+  "invocation_note": "Reused the existing development environment with the recipe checkout on PYTHONPATH; no environment installation performed. The recipe uv entrypoint wraps the same module.",
+  "sanitization": "Output-root job_dir omitted from summary; source data are the synthetic fixture.",
+  "verification_output": [
+    "demo-returns -> returns expected returns",
+    "demo-payment -> payment expected payment",
+    "demo-logistics -> logistics expected logistics",
+    "demo-human -> human expected human",
+    "demo-account -> account expected account",
+    "Verified all five fixture routes"
+  ],
+  "negative_verifier_checks": [
+    {
+      "input": "wrong-route",
+      "exit_code": 1,
+      "result": "rejected"
+    },
+    {
+      "input": "incomplete-processing",
+      "exit_code": 1,
+      "result": "rejected"
+    }
+  ],
+  "summary": {
+    "env": "ticket_router",
+    "policy": "keywords",
+    "episodes": 1,
+    "scored": 1,
+    "mean_score": 5.0,
+    "mean_score_ci95": [
+      5.0,
+      5.0
+    ],
+    "wins": 1,
+    "losses": 0,
+    "mean_steps": 5,
+    "mean_elapsed_s": 0.6,
+    "decisions": 5,
+    "median_decision_ms": 0,
+    "chat_calls": 0,
+    "jev_input_tokens": 0,
+    "chat_input_tokens": 0,
+    "chat_output_tokens": 0,
+    "chat_cache_tokens": 0,
+    "invalid_keys": 0,
+    "cost_usd": 0.0,
+    "rethinks": 0,
+    "errors": 0,
+    "total_s": 0.6
+  },
+  "episode": {
+    "decisions": [
+      {
+        "step": 1,
+        "key": "returns",
+        "confidence": 1.0,
+        "probabilities": {
+          "logistics": 0.0,
+          "payment": 0.0,
+          "returns": 1.0,
+          "account": 0.0,
+          "human": 0.0
+        },
+        "ms": 1,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "plan": false,
+        "blocked": [],
+        "source": "keywords"
+      },
+      {
+        "step": 2,
+        "key": "payment",
+        "confidence": 1.0,
+        "probabilities": {
+          "logistics": 0.0,
+          "payment": 1.0,
+          "returns": 0.0,
+          "account": 0.0,
+          "human": 0.0
+        },
+        "ms": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "plan": false,
+        "blocked": [],
+        "source": "keywords"
+      },
+      {
+        "step": 3,
+        "key": "logistics",
+        "confidence": 1.0,
+        "probabilities": {
+          "logistics": 1.0,
+          "payment": 0.0,
+          "returns": 0.0,
+          "account": 0.0,
+          "human": 0.0
+        },
+        "ms": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "plan": false,
+        "blocked": [],
+        "source": "keywords"
+      },
+      {
+        "step": 4,
+        "key": "human",
+        "confidence": 1.0,
+        "probabilities": {
+          "logistics": 0.0,
+          "payment": 0.0,
+          "returns": 0.0,
+          "account": 0.0,
+          "human": 1.0
+        },
+        "ms": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "plan": false,
+        "blocked": [],
+        "source": "keywords"
+      },
+      {
+        "step": 5,
+        "key": "account",
+        "confidence": 1.0,
+        "probabilities": {
+          "logistics": 0.0,
+          "payment": 0.0,
+          "returns": 0.0,
+          "account": 1.0,
+          "human": 0.0
+        },
+        "ms": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "plan": false,
+        "blocked": [],
+        "source": "keywords"
+      }
+    ],
+    "final_state": {
+      "ticket": null,
+      "progress": {
+        "ticket_id": null
+      }
+    },
+    "extra": {
+      "rethink": false,
+      "rethinks": [],
+      "result_type": "answer",
+      "output": "{\"status\": \"DONE\", \"reason\": \"environment done\", \"score\": 5.0, \"steps\": 5}",
+      "ticket_router": {
+        "seed": 0,
+        "total": 5,
+        "processed": 5,
+        "correct": 5,
+        "accuracy": 1.0,
+        "coverage": 1.0,
+        "per_class_support": {
+          "logistics": 1,
+          "payment": 1,
+          "returns": 1,
+          "account": 1,
+          "human": 1
+        },
+        "per_class_recall": {
+          "logistics": 1.0,
+          "payment": 1.0,
+          "returns": 1.0,
+          "account": 1.0,
+          "human": 1.0
+        },
+        "ticket_ids": [
+          "demo-returns",
+          "demo-payment",
+          "demo-logistics",
+          "demo-human",
+          "demo-account"
+        ],
+        "unprocessed_ids": [],
+        "batch_sha256": "71cb237b946947a67b3c2320080655f4848665a1e4f7b3c31841c9cb6b65305f",
+        "routes": [
+          {
+            "id": "demo-returns",
+            "expected": "returns",
+            "predicted": "returns",
+            "correct": true
+          },
+          {
+            "id": "demo-payment",
+            "expected": "payment",
+            "predicted": "payment",
+            "correct": true
+          },
+          {
+            "id": "demo-logistics",
+            "expected": "logistics",
+            "predicted": "logistics",
+            "correct": true
+          },
+          {
+            "id": "demo-human",
+            "expected": "human",
+            "predicted": "human",
+            "correct": true
+          },
+          {
+            "id": "demo-account",
+            "expected": "account",
+            "predicted": "account",
+            "correct": true
+          }
+        ]
+      }
+    },
+    "views": [
+      {
+        "state": {
+          "ticket": {
+            "id": "demo-returns",
+            "title": "Return these shoes",
+            "description": "Please exchange these shoes for a larger size."
+          },
+          "progress": {
+            "ticket_id": "demo-returns"
+          }
+        },
+        "candidates": {
+          "logistics": "Delivery tracking, delivery progress or delivery problems",
+          "payment": "Charges, failed payments or duplicate payments",
+          "returns": "Requests for returns, exchanges or refunds",
+          "account": "Login or account access problems",
+          "human": "Insufficient information, multiple independent requests or an explicit request for a human"
+        },
+        "done": false,
+        "score": 0.0
+      },
+      {
+        "state": {
+          "ticket": {
+            "id": "demo-payment",
+            "title": "Duplicate charge",
+            "description": "I was charged twice. Please check the duplicate payment."
+          },
+          "progress": {
+            "ticket_id": "demo-payment"
+          }
+        },
+        "candidates": {
+          "logistics": "Delivery tracking, delivery progress or delivery problems",
+          "payment": "Charges, failed payments or duplicate payments",
+          "returns": "Requests for returns, exchanges or refunds",
+          "account": "Login or account access problems",
+          "human": "Insufficient information, multiple independent requests or an explicit request for a human"
+        },
+        "done": false,
+        "score": 1.0
+      },
+      {
+        "state": {
+          "ticket": {
+            "id": "demo-logistics",
+            "title": "Track my parcel",
+            "description": "Please tell me where my parcel is."
+          },
+          "progress": {
+            "ticket_id": "demo-logistics"
+          }
+        },
+        "candidates": {
+          "logistics": "Delivery tracking, delivery progress or delivery problems",
+          "payment": "Charges, failed payments or duplicate payments",
+          "returns": "Requests for returns, exchanges or refunds",
+          "account": "Login or account access problems",
+          "human": "Insufficient information, multiple independent requests or an explicit request for a human"
+        },
+        "done": false,
+        "score": 2.0
+      },
+      {
+        "state": {
+          "ticket": {
+            "id": "demo-human",
+            "title": "Talk to a real person",
+            "description": "Please connect me to a human."
+          },
+          "progress": {
+            "ticket_id": "demo-human"
+          }
+        },
+        "candidates": {
+          "logistics": "Delivery tracking, delivery progress or delivery problems",
+          "payment": "Charges, failed payments or duplicate payments",
+          "returns": "Requests for returns, exchanges or refunds",
+          "account": "Login or account access problems",
+          "human": "Insufficient information, multiple independent requests or an explicit request for a human"
+        },
+        "done": false,
+        "score": 3.0
+      },
+      {
+        "state": {
+          "ticket": {
+            "id": "demo-account",
+            "title": "Cannot log in",
+            "description": "My password no longer works."
+          },
+          "progress": {
+            "ticket_id": "demo-account"
+          }
+        },
+        "candidates": {
+          "logistics": "Delivery tracking, delivery progress or delivery problems",
+          "payment": "Charges, failed payments or duplicate payments",
+          "returns": "Requests for returns, exchanges or refunds",
+          "account": "Login or account access problems",
+          "human": "Insufficient information, multiple independent requests or an explicit request for a human"
+        },
+        "done": false,
+        "score": 4.0
+      },
+      {
+        "state": {
+          "ticket": null,
+          "progress": {
+            "ticket_id": null
+          }
+        },
+        "candidates": {},
+        "done": true,
+        "score": 5.0
+      }
+    ]
+  },
+  "trial_result": {
+    "id": "8fe39996-a0c5-42d4-a572-aefb2ec80924",
+    "task_name": "ticket_router/0",
+    "trial_name": "ticket_router--0__32c60ed",
+    "task_id": {
+      "path": null
+    },
+    "source": "ticket_router",
+    "agent_info": {
+      "name": "s1a-evals/keywords",
+      "version": null,
+      "model_info": {
+        "name": "keywords",
+        "provider": "s1a"
+      }
+    },
+    "agent_result": {
+      "n_input_tokens": 0,
+      "n_cache_tokens": 0,
+      "n_output_tokens": 0,
+      "cost_usd": 0.0,
+      "metadata": {
+        "steps": 5,
+        "elapsed_s": 0.6,
+        "decisions": 5,
+        "chat_calls": 0,
+        "jev_input_tokens": 0,
+        "invalid_keys": 0
+      }
+    },
+    "verifier_result": {
+      "rewards": {
+        "reward": 5.0
+      }
+    },
+    "exception_info": null,
+    "started_at": "2026-10-06T06:51:28.068233+00:00",
+    "finished_at": "2026-10-06T06:51:28.684947+00:00",
+    "agent_execution": {
+      "started_at": "2026-10-06T06:51:28.068233+00:00",
+      "finished_at": "2026-10-06T06:51:28.684947+00:00"
+    }
+  },
+  "unmeasured": [
+    "Learned-model quality",
+    "Laya inference",
+    "Jev endpoint",
+    "System1-Omni serving",
+    "Performance comparison",
+    "Video recording"
+  ]
+}

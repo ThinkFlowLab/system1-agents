@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Google Flights, one-way Zurich to London: ``s1a run flights --slot jev --batch on --profile-out run.json``.
+"""Google Flights, one-way Zurich to London: ``s1a run flights --model jev --batch on --profile-out run.json``.
 
 The timing demo against browser-use/jev-ultrafast; the clock runs from the first decision to the final DONE.
 ``--batch on`` is the measured best arm: 10.4 s, 3 of 3 verified (docs/benchmarks.md).

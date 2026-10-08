@@ -1,5 +1,5 @@
 # coding: utf-8
-"""The browser front: the answer shape, the assembly of the subagent per slot."""
+"""The browser front: the answer shape, the assembly of the subagent per model."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from support import CHAT_ENV as ENV
 from support import NoDecisionModel, browse_offline, browser_result
 
 SPEC = flights.SPEC
-GOAL = ["--slot", "jev", "--goal", "x"]
+GOAL = ["--model", "jev", "--goal", "x"]
 
 
 class TestParser(TestCase):
@@ -55,12 +55,12 @@ class TestParser(TestCase):
                 browse.parser(SPEC).parse_args([*GOAL, *flags])
             self.assertEqual(caught.exception.code, 2)
 
-    def test_the_slot_takes_a_model_or_the_chat_model(self) -> None:
-        self.assertEqual(browse.BROWSER_SLOTS, ("jev", "laya", "cua", "llm"))
-        for slot in browse.BROWSER_SLOTS:
-            self.assertEqual(browse.parser(SPEC).parse_args(["--slot", slot, "--goal", "x"]).slot, slot)
+    def test_the_model_flag_takes_a_decision_model_or_the_chat_model(self) -> None:
+        self.assertEqual(browse.BROWSER_MODEL_NAMES, ("jev", "laya", "laya-served", "cua", "llm"))
+        for model_name in browse.BROWSER_MODEL_NAMES:
+            self.assertEqual(browse.parser(SPEC).parse_args(["--model", model_name, "--goal", "x"]).model, model_name)
         with self.assertRaises(SystemExit):
-            browse.parser(SPEC).parse_args(["--slot", "random", "--goal", "x"])
+            browse.parser(SPEC).parse_args(["--model", "random", "--goal", "x"])
 
 
 class TestSolverContract(TestCase):
@@ -75,7 +75,7 @@ class TestSolverContract(TestCase):
             + "\n\nThe runtime could not verify completion."
         )
         self.assertEqual(browse.terminal_summary(final)["answer"], "42")
-        self.assertEqual(browse.finish_decision_model(_answer(final), slot="jev")["final"], "42")
+        self.assertEqual(browse.finish_decision_model(_answer(final), model_name="jev")["final"], "42")
 
     def test_terminal_summary_reads_the_summary_inside_browser_result(self) -> None:
         final = _completed(json.dumps({"status": "BLOCKED", "reason": "", "page_text": "Flights"}))
@@ -107,7 +107,7 @@ def _answer(final: str) -> dict[str, Any]:
 class TestFinishJev(TestCase):
     def test_blocked_is_a_failure_even_when_the_subagent_says_completed(self) -> None:
         final = _completed(json.dumps({"status": "BLOCKED", "reason": "", "page_text": "Flights", "answer": ""}))
-        answer = browse.finish_decision_model(_answer(final), slot="laya")
+        answer = browse.finish_decision_model(_answer(final), model_name="laya")
         self.assertEqual((answer["ok"], answer["final"], answer["status"]), (False, "", "BLOCKED"))
         self.assertEqual(answer["error"], "laya BLOCKED: no reason given")
 
@@ -123,13 +123,13 @@ class TestFinishJev(TestCase):
             "ok": False,
             "error": "result_type='error': partial",
         }
-        answer = browse.finish_decision_model(flagged, slot="jev")
+        answer = browse.finish_decision_model(flagged, model_name="jev")
         self.assertEqual((answer["ok"], answer["final"], answer["error"]), (True, "Three flights from 412 USD.", None))
         self.assertEqual(answer["terminal"], summary)
 
     def test_blocked_after_progress_keeps_the_pages_answer(self) -> None:
         summary = {"status": "BLOCKED", "reason": "oscillating between two pages", "answer": "Rated 4.6 by 243."}
-        answer = browse.finish_decision_model(_answer(json.dumps(summary)), slot="jev")
+        answer = browse.finish_decision_model(_answer(json.dumps(summary)), model_name="jev")
         self.assertEqual(
             (answer["ok"], answer["final"], answer["status"], answer["error"]),
             (True, "Rated 4.6 by 243.", "BLOCKED", None),
@@ -137,21 +137,21 @@ class TestFinishJev(TestCase):
 
     def test_done_without_an_answer_is_a_failure(self) -> None:
         final = _completed(json.dumps({"status": "DONE", "reason": "", "page_text": "x", "answer": ""}))
-        answer = browse.finish_decision_model(_answer(final), slot="cua")
+        answer = browse.finish_decision_model(_answer(final), model_name="cua")
         self.assertEqual((answer["ok"], answer["error"]), (False, "cua DONE without an answer"))
 
 
 class TestBrowseAssembly(IsolatedAsyncioTestCase):
     """``browse`` builds the real slot model from the spec; the factory and the browser run are faked, no Runner runs."""
 
-    async def _browse(self, slot: str, *, batch: bool) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+    async def _browse(self, model_name: str, *, batch: bool) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
         policy = BrowserPolicy(prefetch_values=True, batch_actions=batch, goal_value_cache=False)
-        return await browse_offline(SPEC, policy, slot=slot, max_steps=7)
+        return await browse_offline(SPEC, policy, model_name=model_name, max_steps=7)
 
-    async def test_a_decision_model_slot_puts_the_slot_model_in_the_slot_and_records_its_ticks(self) -> None:
-        for slot in ("jev", "laya"):
-            with self.subTest(slot=slot):
-                answer, seen, files = await self._browse(slot, batch=False)
+    async def test_a_decision_model_puts_the_slot_model_in_the_slot_and_records_its_ticks(self) -> None:
+        for model_name in ("jev", "laya"):
+            with self.subTest(model_name=model_name):
+                answer, seen, files = await self._browse(model_name, batch=False)
                 self.assertIsInstance(seen["model"], BrowserDecisionModel)
                 self.assertIsInstance(seen["model"]._decision_model, NoDecisionModel)
                 self.assertEqual(
@@ -168,7 +168,7 @@ class TestBrowseAssembly(IsolatedAsyncioTestCase):
         _answer, seen, _files = await self._browse("jev", batch=True)
         self.assertEqual(seen["browser_capabilities"], ["unsafe_dev"])
 
-    async def test_llm_slot_keeps_the_counting_model_in_the_slot(self) -> None:
+    async def test_llm_keeps_the_counting_model_in_the_slot(self) -> None:
         answer, seen, files = await self._browse("llm", batch=False)
         self.assertIsInstance(seen["model"], CountingModel)
         self.assertIs(_browser_model_with_temperature(seen["model"], DEFAULT_BROWSER_AGENT_TEMPERATURE), seen["model"])
@@ -176,15 +176,19 @@ class TestBrowseAssembly(IsolatedAsyncioTestCase):
         self.assertEqual(answer["usage"]["chat_temperature"], 0.0, "the sampling setting the baseline really ran at")
         self.assertEqual(files, ["chat_calls.json"])
 
-    async def test_a_model_slot_refuses_to_run_without_a_model(self) -> None:
+    async def test_jev_and_laya_refuse_to_run_without_a_decision_model(self) -> None:
         policy = BrowserPolicy(prefetch_values=True, batch_actions=False, goal_value_cache=False)
-        for slot in ("jev", "laya"):
-            with self.subTest(slot=slot), patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as tmp:
+        for model_name in ("jev", "laya"):
+            with (
+                self.subTest(model_name=model_name),
+                patch.dict(os.environ, ENV, clear=True),
+                tempfile.TemporaryDirectory() as tmp,
+            ):
                 with self.assertRaises(RuntimeError) as caught:
                     await browse.browse(
                         SPEC,
                         policy,
-                        slot=slot,
+                        model_name=model_name,
                         goal="g",
                         timeout_s=1,
                         max_steps=1,
@@ -193,7 +197,7 @@ class TestBrowseAssembly(IsolatedAsyncioTestCase):
                         chat=chat_model_from_env(),
                         decision_model=None,
                     )
-                self.assertIn(slot, str(caught.exception))
+                self.assertIn(model_name, str(caught.exception))
 
 
 class _FakeAgent:
@@ -242,7 +246,7 @@ class TestRunTask(IsolatedAsyncioTestCase):
 
 
 class TestPlay(IsolatedAsyncioTestCase):
-    """``play`` builds the slot's decision_model, hands the flags to ``browse`` and returns the answer without the ticks;
+    """``play`` builds the decision model ``--model`` names, hands the flags to ``browse`` and returns the answer without the ticks;
     no profiler without a path."""
 
     async def test_the_answer_comes_back_without_ticks_and_without_a_profile(self) -> None:
@@ -253,19 +257,19 @@ class TestPlay(IsolatedAsyncioTestCase):
             return {"ok": True, "final": "42", "error": None, "ticks": [{"tick": 1}], "report": {}, "usage": {}}
 
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, ENV, clear=True):
-            args = browse.parser(SPEC).parse_args(["--slot", "llm", "--goal", "g", "--logs-dir", tmp, "--batch", "on"])
+            args = browse.parser(SPEC).parse_args(["--model", "llm", "--goal", "g", "--logs-dir", tmp, "--batch", "on"])
             with patch.object(browse, "browse", fake_browse), patch.object(browse, "BrowserProfiler", None):
                 answer = await browse.play(SPEC, args)
             written = json.loads((Path(tmp) / "answer.json").read_text(encoding="utf-8"))
         self.assertEqual(answer, {"ok": True, "final": "42", "error": None, "report": {}, "usage": {}})
         self.assertEqual(
-            written, {**answer, "agent": "flights", "slot": "llm"}, "the result lands next to the run's records"
+            written, {**answer, "agent": "flights", "model": "llm"}, "the result lands next to the run's records"
         )
-        self.assertEqual((seen["slot"], seen["max_steps"], seen["policy"].batch_actions), ("llm", 100, True))
+        self.assertEqual((seen["model_name"], seen["max_steps"], seen["policy"].batch_actions), ("llm", 100, True))
         self.assertEqual((seen["goal"], seen["timeout_s"], seen["headless"]), ("g", 180.0, True))
         self.assertIsNone(seen["decision_model"], "the chat model needs no model")
 
-    async def test_a_model_slot_builds_its_model_from_the_environment_and_closes_it(self) -> None:
+    async def test_a_decision_model_is_built_from_the_environment_and_closed(self) -> None:
         seen: dict[str, Any] = {}
         closed: list[str] = []
 
@@ -277,15 +281,15 @@ class TestPlay(IsolatedAsyncioTestCase):
             closed.append(self.name)
 
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, ENV, clear=True):
-            args = browse.parser(SPEC).parse_args(["--slot", "jev", "--goal", "g", "--logs-dir", tmp])
+            args = browse.parser(SPEC).parse_args(["--model", "jev", "--goal", "g", "--logs-dir", tmp])
             with patch.object(browse, "browse", fake_browse), patch.object(JevModel, "close", close):
                 await browse.play(SPEC, args)
         self.assertIsInstance(seen["decision_model"], JevModel)
         self.assertEqual(closed, ["jev"], "the model is closed once the task is over")
 
-    async def test_the_profiler_needs_a_decision_model_slot(self) -> None:
+    async def test_the_profiler_needs_a_decision_model(self) -> None:
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, ENV, clear=True):
-            args = browse.parser(SPEC).parse_args(["--slot", "llm", "--goal", "g", "--profile-out", f"{tmp}/p.json"])
+            args = browse.parser(SPEC).parse_args(["--model", "llm", "--goal", "g", "--profile-out", f"{tmp}/p.json"])
             with patch.object(browse, "browse", None), self.assertRaises(RuntimeError):
                 await browse.play(SPEC, args)
 

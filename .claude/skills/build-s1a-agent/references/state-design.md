@@ -22,16 +22,16 @@ What the loop sends Jev on every decision: the observation, the candidates, the 
 
 - Under about 120 words. Facts to recognise, phrased as what a good move looks like. Leave out chains of reasoning.
 - Name the winning shapes and the traps in the state's own words so that Jev can match them by recognition.
-- Every slot reads the same text, including the chat-model arm.
+- Every model reads the same text, including the chat-model arm.
 
 ## The budget and the baseline
 
-- `max_steps`: the acts one episode may spend; the chat slot gets twice as many iterations for malformed calls.
+- `max_steps`: the acts one episode may spend; the chat model gets twice as many iterations for malformed calls.
 - `timeout_s`: the wall clock per episode; a timed-out episode keeps its score so far.
 - `stall_after`: acts without a score change before the rethink rail asks the chat model for a plan; 0 for games
   where every act changes the score or the question.
 - Give a `baseline` whenever a rule or an expert plan is known; it is the upper or lower bound the table shows.
-- The `random` slot draws from its own stream, derived from the episode seed. An env opponent seeded from the plain
+- The `random` model draws from its own stream, derived from the episode seed. An env opponent seeded from the plain
   integer seed, as the template does, draws a different stream.
 - In the summary a score above 0 counts as a win and below 0 as a loss. A draw scored 0.5 counts as a win there.
 

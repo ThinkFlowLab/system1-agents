@@ -6,13 +6,13 @@ folder per episode). `uv run python -m evals.table evals/results` aggregates the
 
 | eval | measures | run |
 |---|---|---|
-| Blackjack (RLCard) | payoff per hand | `s1a run blackjack --slot jev --rethink off --episodes 100` |
-| 2048 (the MIT game, self-hosted) | score and largest tile at a move cap | `s1a run game2048 --slot jev --rethink on --episodes 10` |
-| Millionaire (self-hosted quiz, Open Trivia DB) | winnings; the 50:50 lifeline is a candidate the model may pick; six ladders: `--seed` plus `--episodes` stays at or below 6 | `s1a run millionaire --slot jev --rethink off --episodes 5` |
-| ALFWorld text (TextWorld) | success on unseen games | `s1a run alfworld --slot jev --rethink on --episodes 12 --stride 11` |
-| Google Flights timing | wall clock against browser-use/jev-ultrafast | `s1a run flights --slot jev --batch on`; numbers in `docs/benchmarks.md` |
-| Desktop (Cua Driver) | clicks toward `--goal` until the window shows `--expect` | `s1a run desktop --app Calculator --goal "compute 12 times 7" --expect 84 --execute --slot jev --rethink off --episodes 1` |
-| Ticket router (30 local labelled tickets) | correct routes to five queues | `s1a run ticket_router --slot jev --rethink off --episodes 1` |
+| Blackjack (RLCard) | payoff per hand | `s1a run blackjack --model jev --rethink off --episodes 100` |
+| 2048 (the MIT game, self-hosted) | score and largest tile at a move cap | `s1a run game2048 --model jev --rethink on --episodes 10` |
+| Millionaire (self-hosted quiz, Open Trivia DB) | winnings; the 50:50 lifeline is a candidate the model may pick; six ladders: `--seed` plus `--episodes` stays at or below 6 | `s1a run millionaire --model jev --rethink off --episodes 5` |
+| ALFWorld text (TextWorld) | success on unseen games | `s1a run alfworld --model jev --rethink on --episodes 12 --stride 11` |
+| Google Flights timing | wall clock against browser-use/jev-ultrafast | `s1a run flights --model jev --batch on`; numbers in `docs/benchmarks.md` |
+| Desktop (Cua Driver) | clicks toward `--goal` until the window shows `--expect` | `s1a run desktop --app Calculator --goal "compute 12 times 7" --expect 84 --execute --model jev --rethink off --episodes 1` |
+| Ticket router (30 local labelled tickets) | correct routes to five queues | `s1a run ticket_router --model jev --rethink off --episodes 1` |
 | Injection guard (rail) | precision and recall on a labelled set | `s1a run injection_guard` |
 
 ## The loop
@@ -20,7 +20,7 @@ folder per episode). `uv run python -m evals.table evals/results` aggregates the
 `s1a/tool/loop.py` builds one DeepAgent per episode through `create_deep_agent`, with two tools per environment.
 `observe` returns `{state, candidates, done, score}`; `act(key)` plays one candidate key and returns the same
 shape. The model slot holds `ToolDecisionModel` (`s1a/tool/models.py`) over one of five decision models, or the
-chat model (`--slot`):
+chat model (`--model`):
 
 - `jev`: the model reads the environment, asks Jev one choice question, and answers with one `act` call.
 - `laya`: the same, with Laya deciding in process (`uv sync --extra laya`); its tokens are free and unpriced.
@@ -41,7 +41,7 @@ identical call) stays off for these agents.
 
 Every episode records its ticks (key, confidence, probabilities, latency, tokens, whether a plan was in the
 state) and its rethink events in `agent/episode.json`; the count of chat-model calls and their token sums go to
-`result.json`. For the `llm` slot the decisions are the chat calls that produced an `act`; a tick whose key was
+`result.json`. For `llm` the decisions are the chat calls that produced an `act`; a tick whose key was
 not offered is kept with `accepted: false`, counted as an `invalid_key`, and skipped by the replay. Its iteration
 cap is twice the game's budget, since the chat model spends turns on unknown keys.
 A run that reaches the iteration cap has `result_type: error` in `extra`; its score still counts. An episode that
@@ -52,29 +52,24 @@ the score statistics over the `scored` episodes only, and `evals.table` skips tr
 ## Setup
 
 `uv sync`, plus `--extra blackjack` and `--extra alfworld` for those games (the README lists every extra), then
-a `.env` with `TYPESAFE_API_KEY` or `OPENROUTER_API_KEY` for Jev.
-The `llm` slot, the rethink planner and the browser agent need the chat model: `OPENAI_API_KEY` (or `LLM_API_KEY`),
-`OPENAI_BASE_URL` (or `LLM_BASE_URL`) and `MODEL_NAME`. `MODEL_PROVIDER=anthropic` talks Anthropic's own protocol, direct
-(`OPENAI_BASE_URL=https://api.anthropic.com`, `MODEL_NAME=claude-fable-5-1`; an org-level key also needs
-`ANTHROPIC_WORKSPACE_ID`) or through OpenRouter's `/v1/messages` (`MODEL_NAME=anthropic/claude-fable-5.1`). The browser agents launch a headless
-Chromium through `@playwright/mcp` (Node); `--headed` shows it. ALFWorld needs `uv sync --extra alfworld` and
-`ALFWORLD_DATA` in a Python 3.11 environment; the data comes from `python scripts/alfworld-download` in a clone
-of alfworld/alfworld. The DeepAgent's workspace files land under `runs/evals/`.
+a `.env` with `TYPESAFE_API_KEY` (or `OPENROUTER_API_KEY`) for Jev, and `MODEL_NAME` with provider credentials for the chat model.
+ALFWorld needs `uv sync --extra alfworld` and `ALFWORLD_DATA` in a Python 3.11 environment; the data comes from
+`python scripts/alfworld-download` in a clone of alfworld/alfworld. The DeepAgent's workspace files land under `runs/evals/`.
+For the complete reference table of all environment variables, provider endpoints, and defaults, see [docs/configuration.md](../docs/configuration.md).
 
 ## Protocol
 
-Every slot plays seeds `S` to `S + N - 1` (`--seed S --episodes N`) and meets the same deals and games.
+Every model plays seeds `S` to `S + N - 1` (`--seed S --episodes N`) and meets the same deals and games.
 `summary.json` holds the mean score with a 95 %
 bootstrap interval, wins and losses, mean steps, the median decision latency and the rethink count. Quote
 nothing below ten episodes; Blackjack wants 500 hands. The four measurements: `jev` against `llm` on the same
-seeds (same loop, swap the brain); `jev` with `--rethink on` against `off`; the `random` slot's wall clock per
+seeds (same loop, swap the brain); `jev` with `--rethink on` against `off`; the `random` model's wall clock per
 act against a bare loop (loop overhead); and, later, Jev's top probability against the ALFWorld expert plan.
 `summary.json` also holds decisions, chat calls, tokens (`chat_input_tokens`, `chat_output_tokens`,
 `chat_cache_tokens`) and `cost_usd` (Jev at $0.042 per M input tokens; the chat model at OpenRouter's catalogue
-price for `MODEL_NAME`, with cached input at the catalogue's cache-read rate; or `CHAT_USD_PER_M_INPUT`,
-`CHAT_USD_PER_M_OUTPUT` and, optionally, `CHAT_USD_PER_M_CACHED_INPUT`). `python -m evals.table evals/results` prints one row per eval and slot over every
+price for `MODEL_NAME`, or custom rates from `CHAT_USD_PER_M_*`, see [docs/configuration.md](../docs/configuration.md)). `python -m evals.table evals/results` prints one row per eval and model over every
 job folder. ALFWorld's game files sort by task type; `--stride 11` from offset 0 takes twelve games across
-the six types. Every slot plays the same tile draws because 2048 seeds the page's `Math.random`.
+the six types. Every model plays the same tile draws because 2048 seeds the page's `Math.random`.
 
 ## Showcase runs and replays
 
@@ -84,11 +79,11 @@ the state and the candidate keys before each decision, and the final state. That
 
 ``--showcase`` on any game writes the job under ``evals/showcase/`` (``evals.table`` never reads that tree) and, for
 2048 and Millionaire, one PNG of the page per move into ``agent/frames/`` through the runtime, headless or headed.
-``scripts/showcase.sh [SEED] [EVALS...]`` plays one episode per eval and slot on the same seed, renders each pair
+``scripts/showcase.sh [SEED] [EVALS...]`` plays one episode per eval and model on the same seed, renders each pair
 under ``evals/showcase/replays/<eval>/`` and copies the GIF to ``docs/results/<eval>/showcase/``.
 
 ``python -m evals.replay <trial> [<trial>] --out DIR [--gif]`` (the ``report`` extra: Pillow and Playwright) writes a
-page with the two slots side by side on the episode's own clock: the hands for Blackjack, the board for 2048, the
+page with the two models side by side on the episode's own clock: the hands for Blackjack, the board for 2048, the
 question card for Millionaire, the transcript for ALFWorld, and under each the chosen key, Jev's probabilities over
 the candidates, the latency and the cumulative seconds. ``--gif`` screenshots the page per tick of episode time
 (``--mode time --speed 4``) or per step (``--mode step``). ``--from-frames DIR [DIR]`` stitches one or two folders of
@@ -100,8 +95,8 @@ request and response times in ``calls.jsonl`` beside them. The policy behaves as
 second browser client is involved. The frames hold the page and nothing else. ``python -m evals.replay <jev logs>
 <llm logs> --out DIR --gif --strip`` takes two runs' logs folders (``answer.json`` inside, the frames under ``frames/``)
 as trials: the page draws the frame at the clock with the tick's target probabilities under it, and ``--strip`` writes
-the frames side by side under a header band. ``scripts/browser_showcase.sh <agent> [RUNS]`` runs both slots headed
-with the frames on and renders both GIFs from the median run of each slot.
+the frames side by side under a header band. ``scripts/browser_showcase.sh <agent> [RUNS]`` runs both models headed
+with the frames on and renders both GIFs from the median run of each model.
 
 ALFWorld's scenes render through AI2-THOR: ``evals/replay/thor_replay.py <trial>`` replays the trial's commands in
 ``AlfredThorEnv`` and writes a frame per step; the page shows it above the transcript. It needs the ``alfworld-visual``
@@ -114,7 +109,7 @@ it for both ALFWorld trials before the page; without the extra the GIF holds the
 Smoke-tested through the agent, one to three episodes each, Jev on the direct TypeSafe backend: Blackjack (rule and
 jev), 2048 (jev with rethink on: 42 acts, 6 repeat blocks, 1.1 s per act, Jev median 382 ms), Millionaire (jev: 32,000
 after 12 answers), ALFWorld (both won; the oracle plan in 12 steps, jev in 5).
-Series of 2026-09-19 (Blackjack N=100 per slot, ALFWorld N=12 per slot, 2048 N=5) are tabulated in
+Series of 2026-09-19 (Blackjack N=100 per model, ALFWorld N=12 per model, 2048 N=5) are tabulated in
 `docs/benchmarks.md`; the 500-hand Blackjack series the protocol asks for has not been run.
 
 Known gaps: the semantic-stall plan has not fired in a live run yet (2048 kept scoring). On Google Flights--1
@@ -127,8 +122,8 @@ Jev paged the date picker back and forth and ended BLOCKED after 18 requests (th
    three times is a legal 2048 line. Exact repeats are `RethinkRail`'s first layer.
 3. The rail and the slot model share one in-memory `EvalState` per episode. Session state was rejected.
 4. Millionaire's 50:50 is a candidate key the model may pick when it is available, in place of a threshold wrapper.
-5. A `rule` slot keeps the hand-written baselines in the same loop.
-6. The bare loop is gone; the loop-overhead number comes from the `random` slot against the last bare-loop run
+5. `--model rule` keeps the hand-written baselines in the same loop.
+6. The bare loop is gone; the loop-overhead number comes from `random` against the last bare-loop run
    (2048 random, 0.87 s per act).
 7. Stall thresholds per game: 2048 six acts, ALFWorld eight, Blackjack and Millionaire none.
 8. One slot model over one decision-model interface: `ToolDecisionModel` holds a decision model, and its `name` is

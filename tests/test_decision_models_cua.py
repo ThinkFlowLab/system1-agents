@@ -175,7 +175,7 @@ class TestFromEnv(TestCase):
         self.assertEqual(decision_model.model, "cua-ai/cua-s1-nano-0.1/text")
         self.assertEqual((decision_model._context_bytes, decision_model._option_bytes), (256, 96))
 
-    def test_the_factory_builds_it_for_the_cua_slot(self) -> None:
+    def test_the_factory_builds_it_for_cua(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "text").mkdir()
             with (

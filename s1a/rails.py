@@ -29,7 +29,7 @@ from s1a.pricing import cost_usd
 from s1a.spec import Json, RailSpec, Verdict
 
 QUESTION = "check"
-RAIL_SLOTS = ("jev", "laya")
+RAIL_MODEL_NAMES = ("jev", "laya", "laya-served")
 
 
 def question(spec: RailSpec) -> Question:
@@ -120,7 +120,7 @@ async def evaluate(
     tp = sum(a and label for a, label in zip(acted, labels))
     fp = sum(a and not label for a, label in zip(acted, labels))
     fn = sum(label and not a for a, label in zip(acted, labels))
-    jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts)
+    jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts) if decision_model.bills_input_tokens else 0
     summary = {
         "rail": spec.name,
         "records": len(records),
@@ -171,14 +171,17 @@ def parser(spec: RailSpec) -> argparse.ArgumentParser:
         help="JSONL records with a state and a boolean label; the spec's set when it names one",
     )
     build.add_argument(
-        "--slot", choices=RAIL_SLOTS, default="jev", help="who answers the question: jev, or laya in process"
+        "--model",
+        choices=RAIL_MODEL_NAMES,
+        default="jev",
+        help="who answers the question: jev or laya-served over HTTP, laya in process",
     )
     return build
 
 
 async def play(spec: RailSpec, args: argparse.Namespace, *, results_dir: Path) -> dict[str, Any]:
     """Evaluate the rail on its labelled set with a fresh model; the summary names its job folder."""
-    decision_model = build_model(args.slot)
+    decision_model = build_model(args.model)
     try:
         await decision_model.warm()
         return await evaluate(spec, args.labelled_set, decision_model=decision_model, results_dir=results_dir)

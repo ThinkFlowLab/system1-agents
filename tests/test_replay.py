@@ -116,10 +116,10 @@ def _write_pair(root: Path, *, with_views: bool = True) -> tuple[Path, Path]:
 
 
 def _write_browser_pair(root: Path, *, png: bytes) -> tuple[Path, Path]:
-    """A browser run per slot as ``s1a run <agent> --slot ...`` and ``evals.replay.cast`` leave them: answer.json, the
-    slot's records and two stamped frames each."""
+    """A browser run per model as ``s1a run <agent> --model ...`` and ``evals.replay.cast`` leave them: answer.json, the
+    model's records and two stamped frames each."""
     jev, llm = root / "jev-1", root / "llm-1"
-    for folder, slot, elapsed_ms, cost in ((jev, "jev", 3000, 0.01), (llm, "llm", 4000, 0.5)):
+    for folder, model_name, elapsed_ms, cost in ((jev, "jev", 3000, 0.01), (llm, "llm", 4000, 0.5)):
         (folder / "frames").mkdir(parents=True)
         answer = {
             "ok": True,
@@ -132,7 +132,7 @@ def _write_browser_pair(root: Path, *, png: bytes) -> tuple[Path, Path]:
                 "title": "Easy Vegetarian Spinach Lasagna",
             },
             "agent": "allrecipes",
-            "slot": slot,
+            "model": model_name,
         }
         (folder / "answer.json").write_text(json.dumps(answer), encoding="utf-8")
         for name in ("t00000500-0001-browser_navigate.png", "t00001500-0002-browser_run_code_unsafe.png"):
@@ -191,7 +191,7 @@ class TestBrowserRun(TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             jev_dir, _ = _write_browser_pair(Path(tmp), png=b"png")
             trial = read_trial(jev_dir)
-        self.assertEqual((trial.eval_name, trial.slot, trial.score, trial.elapsed_s), ("allrecipes", "jev", 1.0, 3.0))
+        self.assertEqual((trial.eval_name, trial.model, trial.score, trial.elapsed_s), ("allrecipes", "jev", 1.0, 3.0))
         self.assertEqual((trial.steps, trial.cost_usd, trial.rejected), (2, 0.01, 0))
         self.assertEqual([d["key"] for d in trial.decisions], ["TYPE_TEXT · Search the site", "DONE"])
         self.assertEqual([d["ms"] for d in trial.decisions], [400, 300])
@@ -202,11 +202,21 @@ class TestBrowserRun(TestCase):
         self.assertEqual([f.name[:10] for f in trial.frames], ["t00000500-", "t00001500-"])
         self.assertEqual((trial.extra["front"], len(trial.extra["history"])), ("browser", 1))
 
+    def test_a_run_written_by_0_1_0_names_the_model_under_slot(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            jev_dir, _ = _write_browser_pair(Path(tmp), png=b"png")
+            answer_file = jev_dir / "answer.json"
+            answer = json.loads(answer_file.read_text(encoding="utf-8"))
+            answer["slot"] = answer.pop("model")
+            answer_file.write_text(json.dumps(answer), encoding="utf-8")
+            trial = read_trial(jev_dir)
+        self.assertEqual((trial.model, trial.steps), ("jev", 2))
+
     def test_a_chat_model_run_counts_the_calls_that_issued_tool_calls(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             _, llm_dir = _write_browser_pair(Path(tmp), png=b"png")
             trial = read_trial(llm_dir)
-        self.assertEqual((trial.slot, trial.steps, trial.elapsed_s, trial.cost_usd), ("llm", 1, 4.0, 0.5))
+        self.assertEqual((trial.model, trial.steps, trial.elapsed_s, trial.cost_usd), ("llm", 1, 4.0, 0.5))
         self.assertEqual(
             [d["key"] for d in trial.decisions], ["navigate · https://www.allrecipes.com/search?q=lasagna"]
         )
@@ -220,7 +230,7 @@ class TestBrowserRun(TestCase):
             html = render_page([read_trial(llm_dir), read_trial(jev_dir)], out_dir=out)
             copied = sorted(p.name for p in (out / "frames-jev").iterdir())
         data = _page_data(html)
-        self.assertEqual([t["slot"] for t in data["trials"]], ["jev", "llm"])
+        self.assertEqual([t["model"] for t in data["trials"]], ["jev", "llm"])
         self.assertEqual([t["front"] for t in data["trials"]], ["browser", "browser"])
         self.assertEqual(data["trials"][0]["frames"], [f"frames-jev/{name}" for name in copied])
         self.assertEqual(data["trials"][0]["times"], [0, 1000, 3000])
@@ -233,7 +243,7 @@ class TestTrial(TestCase):
             jev_dir, _ = _write_pair(Path(tmp))
             trial = read_trial(jev_dir)
             self.assertIsInstance(trial, Trial)
-            self.assertEqual((trial.eval_name, trial.slot, trial.seed, trial.score), ("blackjack", "jev", 0, 1.0))
+            self.assertEqual((trial.eval_name, trial.model, trial.seed, trial.score), ("blackjack", "jev", 0, 1.0))
             self.assertEqual((trial.steps, trial.elapsed_s, trial.cost_usd), (2, 1.0, 0.00004))
             self.assertEqual([d["key"] for d in trial.decisions], ["hit", "stand"])
             self.assertEqual(len(trial.views), 3)
@@ -324,7 +334,7 @@ class TestTrial(TestCase):
 
 
 class TestPage(TestCase):
-    def test_pair_page_holds_both_slots_and_every_step(self) -> None:
+    def test_pair_page_holds_both_models_and_every_step(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             jev_dir, llm_dir = _write_pair(Path(tmp))
             html = render_page([read_trial(jev_dir), read_trial(llm_dir)], out_dir=Path(tmp) / "out")
@@ -332,13 +342,13 @@ class TestPage(TestCase):
                 html.split('<script id="replay-data" type="application/json">', 1)[1].split("</script>", 1)[0]
             )
         self.assertEqual(data["eval"], "blackjack")
-        self.assertEqual([t["slot"] for t in data["trials"]], ["jev", "llm"])
+        self.assertEqual([t["model"] for t in data["trials"]], ["jev", "llm"])
         self.assertEqual([t["times"] for t in data["trials"]], [[0, 500, 1000], [0, 500, 1000]])
         self.assertEqual(len(data["trials"][0]["views"]), 3)
         self.assertEqual(data["trials"][0]["decisions"][0]["probabilities"], {"hit": 0.8, "stand": 0.2})
         self.assertIn("replay.setTime", html)
         self.assertIn("replay.setStep", html)
-        self.assertIn('"System 1 · " + trial.slot', html)
+        self.assertIn('"System 1 · " + trial.model', html)
 
     def test_jev_is_always_left_and_llm_right(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -347,7 +357,7 @@ class TestPage(TestCase):
             data = json.loads(
                 html.split('<script id="replay-data" type="application/json">', 1)[1].split("</script>", 1)[0]
             )
-        self.assertEqual([t["slot"] for t in data["trials"]], ["jev", "llm"])
+        self.assertEqual([t["model"] for t in data["trials"]], ["jev", "llm"])
         self.assertIn("<title>blackjack: jev vs llm</title>", html)
 
     def test_page_copies_frames_next_to_itself(self) -> None:

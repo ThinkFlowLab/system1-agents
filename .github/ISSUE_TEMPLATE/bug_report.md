@@ -22,5 +22,5 @@ uv run s1a ...
 
 - OS and Python version:
 - `uv sync` extras installed (`blackjack`, `alfworld`, `laya`, `cua`, ...):
-- slot (`jev`, `laya`, `cua`, `llm`) and, for `jev`, direct key or OpenRouter:
+- `--model` (`jev`, `laya`, `cua`, `llm`) and, for `jev`, direct key or OpenRouter:
 - commit (`git rev-parse --short HEAD`):

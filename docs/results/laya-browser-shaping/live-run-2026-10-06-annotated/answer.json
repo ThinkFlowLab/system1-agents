@@ -1,0 +1,46 @@
+{
+ "ok": true,
+ "final": "The page does not show any flight options for the specified search criteria. It only displays example flight deals from Frankfurt am Main to other destinations.",
+ "screenshot": null,
+ "error": null,
+ "elapsed_ms": 21359,
+ "usage": {
+  "decisions": 1,
+  "chat_calls": 6,
+  "chat_input_tokens": 2361,
+  "chat_output_tokens": 54,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.000843
+ },
+ "report": {
+  "elapsed_ms": 20837,
+  "decisions": 1,
+  "interactions": 0,
+  "waits": 0,
+  "median_decision_ms": 11602,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 3846,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 0,
+   "llm": 0
+  },
+  "history": []
+ },
+ "status": "DONE",
+ "terminal": {
+  "status": "DONE",
+  "reason": "",
+  "url": "https://www.google.com/travel/flights?hl=en",
+  "title": "Find Cheap Flights Worldwide & Book Your Ticket - Google Flights",
+  "steps": 0,
+  "elapsed_ms": 19208,
+  "page_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nSign in\nFlights\n1\nSearch\nFlexible? Discover the best flight deals with AI\nDescribe your ideal trip, and let Google Flights find the best deals for you\nExplore deals with AI\nFind and book cheap flights worldwide and track prices\nFind cheap flights from Germany to anywhere\nFrankfurt am Main\nMunich\nBerlin\nDüsseldorf",
+  "answer": "The page does not show any flight options for the specified search criteria. It only displays example flight deals from Frankfurt am Main to other destinations."
+ },
+ "agent": "flights",
+ "model": "laya"
+}

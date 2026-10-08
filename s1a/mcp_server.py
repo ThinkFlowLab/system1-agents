@@ -9,7 +9,7 @@ import contextlib
 import logging
 import sys
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, Literal
 
 import s1a.console  # first: routes the harness logs to files before openjiuwen loads and logs to the console
 from mcp.server.fastmcp import FastMCP
@@ -23,9 +23,10 @@ INSTRUCTIONS = (
     "S1A agents: System 1 decision models (TypeSafe Jev, Laya, Cua-S1) in the model slot of openJiuwen agents. Use run_agent for a page task with enumerable "
     "controls, a game or a quiz, and decide for one selection over options you enumerate. Not for arithmetic, "
     "constraint puzzles or free-text generation. list_agents gives every agent's flags: a browser agent takes "
-    "--slot jev --goal '...' and needs a chat-model key (OPENAI_API_KEY or LLM_API_KEY plus MODEL_NAME), a Jev key "
-    "(TYPESAFE_API_KEY or OPENROUTER_API_KEY) and Node for @playwright/mcp; a tool agent takes --slot, --rethink and "
-    "--episodes; a rail takes --labelled-set. Runs go one at a time per server."
+    "--model jev --goal '...' and needs a chat-model key (OPENAI_API_KEY or LLM_API_KEY plus MODEL_NAME), a Jev key "
+    "(TYPESAFE_API_KEY or OPENROUTER_API_KEY) and Node for @playwright/mcp; a tool agent takes --model, --rethink and "
+    "--episodes; a rail takes --labelled-set. decide accepts model jev (default), laya, cua or laya-served; local models "
+    "need their optional extra and no Jev key, laya-served needs LAYA_SERVED_URL. Runs and decisions go one at a time per server."
 )
 
 
@@ -74,7 +75,7 @@ def _agent_rows() -> list[dict[str, Any]]:
 
 @server.tool()
 async def run_agent(name: str, flags: list[str]) -> dict[str, Any]:
-    """Run one agent with the flags `s1a run <name>` takes, e.g. ["--slot", "jev", "--goal", "..."].
+    """Run one agent with the flags `s1a run <name>` takes, e.g. ["--model", "jev", "--goal", "..."].
 
     A browser agent returns its answer, a tool agent its series summary with the job folder it wrote, a rail its
     evaluation summary.
@@ -89,13 +90,25 @@ async def run_agent(name: str, flags: list[str]) -> dict[str, Any]:
 
 
 @server.tool()
-async def decide(state: dict[str, Any], options: dict[str, str], rules: str) -> dict[str, Any]:
-    """One choice question over options you enumerate: the chosen key, a probability per option, a confidence, the latency in ms."""
-    decision_model = build_model("jev")
-    try:
-        return await probe.pick(decision_model, state=state, options=options, rules=rules)
-    finally:
-        await decision_model.close()
+async def decide(
+    state: dict[str, Any],
+    options: dict[str, str],
+    rules: str,
+    model: Literal["jev", "laya", "laya-served", "cua"] = "jev",
+) -> dict[str, Any]:
+    """One choice question: the chosen key, probabilities, confidence and decision latency in ms.
+
+    Use jev over HTTP (default), laya/cua locally after installing the matching extra, or laya-served against a
+    running Laya server (LAYA_SERVED_URL). Local model loading
+    is excluded from the reported latency.
+    """
+    async with _ONE_RUN:
+        with contextlib.redirect_stdout(sys.stderr):  # local SDK loading must not write to the stdio protocol
+            decision_model = await asyncio.to_thread(build_model, model)
+            try:
+                return await probe.pick(decision_model, state=state, options=options, rules=rules)
+            finally:
+                await decision_model.close()
 
 
 def main() -> None:

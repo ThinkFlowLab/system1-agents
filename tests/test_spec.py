@@ -81,10 +81,10 @@ class TestSpecValidation(TestCase):
 class TestSharedFlags(TestCase):
     def test_budget_is_the_default_and_the_agents_flags_come_after(self) -> None:
         spec = replace(COUNTER, flags=stride_flag)
-        args = series.parser(spec).parse_args(["--slot", "random", "--rethink", "off", "--episodes", "2"])
+        args = series.parser(spec).parse_args(["--model", "random", "--rethink", "off", "--episodes", "2"])
         self.assertEqual((args.max_steps, args.timeout, args.stride, args.headed, args.seed), (5, 30.0, 1, False, 0))
         args = series.parser(spec).parse_args(
-            ["--slot", "random", "--rethink", "off", "--episodes", "2", "--max-steps", "9", "--stride", "3"]
+            ["--model", "random", "--rethink", "off", "--episodes", "2", "--max-steps", "9", "--stride", "3"]
         )
         self.assertEqual((args.max_steps, args.stride), (9, 3))
 
@@ -102,13 +102,13 @@ class TestSharedFlags(TestCase):
             ["--episodes", "1", "--timeout", "-2.5"],
         ):
             with self.assertRaises(SystemExit) as caught:
-                series.parser(COUNTER).parse_args(["--slot", "random", "--rethink", "off", *flags])
+                series.parser(COUNTER).parse_args(["--model", "random", "--rethink", "off", *flags])
             self.assertEqual(caught.exception.code, 2)
 
 
 class TestTemplatePlaysThroughTheRunner(IsolatedAsyncioTestCase):
-    async def test_random_slot_plays_two_episodes_and_writes_one_job_folder(self) -> None:
-        args = series.parser(COUNTER).parse_args(["--slot", "random", "--rethink", "off", "--episodes", "2"])
+    async def test_random_plays_two_episodes_and_writes_one_job_folder(self) -> None:
+        args = series.parser(COUNTER).parse_args(["--model", "random", "--rethink", "off", "--episodes", "2"])
         with (
             tempfile.TemporaryDirectory() as tmp,
             patch.object(loop, "WORKSPACE", Path(tmp) / "ws"),
@@ -125,7 +125,7 @@ class TestTemplatePlaysThroughTheRunner(IsolatedAsyncioTestCase):
 
     async def test_a_series_that_selects_no_seeds_is_a_run_error(self) -> None:
         spec = replace(COUNTER, series=lambda flags: replace(counter_series(flags), seeds=()))
-        args = series.parser(spec).parse_args(["--slot", "random", "--rethink", "off", "--episodes", "1"])
+        args = series.parser(spec).parse_args(["--model", "random", "--rethink", "off", "--episodes", "1"])
         with (
             tempfile.TemporaryDirectory() as tmp,
             patch.object(series, "optional_chat_model", lambda: None),
@@ -135,7 +135,7 @@ class TestTemplatePlaysThroughTheRunner(IsolatedAsyncioTestCase):
                 await series.play(spec, args, results_dir=Path(tmp) / "results")
 
     async def test_a_series_without_chat_tokens_never_looks_a_price_up(self) -> None:
-        args = series.parser(COUNTER).parse_args(["--slot", "rule", "--rethink", "off", "--episodes", "1"])
+        args = series.parser(COUNTER).parse_args(["--model", "rule", "--rethink", "off", "--episodes", "1"])
         with (
             tempfile.TemporaryDirectory() as tmp,
             patch.object(loop, "WORKSPACE", Path(tmp) / "ws"),
@@ -156,7 +156,7 @@ class TestTemplatePlaysThroughTheRunner(IsolatedAsyncioTestCase):
         def slow_pricing(episodes: list[Any]) -> None:
             on_main["pricing"] = threading.current_thread() is threading.main_thread()
 
-        args = series.parser(COUNTER).parse_args(["--slot", "rule", "--rethink", "off", "--episodes", "1"])
+        args = series.parser(COUNTER).parse_args(["--model", "rule", "--rethink", "off", "--episodes", "1"])
         with (
             tempfile.TemporaryDirectory() as tmp,
             patch.object(loop, "WORKSPACE", Path(tmp) / "ws"),
@@ -179,7 +179,7 @@ class TestTemplatePlaysThroughTheRunner(IsolatedAsyncioTestCase):
                 annotate=lambda env, episode: None,
             )
 
-        args = series.parser(COUNTER).parse_args(["--slot", "rule", "--rethink", "off", "--episodes", "2"])
+        args = series.parser(COUNTER).parse_args(["--model", "rule", "--rethink", "off", "--episodes", "2"])
         with (
             tempfile.TemporaryDirectory() as tmp,
             patch.object(loop, "WORKSPACE", Path(tmp) / "ws"),
@@ -198,8 +198,8 @@ class TestTemplatePlaysThroughTheRunner(IsolatedAsyncioTestCase):
             raise AssertionError("the series must not be built before the run's keys are checked")
 
         spec = replace(COUNTER, series=never)
-        for slot, env in (("jev", {}), ("llm", {}), ("rule", {"CHAT_USD_PER_M_INPUT": "0.3"})):
-            args = series.parser(COUNTER).parse_args(["--slot", slot, "--rethink", "off", "--episodes", "1"])
+        for model_name, env in (("jev", {}), ("llm", {}), ("rule", {"CHAT_USD_PER_M_INPUT": "0.3"})):
+            args = series.parser(COUNTER).parse_args(["--model", model_name, "--rethink", "off", "--episodes", "1"])
             with (
                 patch.dict(os.environ, env, clear=True),
                 patch.object(series, "optional_chat_model", lambda: None),
@@ -208,7 +208,7 @@ class TestTemplatePlaysThroughTheRunner(IsolatedAsyncioTestCase):
                 await series.play(spec, args, results_dir=Path("unused"))
 
     async def test_a_series_whose_every_episode_fails_writes_its_job_and_raises(self) -> None:
-        args = series.parser(COUNTER).parse_args(["--slot", "jev", "--rethink", "off", "--episodes", "2"])
+        args = series.parser(COUNTER).parse_args(["--model", "jev", "--rethink", "off", "--episodes", "2"])
         with (
             tempfile.TemporaryDirectory() as tmp,
             patch.object(loop, "WORKSPACE", Path(tmp) / "ws"),
@@ -228,7 +228,7 @@ def _no_lookup(model_name: str) -> None:
     raise AssertionError("a series that spent no chat tokens must not fetch the price catalogue")
 
 
-def _refusing(slot: str, **kwargs: Any) -> JevModel:
+def _refusing(model_name: str, **kwargs: Any) -> JevModel:
     """The jev model of a run whose key is wrong or whose endpoint is down."""
     error = build_error(StatusCode.MODEL_CALL_FAILED, error_msg="decisions endpoint returned HTTP 401")
     return JevModel(ScriptedTransport(error=error))

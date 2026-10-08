@@ -7,6 +7,7 @@ The driver runs in ``standard`` permission mode; every action names the pid and 
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 from contextlib import AsyncExitStack, asynccontextmanager
@@ -16,7 +17,9 @@ from typing import Any, AsyncIterator, Protocol
 
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
-from mcp.types import TextContent
+from mcp.types import ImageContent, TextContent
+
+from s1a.decision_models.types import Image
 
 Json = dict[str, Any]
 INSTALL_HINT = (
@@ -55,6 +58,15 @@ class Element:
     value: str
     token: str | None
     actions: tuple[str, ...]
+    enabled: bool = True
+
+
+@dataclass(frozen=True)
+class Capture:
+    capture_id: str
+    image: Image
+    width: int
+    height: int
 
 
 @dataclass(frozen=True)
@@ -63,14 +75,16 @@ class Snapshot:
     snapshot_id: str | None
     elements: tuple[Element, ...]
     raw: Json = field(repr=False, compare=False)
+    capture: Capture | None = None
 
 
 class Driver(Protocol):
     """What a desktop env needs: find the window, read it, click in it."""
 
-    async def find_window(self, app_name: str) -> Window: ...
-    async def window_state(self, window: Window) -> Snapshot: ...
+    async def find_window(self, app_name: str, window_title: str = "") -> Window: ...
+    async def window_state(self, window: Window, *, screenshot: bool = False) -> Snapshot: ...
     async def click(self, window: Window, token: str) -> Json: ...
+    async def click_at(self, window: Window, capture: Capture, x: float, y: float) -> Json: ...
 
 
 class CuaDriver:
@@ -121,22 +135,28 @@ class CuaDriver:
         if result.isError:
             raise DriverError(f"{tool}: {text or 'the driver returned an error'}")
         if isinstance(result.structuredContent, dict):
-            return result.structuredContent
-        try:
-            payload = json.loads(text) if text else {}
-        except json.JSONDecodeError as exc:
-            raise DriverError(f"{tool}: the driver returned no JSON object: {text[:200]!r}") from exc
+            payload = dict(result.structuredContent)
+        else:
+            try:
+                payload = json.loads(text) if text else {}
+            except json.JSONDecodeError as exc:
+                raise DriverError(f"{tool}: the driver returned no JSON object: {text[:200]!r}") from exc
         if not isinstance(payload, dict):
             raise DriverError(f"{tool}: the driver returned no JSON object: {text[:200]!r}")
+        images = [{"data": p.data, "media_type": p.mimeType} for p in result.content if isinstance(p, ImageContent)]
+        if images:
+            payload["_images"] = images
         return payload
 
-    async def launch_app(self, app_name: str) -> None:
-        """Launch through the driver and pin the returned window, including Windows shared-host apps."""
+    async def launch_app(self, app_name: str, window_title: str = "") -> None:
+        """Launch through the driver and pin the one visible window matching the optional exact title."""
         launched = await self.call("launch_app", **await self._launch_target(app_name))
         windows = launched.get("windows")
         if not isinstance(windows, list):
             raise DriverError(f"launch_app: no windows array for {app_name!r}")
         visible = [w for w in windows if isinstance(w, dict) and w.get("is_on_screen", True)]
+        if window_title:
+            visible = [w for w in visible if str(w.get("title") or "") == window_title]
         if len(visible) != 1:
             raise DriverError(f"launch_app: expected one on-screen window of {app_name!r}, got {len(visible)}")
         window = visible[0]
@@ -164,7 +184,7 @@ class CuaDriver:
             return {"aumid": path[len(prefix) :]}
         return {"launch_path": path} if path else {"name": app_name}
 
-    async def find_window(self, app_name: str) -> Window:
+    async def find_window(self, app_name: str, window_title: str = "") -> Window:
         """Find the launched window, or the one on-screen window named ``app_name``; never guess among matches."""
         listed = await self.call("list_windows", on_screen_only=True)
         windows = listed.get("windows")
@@ -182,6 +202,8 @@ class CuaDriver:
             matches = [
                 w for w in windows if str(w.get("app_name") or "").casefold() == wanted and w.get("is_on_screen", True)
             ]
+        if window_title:
+            matches = [w for w in matches if str(w.get("title") or "") == window_title]
         if len(matches) != 1:
             titles = [str(w.get("title")) for w in matches]
             raise DriverError(f"list_windows: {len(matches)} on-screen window(s) of {app_name!r}: {titles}")
@@ -189,26 +211,62 @@ class CuaDriver:
         owner = str(window.get("app_name") or app_name) if pinned is not None else app_name
         return Window(int(window["pid"]), int(window["window_id"]), owner, str(window.get("title") or ""))
 
-    async def window_state(self, window: Window) -> Snapshot:
+    async def window_state(self, window: Window, *, screenshot: bool = False) -> Snapshot:
         state = await self.call(
             "get_window_state",
             pid=window.pid,
             window_id=window.window_id,
             session=self._label,
             include_accessibility_tree=True,
-            include_screenshot=False,
+            include_screenshot=screenshot,
         )
         raw_elements = state.get("elements")
+        if screenshot and str(state.get("degraded_reason", "")).startswith("ax_window_unresolved"):
+            raise DriverError(f"get_window_state: {state['degraded_reason']}")
         if not isinstance(raw_elements, list):
             raise DriverError(f"get_window_state: no elements in the snapshot ({state.get('degradation')!r})")
         elements = tuple(_element(raw) for raw in raw_elements)
         snapshot_id = state.get("snapshot_id")
-        return Snapshot(window, str(snapshot_id) if snapshot_id else None, elements, state)
+        capture = None
+        if screenshot:
+            images = state.pop("_images", [])
+            width, height = state.get("screenshot_width"), state.get("screenshot_height")
+            if (
+                not state.get("screenshot_frame_valid")
+                or not state.get("capture_id")
+                or len(images) != 1
+                or not isinstance(width, int)
+                or not isinstance(height, int)
+                or width <= 0
+                or height <= 0
+            ):
+                raise DriverError("get_window_state: no valid screenshot capture")
+            capture = Capture(
+                str(state["capture_id"]), Image.from_base64(images[0]["data"], images[0]["media_type"]), width, height
+            )
+        return Snapshot(window, str(snapshot_id) if snapshot_id else None, elements, state, capture)
 
     async def click(self, window: Window, token: str) -> Json:
         """One background click on a snapshot-bound element; a refused action is an error."""
         result = await self.call(
             "click", target=window.target, element_token=token, delivery_mode="background", session=self._label
+        )
+        if result.get("effect") == "refused":
+            raise DriverError(f"click: refused ({result.get('escalation')!r})")
+        return result
+
+    async def click_at(self, window: Window, capture: Capture, x: float, y: float) -> Json:
+        """Click a point in the captured window; the driver rejects stale or mismatched captures."""
+        if not (math.isfinite(x) and math.isfinite(y) and 0 <= x < capture.width and 0 <= y < capture.height):
+            raise ValueError("pixel click outside capture bounds")
+        result = await self.call(
+            "click",
+            target=window.target,
+            capture_id=capture.capture_id,
+            x=x,
+            y=y,
+            delivery_mode="background",
+            session=self._label,
         )
         if result.get("effect") == "refused":
             raise DriverError(f"click: refused ({result.get('escalation')!r})")
@@ -226,6 +284,7 @@ def _element(raw: Any) -> Element:
         value=str(raw.get("value") or ""),
         token=str(token) if token else None,
         actions=tuple(str(action) for action in raw.get("actions") or ()),
+        enabled=raw.get("enabled") is not False,
     )
 
 

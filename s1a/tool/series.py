@@ -12,17 +12,17 @@ from s1a.config import first_env, optional_chat_model
 from s1a.jobs import Episode, summarize, write_job
 from s1a.pricing import chat_prices, cost_usd, env_prices
 from s1a.spec import Json, ToolAgentSpec, positive_float, positive_int
-from s1a.tool.loop import SLOTS, run_episode
+from s1a.tool.loop import MODEL_NAMES, run_episode
 
 
 def parser(spec: ToolAgentSpec) -> argparse.ArgumentParser:
     """The shared flags, with the spec's budget as their defaults, then the agent's own flags."""
     build = argparse.ArgumentParser(prog=f"s1a run {spec.name}", description=spec.description)
     build.add_argument(
-        "--slot",
-        choices=SLOTS,
+        "--model",
+        choices=MODEL_NAMES,
         required=True,
-        help="who decides: jev, the chat model, chance, the rule baseline, or laya and cua in process",
+        help="who decides: jev or laya-served (over HTTP), laya or cua (in process), llm (the chat model in MODEL_NAME), random, or rule (the agent's baseline)",
     )
     build.add_argument(
         "--rethink",
@@ -55,7 +55,7 @@ def parser(spec: ToolAgentSpec) -> argparse.ArgumentParser:
 
 
 def price_episodes(episodes: list[Episode]) -> None:
-    """Dollars for the episodes that spent chat tokens: one catalogue lookup, and none when no slot called the chat model."""
+    """Dollars for the episodes that spent chat tokens: one catalogue lookup, and none when nothing called the chat model."""
     spent = [e for e in episodes if e.chat_input_tokens + e.chat_output_tokens]
     if not spent:
         return
@@ -79,19 +79,19 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
     its job folder, then raises."""
     env_prices()
     chat = optional_chat_model()
-    if args.slot == "llm" and chat is None:
-        raise RuntimeError("the llm slot needs the chat model: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
+    if args.model == "llm" and chat is None:
+        raise RuntimeError("--model llm needs the chat model: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
     if args.rethink == "on" and spec.budget.stall_after > 0 and chat is None:
         raise RuntimeError("--rethink on needs the chat model for plans: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
-    shared = build_model(args.slot) if args.slot in ("jev", "laya", "cua") else None
+    shared = build_model(args.model) if args.model in ("jev", "laya", "laya-served", "cua") else None
     run = await asyncio.to_thread(spec.series, args)  # question fetches, game file parsing: seconds of blocking I/O
-    if args.slot == "rule":
+    if args.model == "rule":
         shared = build_model("rule", rule=run.baseline)
 
     def model_for(seed: int) -> DecisionModel | None:
-        if args.slot == "llm":
+        if args.model == "llm":
             return None
-        if args.slot == "random":
+        if args.model == "random":
             return build_model("random", seed=seed)
         return shared
 
@@ -105,7 +105,7 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
                 episode = await run_episode(
                     spec,
                     env,
-                    slot=args.slot,
+                    model_name=args.model,
                     seed=seed,
                     chat=chat,
                     decision_model=model_for(seed),

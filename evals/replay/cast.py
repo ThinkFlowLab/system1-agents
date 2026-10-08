@@ -4,14 +4,14 @@ every browser tool call and writes it as ``t<elapsed ms>-<n>.png``.
 
     PLAYWRIGHT_MCP_COMMAND=<python> \\
     PLAYWRIGHT_MCP_ARGS="-m evals.replay.cast --frames runs/cast/flights-jev -- npx -y @playwright/mcp@0.0.78" \\
-    s1a run flights --slot jev --headed
+    s1a run flights --model jev --headed
 
 jiuwen launches the MCP server from those two variables and appends its own flags (``--isolated``, ``--headless``)
 to the args, which land after ``--`` and reach the real server. The proxy forwards every JSON-RPC line both ways;
 after each ``tools/call`` of a ``browser_*`` tool it sends one ``browser_take_screenshot`` of its own, keeps that
 response for itself and saves the PNG as ``t<elapsed ms>-<n>-<tool>.png``; ``calls.jsonl`` beside the frames holds
 each call's tool name and its request and response times on the same clock. The run's own client is the only client of the browser, so the policy
-behaves as it does without frames, one screenshot per step later. Two such folders, one per slot, go side by side
+behaves as it does without frames, one screenshot per step later. Two such folders, one per model, go side by side
 on the wall clock with ``python -m evals.replay --from-frames``.
 """
 

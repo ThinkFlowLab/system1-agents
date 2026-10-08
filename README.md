@@ -1,4 +1,9 @@
-# system1-agents
+<h1 align="center" id="system1-agents">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/system1-agents-dark.png">
+    <img src="docs/assets/logos/system1-agents.png" alt="System1-Agents" width="760">
+  </picture>
+</h1>
 
 > [!NOTE]
 > **Give your agents a System 1 decision model. Start from a prebuilt agent or build your own.**
@@ -13,6 +18,7 @@
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![skill](https://img.shields.io/badge/skill-npx%20skills%20add-black.svg)](#from-claude-code-or-codex)
+[![Listed on laya-ai.com](https://laya-ai.com/badges/listed-on-laya-ai.svg)](https://laya-ai.com/projects#project-thinkflowlab-system1-agents)
 
 [Quickstart](#choose-your-path) · [From Claude Code or Codex](#from-claude-code-or-codex) · [Benchmarks](docs/benchmarks.md) · [Docs](#docs)
 
@@ -31,10 +37,10 @@
 † The first Allrecipes task of the [WebVoyager](https://github.com/MinorJerry/WebVoyager) task set
 ([He et al., 2024](https://arxiv.org/abs/2401.13919), Apache-2.0, attribution in [NOTICE](NOTICE)): a vegetarian
 lasagna with over 100 reviews, 4.5 stars or more, for 6. The chat model of that row is Claude Fable 5.1 through
-OpenRouter; both slots pay it for the typed search text and the answer. \* Estimated; the chat-model run recorded no
+OpenRouter; both models pay it for the typed search text and the answer. \* Estimated; the chat-model run recorded no
 cost. Each replay below is the episode behind its row, Jev on the left and the chat model on the right, both on the
-wall clock. The other Allrecipes runs, longer games and the Google Flights driver comparison:
-[docs/benchmarks.md](docs/benchmarks.md).
+wall clock. The other Allrecipes runs, longer games and the Google Flights driver comparison with its rerun of
+2026-09-23: [docs/benchmarks.md](docs/benchmarks.md).
 
 <table>
   <tr>
@@ -82,18 +88,18 @@ uv sync && cp .env.example .env     # the first sync resolves the openjiuwen pin
 ```
 
 Put a Jev key in `.env` (`TYPESAFE_API_KEY` from the [TypeSafe console](https://console.typesafe.ai), or
-`OPENROUTER_API_KEY`), then ask for one decision and run one agent on both slots:
+`OPENROUTER_API_KEY`), then ask for one decision and run one agent with each model:
 
 ```bash
 uv run s1a decide --state '{"player_total": 18, "dealer_upcard": 9}' \
   --option hit="take a card" --option stand="keep the hand" --rules "stand on 17 or more"
 uv sync --extra blackjack
-uv run s1a run blackjack --slot jev --rethink off --episodes 20
-uv run s1a run blackjack --slot llm --rethink off --episodes 20     # the chat model in the same slot
+uv run s1a run blackjack --model jev --rethink off --episodes 20
+uv run s1a run blackjack --model llm --rethink off --episodes 20     # the chat model in the same agent
 ```
 
 `decide` prints one JSON object with `choice`, a probability per option, `confidence` and `ms`; `run` writes a job
-folder with the score. Without a key, `--slot cua` answers in process after `uv sync --extra cua`.
+folder with the score. Without a key, `--model cua` answers in process after `uv sync --extra cua`.
 
 ### As an MCP server
 
@@ -123,6 +129,9 @@ The gates and the templates: [docs/skills.md](docs/skills.md#build-a-system-1-ag
 - `game2048`, `millionaire`, `blackjack`: games with a score per episode.
 - `injection_guard`: a rail that answers one question at a hook of a running agent and fails closed.
 
+These use cases are [application candidates](CONTRIBUTING.md#application-candidates) for the required
+application + System1-Agents + System1-Omni video in important PRs.
+
 Every agent runs on `jev`, `laya` or `cua`, and on the chat model for the comparison. Flags, run commands and
 extras: [docs/agents.md](docs/agents.md).
 
@@ -135,13 +144,24 @@ interface fits: [docs/architecture.md](docs/architecture.md), [docs/decision-mod
 
 ## Docs
 
-- [docs/benchmarks.md](docs/benchmarks.md): the six runs above, the Google Flights driver comparison, a longer game, the guard rail.
+- [docs/benchmarks.md](docs/benchmarks.md): the six runs above, the Google Flights driver comparison and its 2026-09-23 rerun, a longer game, the guard rail.
 - [docs/skills.md](docs/skills.md): the caller skill, the builder skill, what to delegate.
 - [docs/agents.md](docs/agents.md): every agent with its flags, run command and extra.
-- [docs/architecture.md](docs/architecture.md) and [docs/decision-models.md](docs/decision-models.md): the fronts, the slot, the model interface, adding a backend.
+- [Agent use-case recipes](recipes/README.md): setup, run commands, result checks and demos for complete tasks.
+- [docs/architecture.md](docs/architecture.md) and [docs/decision-models.md](docs/decision-models.md): the fronts, the model slot, the model interface, adding a backend.
 - [docs/browser-front.md](docs/browser-front.md): the browser policy, decision by decision.
+- [docs/served-laya.md](docs/served-laya.md): Laya served by system1-omni as a decision model over HTTP, with its [API spec](docs/api/laya-systemone.openapi.yaml).
+- [docs/configuration.md](docs/configuration.md): environment variables, defaults and reader subsystems in one table.
+- [docs/glossary.md](docs/glossary.md): terms the documentation glosses on first mention.
 - [docs/why.md](docs/why.md): the problem, the philosophy, the precedents.
 - [docs/roadmap.md](docs/roadmap.md) and [CHANGELOG.md](CHANGELOG.md).
+
+## Stay Tuned with Us
+
+If you find system1-agents useful, [give us a star on GitHub](https://github.com/ThinkFlowLab/system1-agents)
+to support the project and help others discover it!
+
+[![GitHub repository screenshot demonstrating a click on Star, turning the star yellow and showing Starred](docs/assets/stay-tuned.gif)](https://github.com/ThinkFlowLab/system1-agents)
 
 ## Contributing and license
 

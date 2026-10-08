@@ -44,15 +44,15 @@ From the repository checkout after installing the core and dev dependencies:
 ```sh
 uv run --no-sync pytest tests/test_agents_ticket_router.py -q
 uv run --no-sync s1a probe evals/ticket_router/probe.jsonl
-uv run --no-sync s1a run ticket_router --slot random --rethink off --episodes 3 --seed 0
-uv run --no-sync s1a run ticket_router --slot rule --rethink off --episodes 3 --seed 0
+uv run --no-sync s1a run ticket_router --model random --rethink off --episodes 3 --seed 0
+uv run --no-sync s1a run ticket_router --model rule --rethink off --episodes 3 --seed 0
 ```
 
 Once the English probe passes (at least 10/12), run matched small model comparisons:
 
 ```sh
-uv run --no-sync s1a run ticket_router --slot jev --rethink off --episodes 3 --seed 0 --log
-uv run --no-sync s1a run ticket_router --slot llm --rethink off --episodes 3 --seed 0
+uv run --no-sync s1a run ticket_router --model jev --rethink off --episodes 3 --seed 0 --log
+uv run --no-sync s1a run ticket_router --model llm --rethink off --episodes 3 --seed 0
 ```
 
 Each episode is a batch, not one ticket. The default batch contains thirty tickets. The model commands require

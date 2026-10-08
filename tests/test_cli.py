@@ -25,7 +25,7 @@ from s1a.spec import Budget
 from s1a.tool import loop, series
 from support import COUNTER
 
-RUN = ["run", "counter", "--slot", "random", "--rethink", "off", "--episodes", "1", "--showcase"]
+RUN = ["run", "counter", "--model", "random", "--rethink", "off", "--episodes", "1", "--showcase"]
 NO_KEYS = {"TYPESAFE_API_KEY": "", "OPENROUTER_API_KEY": "", "TYPESAFE_API_URL": ""}
 HAVE_RLCARD = importlib.util.find_spec("rlcard") is not None  # the one tool agent that runs offline
 
@@ -64,7 +64,7 @@ class TestRun(TestCase):
             raise PermissionError("[Errno 13] Permission denied: 'results'")
 
         with patch.object(agents, "load", denied):
-            code, out, err = _main(["run", "counter", "--slot", "random", "--rethink", "off", "--episodes", "1"])
+            code, out, err = _main(["run", "counter", "--model", "random", "--rethink", "off", "--episodes", "1"])
         self.assertEqual((code, out), (1, ""))
         self.assertIn("Permission denied", err)
 
@@ -73,7 +73,7 @@ class TestRun(TestCase):
             raise IndexError("list index out of range")
 
         with patch.object(agents, "load", broken), self.assertRaises(IndexError):
-            _main(["run", "counter", "--slot", "random", "--rethink", "off", "--episodes", "1"])
+            _main(["run", "counter", "--model", "random", "--rethink", "off", "--episodes", "1"])
 
     def test_a_tool_agent_runs_offline_and_prints_its_summary_with_the_job_folder(self) -> None:
         with (
@@ -96,7 +96,7 @@ class TestRun(TestCase):
             patch.object(agents, "load", lambda name: COUNTER),
             patch.object(series, "optional_chat_model", lambda: None),
         ):
-            code, out, err = _main(["run", "counter", "--slot", "jev", "--rethink", "off", "--episodes", "1"])
+            code, out, err = _main(["run", "counter", "--model", "jev", "--rethink", "off", "--episodes", "1"])
         self.assertEqual((code, out), (1, ""))
         self.assertEqual(len(err.strip().splitlines()), 1)
         self.assertIn("TYPESAFE_API_KEY or OPENROUTER_API_KEY", err)
@@ -112,7 +112,7 @@ class TestRethinkNeedsTheChatModel(TestCase):
             patch.object(agents, "load", lambda name: STALLING),
             patch.object(series, "optional_chat_model", lambda: None),
         ):
-            code, out, err = _main(["run", "counter", "--slot", "random", "--rethink", "on", "--episodes", "1"])
+            code, out, err = _main(["run", "counter", "--model", "random", "--rethink", "on", "--episodes", "1"])
         self.assertEqual((code, out), (1, ""))
         self.assertEqual(len(err.strip().splitlines()), 1)
         self.assertIn("--rethink on needs the chat model", err)
@@ -148,8 +148,8 @@ class TestDecide(TestCase):
         transport = ScriptedTransport(choose="stand")
         built: list[str] = []
 
-        def build(slot: str, **kwargs: Any) -> JevModel:
-            built.append(slot)
+        def build(model_name: str, **kwargs: Any) -> JevModel:
+            built.append(model_name)
             return JevModel(transport)
 
         with patch.object(cli, "build_model", build):
@@ -165,7 +165,7 @@ class TestDecide(TestCase):
         )
         self.assertEqual(transport.bodies[0]["state"], {"player_total": 18})
 
-    def test_the_slot_flag_picks_the_model_and_the_model_is_closed(self) -> None:
+    def test_the_model_flag_picks_the_model_and_the_model_is_closed(self) -> None:
         closed: list[str] = []
 
         class Closing(JevModel):
@@ -174,15 +174,15 @@ class TestDecide(TestCase):
 
         built: list[str] = []
 
-        def build(slot: str, **kwargs: Any) -> JevModel:
-            built.append(slot)
+        def build(model_name: str, **kwargs: Any) -> JevModel:
+            built.append(model_name)
             return Closing(ScriptedTransport())
 
         with patch.object(cli, "build_model", build):
-            code, _out, _err = _main([*DECIDE, "--slot", "laya"])
+            code, _out, _err = _main([*DECIDE, "--model", "laya"])
         self.assertEqual((code, built, closed), (0, ["laya"], ["jev"]))
         with self.assertRaises(SystemExit):
-            cli.parser().parse_args([*DECIDE, "--slot", "random"])
+            cli.parser().parse_args([*DECIDE, "--model", "random"])
 
     def test_malformed_input_is_one_line_on_stderr_and_exit_2_before_any_key_check(self) -> None:
         option = ["--option", "a=one", "--option", "b=two", "--rules", "none"]
@@ -291,13 +291,16 @@ class TestStdoutIsForResults(TestCase):
             self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()), ["s1a"])
 
     def test_an_unusable_s1a_home_is_one_line_on_stderr_and_exit_1(self) -> None:
-        done = subprocess.run(
-            [sys.executable, "-c", "import s1a.cli"],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            env={**os.environ, "S1A_HOME": "/dev/null/x"},
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            blocked = Path(tmp) / "file"
+            blocked.write_text("not a directory", encoding="utf-8")
+            done = subprocess.run(
+                [sys.executable, "-c", "import s1a.cli"],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                env={**os.environ, "S1A_HOME": str(blocked / "x")},
+            )
         self.assertEqual((done.returncode, done.stdout), (1, ""))
         self.assertEqual(len(done.stderr.strip().splitlines()), 1, done.stderr)
         self.assertIn("S1A_HOME", done.stderr)
@@ -305,7 +308,7 @@ class TestStdoutIsForResults(TestCase):
     @skipUnless(HAVE_RLCARD, "the blackjack extra (rlcard) is not installed")
     def test_a_blackjack_series_prints_one_json_line(self) -> None:
         done = subprocess.run(
-            [sys.executable, "-m", "s1a", "run", "blackjack", "--slot", "rule", *RUN[4:]],
+            [sys.executable, "-m", "s1a", "run", "blackjack", "--model", "rule", *RUN[4:]],
             capture_output=True,
             text=True,
             timeout=300,

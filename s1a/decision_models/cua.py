@@ -70,6 +70,7 @@ class CuaS1Model(DecisionModel):
     """Cua-S1 Nano's ``NanoScorer`` behind the interface: choice questions only, text only, deterministic."""
 
     name = "cua"
+    bills_input_tokens = False
     question_types = frozenset({"choice"})
     deterministic = True
 
@@ -143,7 +144,7 @@ class CuaS1Model(DecisionModel):
             from cua_s1.nano import load_nano_checkpoint
         except ImportError as exc:
             raise build_error(
-                StatusCode.MODEL_SERVICE_CONFIG_ERROR, error_msg="the cua slot needs the cua extra: uv sync --extra cua"
+                StatusCode.MODEL_SERVICE_CONFIG_ERROR, error_msg="--model cua needs the cua extra: uv sync --extra cua"
             ) from exc
         checkpoint = os.getenv("CUA_S1_CHECKPOINT") or CUA_DEFAULT_CHECKPOINT
         subfolder = os.getenv("CUA_S1_SUBFOLDER") or CUA_DEFAULT_SUBFOLDER

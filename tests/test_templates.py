@@ -22,8 +22,8 @@ from s1a.spec import BrowserAgentSpec, RailSpec, ToolAgentSpec, Verdict
 from s1a.tool import loop, series
 from support import POLICY, browse_offline
 
-RANDOM = ["--slot", "random", "--rethink", "off", "--episodes", "3"]
-RULE = ["--slot", "rule", "--rethink", "off", "--episodes", "3"]
+RANDOM = ["--model", "random", "--rethink", "off", "--episodes", "3"]
+RULE = ["--model", "rule", "--rethink", "off", "--episodes", "3"]
 
 
 class TestNimEnv(IsolatedAsyncioTestCase):
@@ -64,7 +64,7 @@ class TestNimThroughTheLoop(IsolatedAsyncioTestCase):
                 result = await series.play(tool_agent.SPEC, args, results_dir=Path(tmp) / "results")
             return json.loads((Path(result["job_dir"]) / "summary.json").read_text(encoding="utf-8"))
 
-    async def test_the_rule_slot_wins_every_game_and_the_random_slot_plays_to_the_end(self) -> None:
+    async def test_rule_wins_every_game_and_random_plays_to_the_end(self) -> None:
         rule = await self._play(RULE)
         self.assertEqual(
             (rule["policy"], rule["episodes"], rule["mean_score"], rule["invalid_keys"]), ("winning", 3, 1.0, 0)
@@ -79,7 +79,7 @@ class TestBrowserTemplateOffline(IsolatedAsyncioTestCase):
 
     async def test_the_spec_reaches_the_subagent(self) -> None:
         spec = browser_agent.SPEC
-        answer, seen, files = await browse_offline(spec, POLICY, slot="jev", max_steps=spec.budget.max_steps)
+        answer, seen, files = await browse_offline(spec, POLICY, model_name="jev", max_steps=spec.budget.max_steps)
         self.assertIsInstance(seen["model"], BrowserDecisionModel)
         self.assertEqual((seen["max_iterations"], seen["language"]), (spec.budget.max_steps, spec.language))
         self.assertEqual((answer["ok"], answer["final"], files), (True, "Three flights.", ["decision_ticks.json"]))
@@ -174,3 +174,18 @@ class TestProbe(IsolatedAsyncioTestCase):
                 self.assertIn(f"{path}:3", str(caught.exception))
             path.write_text(f"{good}\n", encoding="utf-8")
             self.assertEqual(len(probe.read_cases(path)), 1)
+
+    def test_probe_rejects_cases_without_an_offered_correct_answer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cases.jsonl"
+            cases = (
+                ({"options": {}, "accept": ["a"]}, "options must offer at least one choice"),
+                ({"options": {"a": "one"}, "accept": []}, "accept must name at least one offered option"),
+                ({"options": {"a": "one"}, "accept": ["a", "typo"]}, "accept names keys not in options: typo"),
+            )
+            for fields, message in cases:
+                with self.subTest(fields=fields):
+                    path.write_text(json.dumps({"state": {}, "rules": "r", **fields}) + "\n", encoding="utf-8")
+                    with self.assertRaises(ValueError) as caught:
+                        probe.read_cases(path)
+                    self.assertEqual(str(caught.exception), f"{path}:1: {message}")

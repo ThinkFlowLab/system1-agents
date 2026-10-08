@@ -21,7 +21,7 @@ class FakeCalculator:
         self.opened = 0
         self.launched_apps: list[str] = []
 
-    async def launch_app(self, app_name: str) -> None:
+    async def launch_app(self, app_name: str, window_title: str = "") -> None:
         self.launched_apps.append(app_name)
 
     async def open(self) -> None:

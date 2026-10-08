@@ -50,7 +50,7 @@ neither.
    driver (browser-use sidecar or Playwright MCP) is the driver. A driver has eyes and hands only. The decision
    belongs above it. (The agtai/agent-core fork's F_04 note, "Rejected")
 3. One loop, swap the brain. Every eval runs the same DeepAgent with the same two tools and the same rules
-   text; `--slot jev|llm|random|rule|laya|cua` changes only the model in the slot. Score, seconds, steps, decisions and dollars
+   text; `--model jev|llm|random|rule|laya|cua` changes only the model. Score, seconds, steps, decisions and dollars
    are compared on the same seeds. (`evals/README.md`)
 4. System 1 for Jev, System 2 for the chat model. Fast recognition (which control, which move, is this text an
    instruction, is this call safe) goes to Jev. Planning, arithmetic, constraint solving, typed values and the
@@ -71,7 +71,7 @@ neither.
 9. Measure against a fair reference on one clock. Timings are quoted only from runs where every arm used the
    same Chrome, the same decisions backend and the same chat model, back to back. Day-to-day drift is
    attributed by component before any claim is made. (`docs/benchmarks.md`)
-10. Slots upstream, fronts here. openJiuwen receives generic seams (the `DecisionPolicyModel` Protocol and
+10. Seams upstream, fronts here. openJiuwen receives generic seams (the `DecisionPolicyModel` Protocol and
     two runtime hooks, about 100 lines). Every Jev-specific front lives in this repository.
     (`docs/roadmap.md`, "Upstream asks")
 
@@ -104,10 +104,10 @@ plugin delegates through the local Codex CLI and app server wrapped in a subagen
 
 The plan follows that norm.
 
-1. CLI first. `s1a run flights --slot jev --goal "<goal>"` runs the browser subagent with Jev in the slot and
+1. CLI first. `s1a run flights --model jev --goal "<goal>"` runs the browser subagent with Jev as its model and
    prints the answer as one JSON object on stdout; the harness logs go under `runs/logs`.
    `s1a decide --state @file --option a=... --option b=... --rules "..."` exposes the `choice` primitive.
-   `s1a run <agent> --slot jev --episodes N` runs a registered eval. A process start costs about 1.3 s (import of
+   `s1a run <agent> --model jev --episodes N` runs a registered eval. A process start costs about 1.3 s (import of
    the openjiuwen browser stack). That is small next to a browse task. For `decide` it is three times the
    decision itself.
 2. One skill, three hosts. `skills/s1a/SKILL.md` in the agentskills.io layout states when to call S1A

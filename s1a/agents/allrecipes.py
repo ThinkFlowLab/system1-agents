@@ -1,7 +1,7 @@
 # coding: utf-8
-"""Allrecipes, WebVoyager task Allrecipes--0: ``s1a run allrecipes --slot jev --batch on --headed``.
+"""Allrecipes, WebVoyager task Allrecipes--0: ``s1a run allrecipes --model jev --batch on --headed``.
 
-The browser-use demo against the chat model in the same slot (``--slot llm``). ``TASK`` is task ``Allrecipes--0`` of
+The browser-use demo against the chat model in the same model_name (``--model llm``). ``TASK`` is task ``Allrecipes--0`` of
 the WebVoyager task set (MinorJerry/WebVoyager, He et al. 2024, Apache License 2.0; see NOTICE), and the goal wraps
 it in the WebVoyager runner's instruction shape. The run is headed because Allrecipes answers a headless Chromium
 with a bot wall.

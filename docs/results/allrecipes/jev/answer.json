@@ -67,5 +67,5 @@
   "answer": "The page shows \"Easy Vegetarian Spinach Lasagna\" (by MOTTSBELA), rated 4.6 stars with 117 ratings but only 85 written reviews, serving 6 (prep 20 min, cook 1 hr, total 1 hr 25 min; ingredients: 10 oz fresh spinach, 9 lasagna noodles, 8 oz ricotta, 1 cup mozzarella, 1 egg, pinch nutmeg, pinch basil, 1 cup pasta sauce, ¼ cup Parmesan, salt/pepper, cooking spray; layer noodles, spinach-ricotta mix, and sauce in a 1½-qt dish, top with mozzarella and Parmesan, bake covered at 400°F for 25 min then uncovered ~25 min more)."
  },
  "agent": "allrecipes",
- "slot": "jev"
+ "model": "jev"
 }

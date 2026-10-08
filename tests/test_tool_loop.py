@@ -1,5 +1,5 @@
 # coding: utf-8
-"""The eval agent's two tools, the slot factory, and one episode through the DeepAgent offline."""
+"""The eval agent's two tools, the slot-model factory, and one episode through the DeepAgent offline."""
 
 from __future__ import annotations
 
@@ -22,7 +22,9 @@ from s1a.decision_models import (
     JevModel,
     RandomModel,
     RuleModel,
+    ScriptedModel,
     ScriptedTransport,
+    Usage,
 )
 from s1a.spec import Budget, ToolAgentSpec
 from s1a.tool import loop as agent
@@ -78,7 +80,7 @@ class DyingEnv(CountingEnv):
 
 
 class ScriptedChatModel(Model):
-    """The llm slot offline: one act call per decision turn from a script of keys, then a final line."""
+    """The chat model offline: one act call per decision turn from a script of keys, then a final line."""
 
     def __init__(self, keys: list[str]) -> None:
         source = placeholder_model()
@@ -197,7 +199,7 @@ class TestEnvTools(IsolatedAsyncioTestCase):
 
 
 class TestSlotFactory(TestCase):
-    def test_every_model_slot_is_the_one_slot_model_and_the_errors(self) -> None:
+    def test_every_name_but_llm_is_the_one_slot_model_and_the_errors(self) -> None:
         env, state = CountingEnv(), EvalState()
         chance = build_slot_model("random", env, state, rules=RULES, chat=None, decision_model=RandomModel(0))
         self.assertIsInstance(chance, ToolDecisionModel)
@@ -205,7 +207,7 @@ class TestSlotFactory(TestCase):
         rule = build_slot_model("rule", env, state, rules=RULES, chat=None, decision_model=ALWAYS_INC)
         self.assertIsInstance(rule, ToolDecisionModel)
         self.assertEqual(rule.name, "always-inc")
-        for slot, error in (
+        for model_name, error in (
             ("llm", RuntimeError),
             ("rule", RuntimeError),
             ("jev", RuntimeError),
@@ -213,7 +215,7 @@ class TestSlotFactory(TestCase):
             ("oracle", ValueError),
         ):
             with self.assertRaises(error):
-                build_slot_model(slot, env, state, rules=RULES, chat=None, decision_model=None)
+                build_slot_model(model_name, env, state, rules=RULES, chat=None, decision_model=None)
 
 
 async def _play(
@@ -221,7 +223,7 @@ async def _play(
     *,
     max_acts: int,
     timeout_s: float,
-    slot: str,
+    model_name: str,
     decision_model: DecisionModel | None,
     chat: Model | None = None,
     rethink_on: bool = False,
@@ -232,7 +234,7 @@ async def _play(
             return await run_episode(
                 SPEC,
                 env,
-                slot=slot,
+                model_name=model_name,
                 seed=0,
                 chat=chat,
                 decision_model=decision_model,
@@ -254,15 +256,24 @@ def _refusing() -> JevModel:
 class TestEpisodeThroughTheAgent(IsolatedAsyncioTestCase):
     """Episodes through ``create_deep_agent`` and the Runner, offline: a rule in the slot, no chat model."""
 
+    async def test_a_priced_backend_counts_its_tokens_without_relying_on_its_name(self) -> None:
+        decision_model = ScriptedModel(choose="inc", usage=Usage(input_tokens=300))
+        decision_model.bills_input_tokens = True
+        episode = await _play(
+            CountingEnv(), max_acts=1, timeout_s=60.0, model_name="random", decision_model=decision_model
+        )
+        self.assertEqual((episode.decisions[0]["source"], episode.decisions[0]["input_tokens"]), ("scripted", 300))
+        self.assertEqual((episode.jev_input_tokens, episode.cost_usd), (300, 0.000013))
+
     async def test_a_refused_decision_is_the_episodes_error_with_no_decisions(self) -> None:
-        episode = await _play(CountingEnv(), max_acts=10, timeout_s=60.0, slot="jev", decision_model=_refusing())
+        episode = await _play(CountingEnv(), max_acts=10, timeout_s=60.0, model_name="jev", decision_model=_refusing())
         self.assertTrue(episode.error.startswith("decision failed: "), episode.error)
         self.assertIn("decisions endpoint returned HTTP 401", episode.error)
         self.assertEqual((episode.decisions, episode.steps, episode.score), ([], 0, 0.0))
         self.assertIn("BLOCKED", episode.extra["output"])
 
-    async def test_rule_slot_plays_to_the_end_and_every_act_is_a_recorded_decision(self) -> None:
-        episode = await _play(CountingEnv(), max_acts=10, timeout_s=60.0, slot="rule", decision_model=ALWAYS_INC)
+    async def test_rule_plays_to_the_end_and_every_act_is_a_recorded_decision(self) -> None:
+        episode = await _play(CountingEnv(), max_acts=10, timeout_s=60.0, model_name="rule", decision_model=ALWAYS_INC)
         self.assertEqual((episode.policy, episode.score, episode.steps), ("always-inc", 3.0, 3))
         self.assertEqual([decision["key"] for decision in episode.decisions], ["inc", "inc", "inc"])
         self.assertEqual(episode.final_state, {"n": 3})
@@ -278,26 +289,36 @@ class TestEpisodeThroughTheAgent(IsolatedAsyncioTestCase):
         self.assertIsNone(episode.frames_dir)
 
     async def test_two_random_runs_with_the_same_seed_pick_the_same_keys(self) -> None:
-        first = await _play(CountingEnv(), max_acts=10, timeout_s=60.0, slot="random", decision_model=RandomModel(7))
-        second = await _play(CountingEnv(), max_acts=10, timeout_s=60.0, slot="random", decision_model=RandomModel(7))
+        first = await _play(
+            CountingEnv(), max_acts=10, timeout_s=60.0, model_name="random", decision_model=RandomModel(7)
+        )
+        second = await _play(
+            CountingEnv(), max_acts=10, timeout_s=60.0, model_name="random", decision_model=RandomModel(7)
+        )
         self.assertEqual([d["key"] for d in first.decisions], [d["key"] for d in second.decisions])
         self.assertEqual((first.policy, first.decisions[0]["probabilities"]), ("random", {"inc": 0.5, "noop": 0.5}))
 
     async def test_the_act_budget_stops_the_agent_before_the_game_ends(self) -> None:
-        episode = await _play(CountingEnv(), max_acts=2, timeout_s=60.0, slot="rule", decision_model=ALWAYS_INC)
+        episode = await _play(CountingEnv(), max_acts=2, timeout_s=60.0, model_name="rule", decision_model=ALWAYS_INC)
         self.assertEqual((episode.score, episode.steps), (2.0, 2))
         self.assertEqual(episode.extra["result_type"], "answer")
 
     async def test_an_env_failure_inside_act_ends_the_episode_as_an_error(self) -> None:
-        episode = await _play(DyingEnv(), max_acts=5, timeout_s=60.0, slot="rule", decision_model=ALWAYS_INC)
+        episode = await _play(DyingEnv(), max_acts=5, timeout_s=60.0, model_name="rule", decision_model=ALWAYS_INC)
         self.assertEqual(episode.error, "act failed: playwright died")
         self.assertEqual((episode.steps, len(episode.decisions), episode.score), (0, 1, 0.0))
         self.assertIn("BLOCKED", episode.extra["output"])
 
-    async def test_the_llm_slot_marks_rejected_keys_and_runs_without_the_rail(self) -> None:
+    async def test_llm_marks_rejected_keys_and_runs_without_the_rail(self) -> None:
         chat = ScriptedChatModel(["dec", "inc", "inc", "inc"])
         episode = await _play(
-            CountingEnv(), max_acts=10, timeout_s=60.0, slot="llm", decision_model=None, chat=chat, rethink_on=True
+            CountingEnv(),
+            max_acts=10,
+            timeout_s=60.0,
+            model_name="llm",
+            decision_model=None,
+            chat=chat,
+            rethink_on=True,
         )
         self.assertEqual((episode.policy, episode.score, episode.steps, episode.invalid_keys), ("llm", 3.0, 3, 1))
         self.assertEqual(
@@ -315,7 +336,7 @@ class TestEpisodeThroughTheAgent(IsolatedAsyncioTestCase):
                     await run_episode(
                         SPEC,
                         CountingEnv(),
-                        slot="rule",
+                        model_name="rule",
                         seed=0,
                         chat=None,
                         decision_model=ALWAYS_INC,
@@ -334,7 +355,7 @@ class TestEpisodeThroughTheAgent(IsolatedAsyncioTestCase):
         self.assertEqual([store for store in stores if store.startswith("evals-counter")], [])
 
     async def test_a_slow_episode_stops_at_the_timeout_and_keeps_its_score(self) -> None:
-        episode = await _play(SlowEnv(), max_acts=10, timeout_s=0.5, slot="rule", decision_model=ALWAYS_INC)
+        episode = await _play(SlowEnv(), max_acts=10, timeout_s=0.5, model_name="rule", decision_model=ALWAYS_INC)
         self.assertEqual(episode.extra["result_type"], "timeout")
         self.assertLess(episode.score, 3.0)
         self.assertIn(len(episode.decisions) - episode.steps, (0, 1), "the decision in flight at the cut has no act")

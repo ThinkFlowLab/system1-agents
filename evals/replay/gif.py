@@ -21,7 +21,7 @@ MIN_TICK_MS = 100
 STEP_DURATION_MS = 700
 MIN_FRAME_MS = 20
 HEADER_HEIGHT = 84  # the strip's header band at a column width of 800 px; scales with the column
-SLOT_COLORS = {"jev": "#0f766e", "llm": "#b45309"}  # the replay page's badge colours
+MODEL_COLORS = {"jev": "#0f766e", "llm": "#b45309"}  # the replay page's badge colours
 INK, MUTED, LINE, DONE, PANEL, OTHER = "#1c1f26", "#6b7280", "#e3e6eb", "#2563eb", "#ffffff", "#6b7280"
 
 
@@ -124,8 +124,8 @@ def strip_columns(trials: list[Trial]) -> list[Column]:
         columns.append(
             Column(
                 frames=trial.frames,
-                badge="LLM" if trial.slot == "llm" else f"SYSTEM 1 · {trial.slot.upper()}",
-                color=SLOT_COLORS.get(trial.slot, OTHER),
+                badge="LLM" if trial.model == "llm" else f"SYSTEM 1 · {trial.model.upper()}",
+                color=MODEL_COLORS.get(trial.model, OTHER),
                 facts=f"{trial.elapsed_s:.1f} s · {trial.steps} steps · {len(trial.decisions)} decisions · {cost}",
                 total_ms=round(trial.elapsed_s * 1000),
             )

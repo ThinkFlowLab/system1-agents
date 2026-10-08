@@ -1,0 +1,5 @@
+{"id":"demo-logistics","title":"Track my parcel","description":"Please tell me where my parcel is.","label":"logistics"}
+{"id":"demo-payment","title":"Duplicate charge","description":"I was charged twice. Please check the duplicate payment.","label":"payment"}
+{"id":"demo-returns","title":"Return these shoes","description":"Please exchange these shoes for a larger size.","label":"returns"}
+{"id":"demo-account","title":"Cannot log in","description":"My password no longer works.","label":"account"}
+{"id":"demo-human","title":"Talk to a real person","description":"Please connect me to a human.","label":"human"}

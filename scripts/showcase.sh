@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One showcase episode per eval and slot, same seed for both slots, headless, frames on for the browser games;
+# One showcase episode per eval and model, same seed for both models, headless, frames on for the browser games;
 # then the pair page under evals/showcase/replays/<eval>/ (with its frames) and the GIF alone under
 # docs/results/<eval>/showcase/replay.gif. Never feeds the matrix: every job lands under evals/showcase/, which
 # evals.table does not read.
@@ -15,10 +15,10 @@ THOR_PYTHON=${THOR_PYTHON:-$PYTHON}
 seed=${1:-0}; shift || true
 evals=("$@"); [ ${#evals[@]} -eq 0 ] && evals=(blackjack game2048 millionaire alfworld)
 
-run() {  # eval, slot, extra args...: prints the trial folder; the run's last stdout line is its summary JSON
-  local eval=$1 slot=$2; shift 2
+run() {  # eval, model, extra args...: prints the trial folder; the run's last stdout line is its summary JSON
+  local eval=$1 model=$2; shift 2
   local job
-  job=$("$PYTHON" -m s1a run "$eval" --slot "$slot" --episodes 1 --seed "$seed" --showcase "$@" | tail -1 \
+  job=$("$PYTHON" -m s1a run "$eval" --model "$model" --episodes 1 --seed "$seed" --showcase "$@" | tail -1 \
     | "$PYTHON" -c 'import json, sys; print(json.load(sys.stdin)["job_dir"])')
   ls -d "$job"/*--*/ | head -1
 }

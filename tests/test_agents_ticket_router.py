@@ -194,7 +194,7 @@ class TestTicketRouterData(TestCase):
 
 
 class TestTicketRouterThroughTheLoop(IsolatedAsyncioTestCase):
-    async def _play(self, slot, max_steps=5):
+    async def _play(self, model_name, max_steps=5):
         module = router()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -202,8 +202,8 @@ class TestTicketRouterThroughTheLoop(IsolatedAsyncioTestCase):
             data.write_text("\n".join(json.dumps(row) for row in TICKETS), encoding="utf-8")
             args = series.parser(module.SPEC).parse_args(
                 [
-                    "--slot",
-                    slot,
+                    "--model",
+                    model_name,
                     "--rethink",
                     "off",
                     "--episodes",
@@ -220,8 +220,8 @@ class TestTicketRouterThroughTheLoop(IsolatedAsyncioTestCase):
             ):
                 async with started_runner():
                     result = await series.play(module.SPEC, args, results_dir=root / "results")
-            # Filesystem enumeration has no guaranteed order; exercise different orders for the two slots.
-            paths = sorted(Path(result["job_dir"]).glob("*/agent/episode.json"), reverse=slot == "random")
+            # Filesystem enumeration has no guaranteed order; exercise different orders for the two models.
+            paths = sorted(Path(result["job_dir"]).glob("*/agent/episode.json"), reverse=model_name == "random")
             episodes = [json.loads(p.read_text(encoding="utf-8")) for p in paths]
             return result, episodes
 
@@ -258,6 +258,6 @@ class TestTicketRouterThroughTheLoop(IsolatedAsyncioTestCase):
 
     def test_rethink_on_is_rejected_for_independent_tickets(self):
         module = router()
-        flags = series.parser(module.SPEC).parse_args(["--slot", "rule", "--rethink", "on", "--episodes", "1"])
+        flags = series.parser(module.SPEC).parse_args(["--model", "rule", "--rethink", "on", "--episodes", "1"])
         with self.assertRaises(ValueError):
             module.make_series(flags)

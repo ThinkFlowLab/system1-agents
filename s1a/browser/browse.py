@@ -1,5 +1,5 @@
 # coding: utf-8
-"""The browser front: one task through openJiuwen's browser subagent with a decision model, or the chat model, in its slot."""
+"""The browser front: one task through openJiuwen's browser subagent with a decision model, or the chat model, in its model slot."""
 
 from __future__ import annotations
 
@@ -34,12 +34,13 @@ from s1a.browser.profiler import BrowserProfiler, render
 from s1a.spec import BrowserAgentSpec, positive_float, positive_int
 
 Answer = dict[str, Any]
-BROWSER_SLOTS = (
+BROWSER_MODEL_NAMES = (
     "jev",
     "laya",
+    "laya-served",
     "cua",
     "llm",
-)  # a decision model (Jev over HTTP, Laya or Cua-S1 in process) or the chat model
+)  # a decision model (Jev or served Laya over HTTP, Laya or Cua-S1 in process) or the chat model
 RUNS_DIR = HOME / "runs" / "browser"
 
 
@@ -73,9 +74,9 @@ def finish_llm(answer: Answer) -> Answer:
     return answer
 
 
-def finish_decision_model(answer: Answer, *, slot: str) -> Answer:
+def finish_decision_model(answer: Answer, *, model_name: str) -> Answer:
     """The policy's answer from the page it reached (on DONE, or on BLOCKED after progress) is the result; none fails.
-    ``slot`` names the decision model in the error."""
+    ``model_name`` names the decision model in the error."""
     summary = terminal_summary(answer["final"])
     if summary is None:
         return answer
@@ -87,9 +88,9 @@ def finish_decision_model(answer: Answer, *, slot: str) -> Answer:
     if answer["ok"]:
         answer["error"] = None  # run_task flagged the harness's own verdict; the policy's answer is the one that counts
     elif status == "DONE":
-        answer["error"] = f"{slot} DONE without an answer"
+        answer["error"] = f"{model_name} DONE without an answer"
     else:
-        answer["error"] = f"{slot} {status}: {summary.get('reason') or 'no reason given'}"
+        answer["error"] = f"{model_name} {status}: {summary.get('reason') or 'no reason given'}"
     return answer
 
 
@@ -142,7 +143,7 @@ async def browse(
     spec: BrowserAgentSpec,
     policy: BrowserPolicy,
     *,
-    slot: str,
+    model_name: str,
     goal: str,
     timeout_s: float,
     max_steps: int,
@@ -154,19 +155,19 @@ async def browse(
     """One task with a decision model (``jev``, ``laya``, ``cua``) or the chat model (``llm``) deciding every browser step.
     Needs a started Runner.
 
-    A decision-model slot writes ``decision_ticks.json`` under ``logs_dir`` and returns the ticks and the policy's report with
-    the answer; the llm slot writes ``chat_calls.json``. ``decision_model`` is required by the decision-model slots and unused
-    by the llm slot.
+    A decision model writes ``decision_ticks.json`` under ``logs_dir`` and returns the ticks and the policy's report with
+    the answer; ``llm`` writes ``chat_calls.json``. ``decision_model`` is required by every other name and unused
+    by ``llm``.
     """
     logs_dir.mkdir(parents=True, exist_ok=True)
     calls: list[dict[str, Any]] = []
     counted = CountingModel(chat, calls)
     workspace = str(logs_dir / "workspace")  # the harness scaffolds SOUL.md, memory/ and friends here, not in the cwd
     instance = BrowserInstanceConfig(launch_args=browser_launch_args(headless))
-    match slot:
-        case "jev" | "laya" | "cua":
+    match model_name:
+        case "jev" | "laya" | "laya-served" | "cua":
             if decision_model is None:
-                raise RuntimeError(f"the {slot} slot needs a decision model")
+                raise RuntimeError(f"--model {model_name} needs a decision model")
             slot_model = BrowserDecisionModel(spec, policy, counted, decision_model=decision_model, value_model=None)
             agent = create_browser_agent(
                 slot_model,
@@ -195,7 +196,7 @@ async def browse(
                 ),
                 encoding="utf-8",
             )
-            return finish_decision_model(answer, slot=decision_model.name)
+            return finish_decision_model(answer, model_name=decision_model.name)
         case "llm":
             # create_browser_agent swaps a plain Model for a fresh copy at its own temperature; the marker keeps the counter in
             setattr(counted, _BROWSER_MODEL_TEMPERATURE_MARKER, DEFAULT_BROWSER_AGENT_TEMPERATURE)
@@ -214,17 +215,17 @@ async def browse(
             (logs_dir / "chat_calls.json").write_text(json.dumps(calls, ensure_ascii=False, indent=1), encoding="utf-8")
             return answer
         case _:
-            raise ValueError(f"unknown slot {slot!r}; one of {BROWSER_SLOTS}")
+            raise ValueError(f"unknown model {model_name!r}; one of {BROWSER_MODEL_NAMES}")
 
 
 def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
     """The shared browser flags: the spec's budget and goal as defaults, the policy switches off except prefetch."""
     build = argparse.ArgumentParser(prog=f"s1a run {spec.name}", description=spec.description)
     build.add_argument(
-        "--slot",
-        choices=BROWSER_SLOTS,
+        "--model",
+        choices=BROWSER_MODEL_NAMES,
         required=True,
-        help="who decides each browser step: jev (over HTTP), laya or cua (in process), or llm (the chat model)",
+        help="who decides each browser step: jev or laya-served (over HTTP), laya or cua (in process), or llm (the chat model in MODEL_NAME)",
     )
     build.add_argument(
         "--goal", default=spec.goal, required=spec.goal is None, help="the task; the spec's goal when it has one"
@@ -243,19 +244,19 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
         "--batch",
         choices=("on", "off"),
         default="off",
-        help="decision-model slots: one browser_run_code_unsafe call per step (on, needs unsafe_dev) or the browser_* tools (off)",
+        help="decision models only: one browser_run_code_unsafe call per step (on, needs unsafe_dev) or the browser_* tools (off)",
     )
     build.add_argument(
         "--prefetch",
         choices=("on", "off"),
         default="on",
-        help="decision-model slots: generate a typed value for every editable field as soon as a probe shows it",
+        help="decision models only: generate a typed value for every editable field as soon as a probe shows it",
     )
     build.add_argument(
         "--goal-values",
         choices=("on", "off"),
         default="off",
-        help="decision-model slots: offer values extracted from the goal as a choice head",
+        help="decision models only: offer values extracted from the goal as a choice head",
     )
     build.add_argument(
         "--logs-dir",
@@ -267,7 +268,7 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
         "--profile-out",
         type=Path,
         default=None,
-        help="decision-model slots: attach the profiler and write its JSON here",
+        help="decision models only: attach the profiler and write its JSON here",
     )
     return build
 
@@ -282,16 +283,16 @@ def policy_from_args(args: argparse.Namespace) -> BrowserPolicy:
 
 async def play(spec: BrowserAgentSpec, args: argparse.Namespace) -> Answer:
     """One task inside an already started Runner: the answer without the ticks, which ``decision_ticks.json`` holds."""
-    if args.profile_out is not None and args.slot == "llm":
-        raise RuntimeError("--profile-out needs a decision-model slot: the profiler times the slot model's turns")
+    if args.profile_out is not None and args.model == "llm":
+        raise RuntimeError("--profile-out needs a decision model: the profiler times the slot model's turns")
     chat = chat_model_from_env()
-    decision_model = None if args.slot == "llm" else build_model(args.slot)
+    decision_model = None if args.model == "llm" else build_model(args.model)
     profiler = BrowserProfiler().attach() if args.profile_out is not None else None
     try:
         answer = await browse(
             spec,
             policy_from_args(args),
-            slot=args.slot,
+            model_name=args.model,
             goal=args.goal,
             timeout_s=args.timeout,
             max_steps=args.max_steps,
@@ -308,8 +309,8 @@ async def play(spec: BrowserAgentSpec, args: argparse.Namespace) -> Answer:
     result = {key: value for key, value in answer.items() if key != "ticks"}
     (
         args.logs_dir / "answer.json"
-    ).write_text(  # the printed result, with the agent and the slot, next to the run's records
-        json.dumps({**result, "agent": spec.name, "slot": args.slot}, ensure_ascii=False, indent=1), encoding="utf-8"
+    ).write_text(  # the printed result, with the agent and the model, next to the run's records
+        json.dumps({**result, "agent": spec.name, "model": args.model}, ensure_ascii=False, indent=1), encoding="utf-8"
     )
     if profiler is not None:
         final_url = str((answer.get("terminal") or {}).get("url") or "")
@@ -321,7 +322,7 @@ async def play(spec: BrowserAgentSpec, args: argparse.Namespace) -> Answer:
             final_url=final_url,
             verified_prefix=site,
         )
-        profile["slot"], profile["usage"] = args.slot, answer["usage"]
+        profile["model"], profile["usage"] = args.model, answer["usage"]
         print(render(profile), file=sys.stderr)
         args.profile_out.write_text(json.dumps(profile, ensure_ascii=False, indent=1), encoding="utf-8")
     return result

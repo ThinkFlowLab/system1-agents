@@ -1,5 +1,5 @@
 # coding: utf-8
-"""One table over every job folder: per eval and slot, score, seconds, steps, decisions, chat calls and dollars.
+"""One table over every job folder: per eval and model, score, seconds, steps, decisions, chat calls and dollars.
 
 ``python -m evals.table evals/results`` reads the job folders that ``write_job`` produces, one ``result.json`` per
 trial. Rows are keyed by the results root's child folder; a trial with ``exception_info`` is left out and counted in the errors column.
@@ -18,13 +18,13 @@ from typing import Any
 
 from s1a.jobs import BOOTSTRAP_RESAMPLES, bootstrap_interval
 
-COLUMNS = ("eval", "slot", "N", "errors", "score", "s / episode", "steps", "decisions", "chat calls", "$ / episode")
+COLUMNS = ("eval", "model", "N", "errors", "score", "s / episode", "steps", "decisions", "chat calls", "$ / episode")
 
 
 @dataclass(frozen=True)
 class Trial:
     eval_name: str
-    slot: str
+    model: str
     errored: bool  # result.json holds exception_info: no score, counted in the errors column only
     score: float
     elapsed_s: float
@@ -43,8 +43,8 @@ def window_s(result: dict[str, Any]) -> float:
     return (datetime.fromisoformat(finished) - datetime.fromisoformat(started)).total_seconds()
 
 
-def slot_label(result: dict[str, Any]) -> str:
-    """The slot a trial's ``result.json`` names: ``jev``, ``llm``, ``random`` or a rule name, after any ``<suite>/`` prefix."""
+def model_label(result: dict[str, Any]) -> str:
+    """The model a trial's ``result.json`` names: ``jev``, ``llm``, ``random`` or a rule name, after any ``<suite>/`` prefix."""
     name = str((result.get("agent_info") or {}).get("name") or "")
     return name.partition("/")[2] or name
 
@@ -60,7 +60,7 @@ def read_trial(trial_dir: Path, *, eval_name: str) -> Trial | None:
     steps = metadata.get("steps")
     return Trial(
         eval_name=eval_name,
-        slot=slot_label(result),
+        model=model_label(result),
         errored=result.get("exception_info") is not None,
         score=float(((result.get("verifier_result") or {}).get("rewards") or {}).get("reward") or 0.0),
         elapsed_s=float(metadata.get("elapsed_s") or window_s(result)),
@@ -82,13 +82,13 @@ def read_results(root: Path) -> list[Trial]:
 
 
 def rows(trials: list[Trial]) -> list[dict[str, Any]]:
-    """One row per (eval, slot): N and errors, then the mean score with its 95 % bootstrap interval, medians and
-    means per played episode; a slot whose every trial errored has no score."""
+    """One row per (eval, model): N and errors, then the mean score with its 95 % bootstrap interval, medians and
+    means per played episode; a model whose every trial errored has no score."""
     groups: dict[tuple[str, str], list[Trial]] = {}
     for trial in trials:
-        groups.setdefault((trial.eval_name, trial.slot), []).append(trial)
+        groups.setdefault((trial.eval_name, trial.model), []).append(trial)
     table = []
-    for (eval_name, slot), all_members in sorted(groups.items()):
+    for (eval_name, model), all_members in sorted(groups.items()):
         members = [member for member in all_members if not member.errored]
         scores = [member.score for member in members]
         costs = [member.cost_usd for member in members]
@@ -96,7 +96,7 @@ def rows(trials: list[Trial]) -> list[dict[str, Any]]:
         table.append(
             {
                 "eval": eval_name,
-                "slot": slot,
+                "model": model,
                 "N": len(members),
                 "errors": len(all_members) - len(members),
                 "mean_score": round(statistics.mean(scores), 3) if scores else None,
@@ -125,7 +125,7 @@ def markdown(table: list[dict[str, Any]]) -> str:
             for key in ("median_s", "mean_steps", "mean_decisions", "mean_chat_calls")
         ]
         lines.append(
-            f"| {row['eval']} | {row['slot']} | {row['N']} | {row['errors']} | {score} | "
+            f"| {row['eval']} | {row['model']} | {row['N']} | {row['errors']} | {score} | "
             f"{cells[0]} | {cells[1]} | {cells[2]} | {cells[3]} | {cost} |"
         )
     return "\n".join(lines)

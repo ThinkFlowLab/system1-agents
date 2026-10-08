@@ -101,5 +101,5 @@
   "chat_temperature": 0.0
  },
  "agent": "allrecipes",
- "slot": "llm"
+ "model": "llm"
 }

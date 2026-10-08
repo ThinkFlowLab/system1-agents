@@ -433,8 +433,8 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
         report = slot_model.report()
         self.assertEqual((report["decisions"], report["median_decision_ms"], report["jev_input_tokens"]), (1, 7, 315))
 
-    async def test_jev_input_tokens_are_zero_for_a_non_jev_decision_model(self) -> None:
-        """Laya and Cua run in process for free; only Jev-over-HTTP tokens are priced (s1a/tool/loop.py does the same)."""
+    async def test_report_prices_input_tokens_by_backend_flag(self) -> None:
+        """The scripted backend's token usage is priced only when it opts into the Jev input rate."""
         from s1a.decision_models import ScriptedModel
 
         decision_model = ScriptedModel(latency_ms=3, usage=Usage(11, 0), model="laya-rl-agent")
@@ -444,6 +444,8 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
 
         self.assertEqual(slot_model.ticks[0]["input_tokens"], 11, "the tick itself still records what the model spent")
         self.assertEqual(slot_model.report()["jev_input_tokens"], 0)
+        decision_model.bills_input_tokens = True
+        self.assertEqual(slot_model.report()["jev_input_tokens"], 11)
 
     async def test_a_laya_shaped_model_fills_the_slot_the_same_way(self) -> None:
         """The policy asks any decision_model: a scripted one at the interface, no wire at all, decides a tick."""
@@ -456,7 +458,7 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
         message = await slot_model.invoke(_MESSAGES, tools=_TOOLS)
 
         self.assertEqual(message.tool_calls[0].name, "browser_click")
-        self.assertTrue(message.tool_calls[0].id.startswith("scripted-"), "the call id names the slot, not Jev")
+        self.assertTrue(message.tool_calls[0].id.startswith("scripted-"), "the call id names the slot model, not Jev")
         ((observation, questions),) = decision_model.calls
         self.assertEqual(sorted(questions), ["click_target", "operation", "select_target", "type_text_target"])
         self.assertEqual(observation.state["page"]["title"], "Flights")
@@ -669,6 +671,17 @@ class TestJevWaitCollapsesIntoInPageSettling(IsolatedAsyncioTestCase):
         self.assertGreater(
             len(runtime.calls), 2, "the extra waiting must show up as extra probes, not extra decide() calls"
         )
+
+    async def test_a_wait_that_moved_the_page_is_recorded_as_progress(self) -> None:
+        runtime = _ScriptedPageKeyRuntime(["k1", "k1", "k2"])
+        slot_model = _slot_model(
+            [_op_answer("WAIT"), _answers("CLICK", "none")], goal_value_cache=False, runtime=runtime
+        )
+
+        await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+
+        wait_entry = next(entry for entry in slot_model._run.history if entry["kind"] == "wait")
+        self.assertIs(wait_entry["page_changed"], True, "the next state must not show the wait as '(no change)'")
 
     async def test_escalating_settle_doubles_and_clamps_at_the_probe(self) -> None:
         runtime = _ScriptedPageKeyRuntime(["k1"] * 8)

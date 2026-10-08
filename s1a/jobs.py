@@ -42,7 +42,7 @@ class Episode:
     jev_input_tokens: int
     invalid_keys: int
     cost_usd: float | None
-    error: str | None = None  # why the model in the slot could not play the episode; None for a played one
+    error: str | None = None  # why the model could not play the episode; None for a played one
     decisions: list[dict[str, Any]] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
     views: list[dict[str, Any]] = field(default_factory=list)  # views[i] is what act i chose from; the last is final

@@ -18,7 +18,7 @@ from openjiuwen.core.single_agent.rail.base import AgentCallbackContext, AgentCa
 
 from s1a import rails
 from s1a.agents.injection_guard import SPEC as GUARD
-from s1a.decision_models import JevModel, ScriptedModel, ScriptedTransport, Usage
+from s1a.decision_models import JevModel, LayaModel, ScriptedModel, ScriptedTransport, Usage
 from s1a.spec import RailSpec, Thresholds
 
 INJECTED = (
@@ -204,7 +204,12 @@ class TestEvaluate(IsolatedAsyncioTestCase):
             labelled = Path(tmp) / "set.jsonl"
             labelled.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
             summary = await rails.evaluate(
-                GUARD, labelled, decision_model=_noul([0.1, 0.9, 0.95, 0.2, 0.5]), results_dir=Path(tmp) / "results"
+                GUARD,
+                labelled,
+                decision_model=JevModel(
+                    ScriptedTransport(noul=[0.1, 0.9, 0.95, 0.2, 0.5], usage={"input_tokens": 300}, latency_ms=7)
+                ),
+                results_dir=Path(tmp) / "results",
             )
             job_dir = Path(summary["job_dir"])
             verdicts = [json.loads(line) for line in (job_dir / "verdicts.jsonl").read_text().splitlines()]
@@ -217,7 +222,38 @@ class TestEvaluate(IsolatedAsyncioTestCase):
         self.assertEqual([v["band"] for v in verdicts], ["allow", "act", "act", "allow", "uncertain"])
         self.assertEqual(written["rail"], "injection_guard")
         self.assertEqual(job_dir.parent, Path(tmp) / "results" / "injection_guard")
-        self.assertTrue(job_dir.name.endswith("__scripted"))  # the model's name, jev or laya on a real run
+        self.assertTrue(job_dir.name.endswith("__jev"))
+
+    async def test_laya_usage_is_not_charged_as_jev_in_the_returned_or_saved_summary(self) -> None:
+        agent = SimpleNamespace(
+            cfg={"max_len": 512},
+            system_one=lambda state, questions: {
+                "answers": {"check": {"noul": 0.9}},
+                "usage": {"input_tokens": 300},
+            },
+        )
+        decision_model = LayaModel(agent, model="laya-test")
+        verdict = await rails.ask(GUARD, {"text": INJECTED}, decision_model)
+        self.assertEqual(verdict.input_tokens, 300)
+        with tempfile.TemporaryDirectory() as tmp:
+            labelled = Path(tmp) / "set.jsonl"
+            labelled.write_text(json.dumps({"state": {"text": INJECTED}, "label": True}) + "\n", encoding="utf-8")
+            summary = await rails.evaluate(GUARD, labelled, decision_model=decision_model, results_dir=Path(tmp))
+            job_dir = Path(summary["job_dir"])
+            written = json.loads((job_dir / "summary.json").read_text(encoding="utf-8"))
+        for result in (summary, written):
+            self.assertEqual((result["jev_input_tokens"], result["cost_usd"]), (0, 0.0))
+            self.assertEqual((result["records"], result["accuracy"]), (1, 1.0))
+        self.assertTrue(job_dir.name.endswith("__laya"))
+
+    async def test_a_priced_backend_counts_tokens_without_relying_on_its_name(self) -> None:
+        decision_model = _noul([0.9])
+        decision_model.bills_input_tokens = True
+        with tempfile.TemporaryDirectory() as tmp:
+            labelled = Path(tmp) / "set.jsonl"
+            labelled.write_text(json.dumps({"state": {"text": INJECTED}, "label": True}) + "\n", encoding="utf-8")
+            summary = await rails.evaluate(GUARD, labelled, decision_model=decision_model, results_dir=Path(tmp))
+        self.assertEqual((summary["jev_input_tokens"], summary["cost_usd"]), (300, 0.000013))
 
     def test_a_record_without_a_boolean_label_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -251,12 +287,12 @@ class TestEvaluate(IsolatedAsyncioTestCase):
 
 
 class TestPlay(IsolatedAsyncioTestCase):
-    def test_the_slot_flag_defaults_to_jev_and_offers_laya(self) -> None:
+    def test_the_model_flag_defaults_to_jev_and_offers_laya(self) -> None:
         args = rails.parser(GUARD).parse_args([])
-        self.assertEqual((args.slot, args.labelled_set), ("jev", GUARD.labelled_set))
-        self.assertEqual(rails.parser(GUARD).parse_args(["--slot", "laya"]).slot, "laya")
+        self.assertEqual((args.model, args.labelled_set), ("jev", GUARD.labelled_set))
+        self.assertEqual(rails.parser(GUARD).parse_args(["--model", "laya"]).model, "laya")
         with self.assertRaises(SystemExit):
-            rails.parser(GUARD).parse_args(["--slot", "random"])
+            rails.parser(GUARD).parse_args(["--model", "random"])
 
     async def test_play_warms_evaluates_and_closes_the_slot_model(self) -> None:
         events: list[str] = []
@@ -270,11 +306,11 @@ class TestPlay(IsolatedAsyncioTestCase):
 
         built: list[str] = []
 
-        def build(slot: str, **kwargs: Any) -> ScriptedModel:
-            built.append(slot)
+        def build(model_name: str, **kwargs: Any) -> ScriptedModel:
+            built.append(model_name)
             return Recording(noul=[0.9] * 20)
 
         with tempfile.TemporaryDirectory() as tmp, patch.object(rails, "build_model", build):
-            args = rails.parser(GUARD).parse_args(["--slot", "laya"])
+            args = rails.parser(GUARD).parse_args(["--model", "laya"])
             summary = await rails.play(GUARD, args, results_dir=Path(tmp))
         self.assertEqual((built, events, summary["records"]), (["laya"], ["warm", "close"], 1703))

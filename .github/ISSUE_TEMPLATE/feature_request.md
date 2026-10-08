@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: A new agent, slot, rail or eval
+about: A new agent, decision model, rail or eval
 labels: enhancement
 ---
 

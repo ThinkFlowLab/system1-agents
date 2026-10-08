@@ -5,13 +5,13 @@ Every agent states every field. The spec classes in `s1a/spec.py` define no defa
 ## Tool front: `ToolAgentSpec`, template `_templates/tool_agent.py`
 
 A DeepAgent plays through two tools, `observe` and `act`, with a System 1 decision model in the model slot
-(`--slot jev|llm|random|rule|laya|cua`).
+(`--model jev|llm|random|rule|laya|cua`).
 
 | field | meaning |
 |---|---|
 | `name` | the module name: lowercase letters, digits and `_` after a letter; also the job folder name |
 | `description` | one sentence, shown by `list_agents` and the caller skill |
-| `rules` | the text the model in the slot reads on every decision |
+| `rules` | the text the model reads on every decision |
 | `budget` | `Budget(max_steps, timeout_s, stall_after)`; the defaults of `--max-steps` and `--timeout` |
 | `flags` | `(ArgumentParser) -> None`: the agent's own switches, after the shared ones |
 | `series` | `(Namespace) -> Series`: the seeds, `env_for(seed)`, the page `session`, the `baseline`, `annotate` |
@@ -24,7 +24,7 @@ window's clickable elements as candidates, plus `done` and `abstain`, and `s1a/d
 
 ## Browser front: `BrowserAgentSpec`, template `_templates/browser_agent.py`
 
-openJiuwen's browser subagent with `BrowserDecisionModel` in the slot (`--slot jev` for TypeSafe Jev, `laya` for
+openJiuwen's browser subagent with `BrowserDecisionModel` in the slot (`--model jev` for TypeSafe Jev, `laya` for
 Laya in process, `cua` for Cua-S1 Nano in process, `llm` for the chat model alone); the chat model types values and writes the answer.
 
 | field | meaning |

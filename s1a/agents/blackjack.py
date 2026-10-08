@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Blackjack (RLCard): ``s1a run blackjack --slot jev --rethink off --episodes 100``."""
+"""Blackjack (RLCard): ``s1a run blackjack --model jev --rethink off --episodes 100``."""
 
 from __future__ import annotations
 

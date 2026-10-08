@@ -53,12 +53,12 @@ class TestAlfworldEnv(IsolatedAsyncioTestCase):
             rule({}, await env.candidates())
 
     async def test_more_episodes_than_games_is_an_error(self) -> None:
-        flags = Namespace(offset=0, stride=1, episodes=3, max_steps=50, slot="rule")
+        flags = Namespace(offset=0, stride=1, episodes=3, max_steps=50, model_name="rule")
         with patch("s1a.agents.alfworld.solvable_game_files", return_value=["a/game.tw-pddl", "b/game.tw-pddl"]):
             with self.assertRaisesRegex(ValueError, "--episodes 3 but only 2 games"):
                 make_series(flags)
 
-    async def test_the_decision_model_slots_see_no_look_or_examine(self) -> None:
+    async def test_the_decision_models_see_no_look_or_examine(self) -> None:
         env = AlfworldEnv([solvable_game_files()[0]], 50, every_command=False)
         await env.reset()
         self.assertFalse([c for c in await env.candidates() if c.startswith(("look", "examine", "inventory"))])

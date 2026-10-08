@@ -1,30 +1,30 @@
 # Agents: what each one measures and how to run it
 
-Four kinds of agent share the loop, the slots and the job folders: browser use over `@playwright/mcp`, computer use
+Four kinds of agent share the loop, the models and the job folders: browser use over `@playwright/mcp`, computer use
 over [Cua Driver](https://cua.ai/docs/cua-driver), games and embodied text, and rails that answer one question at a
 hook of a running agent. The injection guard rail fails closed: a decision error quarantines the tool result too.
 
 | agent | front | what it measures | run |
 |---|---|---|---|
-| `allrecipes` | browser | browser use against the chat model: WebVoyager task Allrecipes--0, a vegetarian lasagna with over 100 reviews, 4.5 stars or more, for 6 | `s1a run allrecipes --slot jev --batch on --headed` |
-| `flights` | browser | browser use: wall clock on a Google Flights search | `s1a run flights --slot jev --batch on --profile-out run.json` |
-| `desktop` | tool | computer use: clicks toward `--goal` until the window shows `--expect`; the Calculator on macOS or Windows is the example | `s1a run desktop --app Calculator --goal "compute 12 times 7" --expect 84 --execute --clear "All Clear" --slot jev --rethink off --episodes 1` |
-| `ticket_router` | tool | correct routes on a seeded batch of 30 labelled tickets, five queues | `s1a run ticket_router --slot jev --rethink off --episodes 1` |
-| `alfworld` | tool | success on unseen household tasks in text | `s1a run alfworld --slot jev --rethink on --episodes 12 --stride 11` |
-| `game2048` | tool | score and largest tile at a move cap | `s1a run game2048 --slot jev --rethink on --episodes 10` |
-| `millionaire` | tool | winnings on a 15-question quiz ladder | `s1a run millionaire --slot jev --rethink off --episodes 5` |
-| `blackjack` | tool | payoff per hand (RLCard) | `s1a run blackjack --slot jev --rethink off --episodes 100` |
+| `allrecipes` | browser | browser use against the chat model: WebVoyager task Allrecipes--0, a vegetarian lasagna with over 100 reviews, 4.5 stars or more, for 6 | `s1a run allrecipes --model jev --batch on --headed` |
+| `flights` | browser | browser use: wall clock on a Google Flights search | `s1a run flights --model jev --batch on --profile-out run.json` |
+| `desktop` | tool | computer use: clicks toward `--goal` until the window shows `--expect`; the Calculator on macOS or Windows is the example | `s1a run desktop --app Calculator --goal "compute 12 times 7" --expect 84 --execute --clear "All Clear" --model jev --rethink off --episodes 1` |
+| `ticket_router` | tool | correct routes on a seeded batch of 30 labelled tickets, five queues | `s1a run ticket_router --model jev --rethink off --episodes 1` |
+| `alfworld` | tool | success on unseen household tasks in text | `s1a run alfworld --model jev --rethink on --episodes 12 --stride 11` |
+| `game2048` | tool | score and largest tile at a move cap | `s1a run game2048 --model jev --rethink on --episodes 10` |
+| `millionaire` | tool | winnings on a 15-question quiz ladder | `s1a run millionaire --model jev --rethink off --episodes 5` |
+| `blackjack` | tool | payoff per hand (RLCard) | `s1a run blackjack --model jev --rethink off --episodes 100` |
 | `injection_guard` | rail | precision and recall on a labelled injection set | `s1a run injection_guard` |
 
-Every tool agent takes `--slot jev|laya|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
+Every tool agent takes `--model jev|laya|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
 `--max-steps` and `--timeout`, and writes a Harbor-shaped job folder under `evals/results/<agent>/`. A browser agent
-takes `--slot jev|laya|cua|llm` and `--goal`. A rail takes `--slot jev|laya`, the two slots that answer `noul`.
-`uv run python -m evals.table evals/results` aggregates every job folder per eval and slot into one table.
+takes `--model jev|laya|cua|llm` and `--goal`. A rail takes `--model jev|laya`, the two models that answer `noul`.
+`uv run python -m evals.table evals/results` aggregates every job folder per eval and model into one table.
 
 Every `run` prints one JSON object on stdout and nothing else there; `s1a-mcp` serves the same agents over stdio
 with `list_agents`, `run_agent` and `decide`. Flags, exit codes and the job-folder layout:
-[architecture.md](architecture.md). The extras each agent needs and the keys: `CONTRIBUTING.md`. The slots and the
-models behind them: [architecture.md](architecture.md#slots).
+[architecture.md](architecture.md). The extras each agent needs and the keys: `CONTRIBUTING.md`. The `--model` values and the
+models behind them: [architecture.md](architecture.md#models).
 
 ## Agent-specific flags
 
@@ -33,14 +33,19 @@ models behind them: [architecture.md](architecture.md#slots).
 `--app`, `--goal`, `--expect`, `--execute`, `--plan` and `--clear`; `ticket_router` takes `--dataset` and
 `--batch-size`; `injection_guard` takes `--labelled-set`. The four games take no flag of their own.
 
+`--pixel-target KEY=X,Y` offers named points in screenshot fractions. Local Cua-S1 4B multimodal can select
+among them when controls have no accessibility elements. Each click carries its screenshot capture ID.
+Install the `cua-four-b` extra and set `CUA_S1_VARIANT=4b`, `CUA_S1_MODALITY=multimodal`.
+See [the macOS visual task](../evals/desktop/visual.md) for setup and verification commands.
+
 ## Allrecipes
 
 `allrecipes` is the first Allrecipes task of the [WebVoyager](https://github.com/MinorJerry/WebVoyager) task set
 ([He et al., 2024](https://arxiv.org/abs/2401.13919), Apache License 2.0, attribution in `NOTICE`), verbatim: find a
 vegetarian lasagna with more than 100 reviews, a rating of at least 4.5 stars, suitable for 6 people, and answer in
 text. The run is headed
-because the site answers a headless Chromium with a bot wall. `scripts/browser_showcase.sh allrecipes 2` runs both slots
-twice with a frame after every browser call and renders the pair GIFs from the median run of each slot; the numbers
+because the site answers a headless Chromium with a bot wall. `scripts/browser_showcase.sh allrecipes 2` runs both models
+twice with a frame after every browser call and renders the pair GIFs from the median run of each model; the numbers
 and the replay are in [benchmarks.md](benchmarks.md#browser-use-allrecipes).
 
 ## The ticket router

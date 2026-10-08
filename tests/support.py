@@ -79,18 +79,18 @@ class NoDecisionModel(ScriptedModel):
 
 
 def browser_result(summary: str, *, status: str) -> str:
-    """The subagent's structured completion around ``summary``, as the llm slot's final text."""
+    """The subagent's structured completion around ``summary``, as the chat model's final text."""
     return json.dumps(
         {"browser_result": {"status": status, "terminal_reason": "runtime_completion_validated", "summary": summary}}
     )
 
 
 async def browse_offline(
-    spec: BrowserAgentSpec, policy: BrowserPolicy, *, slot: str, max_steps: int
+    spec: BrowserAgentSpec, policy: BrowserPolicy, *, model_name: str, max_steps: int
 ) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
     """``browse`` with the subagent factory and the browser run faked: the answer, what the factory saw, the files.
 
-    No Runner, no browser, no key: a decision-model slot's final text is a DONE summary, the llm slot's a completion.
+    No Runner, no browser, no key: a decision model's final text is a DONE summary, the chat model's a completion.
     """
     seen: dict[str, Any] = {}
 
@@ -101,7 +101,7 @@ async def browse_offline(
     async def fake_run(agent: Any, goal: str, *, timeout_s: float) -> dict[str, Any]:
         seen.update(goal=goal, timeout_s=timeout_s)
         done = json.dumps({"status": "DONE", "reason": "", "url": "https://x", "answer": "Three flights."})
-        final = browser_result("42", status="completed") if slot == "llm" else done
+        final = browser_result("42", status="completed") if model_name == "llm" else done
         return {"ok": True, "final": final, "screenshot": None, "error": None}
 
     with (
@@ -113,14 +113,14 @@ async def browse_offline(
         answer = await browse.browse(
             spec,
             policy,
-            slot=slot,
+            model_name=model_name,
             goal="Show one-way flights",
             timeout_s=30,
             max_steps=max_steps,
             logs_dir=Path(tmp),
             headless=True,
             chat=chat_model_from_env(),
-            decision_model=None if slot == "llm" else NoDecisionModel(),
+            decision_model=None if model_name == "llm" else NoDecisionModel(),
         )
         files = sorted(p.name for p in Path(tmp).iterdir())
     return answer, seen, files

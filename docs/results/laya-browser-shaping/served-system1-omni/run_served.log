@@ -1,0 +1,21 @@
+worker-up
+frontend-up
+{"status":"ok","loaded":["english"],"device":"cpu"}
+system1-omni ae86032cba2466f45f42c2ebdfadbcfa8c30eb9f Tue Oct 6 18:55:30 2026 +1300
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 2124.56it/s]
+/home/test/chaimae/system1-omni/.venv-laya/lib/python3.12/site-packages/laya/agent.py:928: RuntimeWarning: laya: this checkpoint ships invalid temperatures or values outside [0.5, 5]; using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected entries as uncalibrated.
+  return Agent(model_id_or_path, device=device, token=token, subfolder=subfolder, fast=fast,
+laya 0.3.20 cfg max_len 512 head_max_len 192
+tick 0 {'served-1536': 5699, 'served-default': 4961, 'inproc-1536': 6986}
+tick 1 {'served-1536': 1723, 'served-default': 1642, 'inproc-1536': 1472}
+tick 2 {'served-1536': 6084, 'served-default': 6592, 'inproc-1536': 7702}
+tick 3 {'served-1536': 4761, 'served-default': 4816, 'inproc-1536': 5908}
+tick 4 {'served-1536': 6177, 'served-default': 7915, 'inproc-1536': 6196}
+tick 5 {'served-1536': 6445, 'served-default': 6248, 'inproc-1536': 5391}
+tick 6 {'served-1536': 7020, 'served-default': 7626, 'inproc-1536': 6771}
+tick 7 {'served-1536': 7037, 'served-default': 7698, 'inproc-1536': 7422}
+tick 8 {'served-1536': 5605, 'served-default': 5599, 'inproc-1536': 21552}
+tick 9 {'served-1536': 14166, 'served-default': 7471, 'inproc-1536': 29497}
+tick 10 {'served-1536': 7331, 'served-default': 8145, 'inproc-1536': 8187}
+tick 11 {'served-1536': 8068, 'served-default': 8246, 'inproc-1536': 21655}
+TRIAL_DONE

@@ -1,5 +1,5 @@
 # coding: utf-8
-"""The tool-front loop: jiuwen's DeepAgent over two tools per environment, with a decision model or a chat model in the slot."""
+"""The tool-front loop: jiuwen's DeepAgent over two tools per environment, with a decision model or a chat model in the model slot."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from s1a.spec import ToolAgentSpec
 from s1a.tool.rethink import RethinkRail
 from s1a.tool.models import ACT_TOOL, OBSERVE_TOOL, EvalState, ToolDecisionModel
 
-SLOTS = ("jev", "llm", "random", "rule", "laya", "cua")
+MODEL_NAMES = ("jev", "llm", "random", "rule", "laya", "laya-served", "cua")
 EVAL_PROMPT = (
     "You play a game through two tools. Call observe first. Then call act with exactly one of the candidate keys the "
     "last tool result offered, one act per turn, until done is true. Then reply with one line: the final score."
@@ -34,7 +34,7 @@ EVAL_PROMPT = (
 REPEAT_AFTER = 3
 GIVE_UP_AFTER = 3
 LLM_ITERATION_HEADROOM = 2  # the chat model spends turns on malformed or unknown keys; its cap is this many budgets
-SLOT_ITERATION_HEADROOM = 2  # observe and the final turn, beyond the act budget
+ITERATION_HEADROOM = 2  # observe and the final turn, beyond the act budget
 WORKSPACE = HOME / "runs" / "evals"  # the DeepAgent scaffolds SOUL.md, memory/ and friends here, not in the repo root
 
 
@@ -110,7 +110,7 @@ class ActTool(Tool):
         try:
             await self._env.step(key)
         except Exception as exc:
-            state.error = f"act failed: {exc}"  # the harness feeds the raise back to the model; every slot then stops
+            state.error = f"act failed: {exc}"  # the harness feeds the raise back to the model; every model then stops
             state.act_calls.append({"key": key, "accepted": False})
             raise
         state.act_calls.append({"key": key, "accepted": True})
@@ -128,7 +128,7 @@ def build_env_tools(env: Env, state: EvalState, *, agent_name: str) -> list[Tool
 
 
 def build_slot_model(
-    slot: str,
+    model_name: str,
     env: Env,
     state: EvalState,
     *,
@@ -136,18 +136,18 @@ def build_slot_model(
     chat: Model | None,
     decision_model: DecisionModel | None,
 ) -> Model:
-    """The chat model for the llm slot; the one slot model over the decision model for every other slot."""
-    match slot:
+    """The chat model for ``llm``; the one slot model over the decision model for every other name."""
+    match model_name:
         case "llm":
             if chat is None:
-                raise RuntimeError("the llm slot needs the chat model: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
+                raise RuntimeError("--model llm needs the chat model: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
             return chat
-        case "jev" | "laya" | "cua" | "random" | "rule":
+        case "jev" | "laya" | "laya-served" | "cua" | "random" | "rule":
             if decision_model is None:
-                raise RuntimeError(f"the {slot} slot needs a decision model")
+                raise RuntimeError(f"--model {model_name} needs a decision model")
             return ToolDecisionModel(env, state, rules=rules, decision_model=decision_model, fallback=chat)
         case _:
-            raise ValueError(f"unknown slot {slot!r}; one of {SLOTS}")
+            raise ValueError(f"unknown model {model_name!r}; one of {MODEL_NAMES}")
 
 
 def create_eval_agent(
@@ -216,7 +216,7 @@ async def run_episode(
     spec: ToolAgentSpec,
     env: Env,
     *,
-    slot: str,
+    model_name: str,
     seed: int,
     chat: Model | None,
     decision_model: DecisionModel | None,
@@ -228,15 +228,15 @@ async def run_episode(
 ) -> Episode:
     """One episode through the agent: reset, one conversation, the ticks, rethinks, tokens and dollars into the Episode.
 
-    ``max_acts`` bounds the acts for every slot; ``timeout_s`` bounds the wall clock, and a timed-out episode
+    ``max_acts`` bounds the acts for every model; ``timeout_s`` bounds the wall clock, and a timed-out episode
     keeps its score so far with ``result_type: timeout``."""
     state = EvalState(max_acts=max_acts)
     await env.reset()
     first_view = await view_of(env, state)
     counted = CountingModel(chat, state.chat) if chat is not None else None
-    model = build_slot_model(slot, env, state, rules=spec.rules, chat=counted, decision_model=decision_model)
+    model = build_slot_model(model_name, env, state, rules=spec.rules, chat=counted, decision_model=decision_model)
     rail = None
-    if rethink_on and spec.budget.stall_after > 0 and slot != "llm":  # the chat model reads no plan or block
+    if rethink_on and spec.budget.stall_after > 0 and model_name != "llm":  # the chat model reads no plan or block
         rail = RethinkRail(
             state,
             rules=spec.rules,
@@ -246,7 +246,7 @@ async def run_episode(
             repeat_after=REPEAT_AFTER,
             give_up_after=GIVE_UP_AFTER,
         )
-    cap = (max_acts + SLOT_ITERATION_HEADROOM) * (LLM_ITERATION_HEADROOM if slot == "llm" else 1)
+    cap = (max_acts + ITERATION_HEADROOM) * (LLM_ITERATION_HEADROOM if model_name == "llm" else 1)
     agent = create_eval_agent(spec, env, model, state, rethink=rail, max_iterations=cap)
     started_at = now_iso()
     started = time.perf_counter()
@@ -262,7 +262,7 @@ async def run_episode(
         await agent.cleanup_task_resources()
         agent.ability_manager.teardown_tools()  # the act and observe cards hold the env and the state
         await Runner.release(conversation_id)
-    if slot == "llm":
+    if model_name == "llm":
         state.ticks = llm_decisions(state.chat, state.act_calls)
     if log:
         for tick in state.ticks:
@@ -273,8 +273,11 @@ async def run_episode(
         for event in state.rethinks:
             print(f"  rethink {event}", file=sys.stderr)
     policy = model.name if isinstance(model, ToolDecisionModel) else "llm"
-    # Laya and Cua run in process: their tokens are free and unpriced
-    jev_input_tokens = sum(tick["input_tokens"] for tick in state.ticks if tick["source"] == "jev")
+    jev_input_tokens = (
+        sum(tick["input_tokens"] for tick in state.ticks if tick["source"] != "llm")
+        if isinstance(model, ToolDecisionModel) and model.bills_input_tokens
+        else 0
+    )
     chat_input_tokens = sum(call["input_tokens"] for call in state.chat)
     chat_output_tokens = sum(call["output_tokens"] for call in state.chat)
     chat_cache_tokens = sum(call["cache_tokens"] for call in state.chat)

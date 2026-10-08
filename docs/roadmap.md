@@ -97,7 +97,7 @@ free-text negotiation decide the score).
 
 ## Order of work
 
-1. The slot matrix on the built evals, with cost and decision counts (in progress).
+1. The model matrix on the built evals, with cost and decision counts (in progress).
 2. The tool-call guardrail next to the shipped injection guard, as one "Jev security rails" feature, with the
    labelled sets.
 3. Severity and escalation rail, measured on stored trajectories.

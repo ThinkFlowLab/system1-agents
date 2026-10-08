@@ -40,7 +40,8 @@ class JevTransport(Protocol):
 class DecisionModel(ABC):
     """A model that reads an observation and a discrete action space and returns a distribution over it."""
 
-    name: str = "decision_model"  # the slot name; lands in every tick's ``source``
+    name: str = "decision_model"  # the ``--model`` value; lands in every tick's ``source``
+    bills_input_tokens: bool  # True when input tokens are priced at JEV_USD_PER_INPUT_TOKEN
     supports_images: bool = False
     question_types: frozenset[str] = frozenset({"choice", "noul"})
     deterministic: bool = False  # the same request always gets the same answer, so a re-ask is a wasted call

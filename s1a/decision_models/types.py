@@ -10,6 +10,7 @@ from typing import Any, Literal, Union
 
 Json = dict[str, Any]
 QuestionType = Literal["choice", "noul"]
+PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing")
 
 
 @dataclass(frozen=True)
@@ -173,3 +174,8 @@ class Decision:
         if not isinstance(answer, Noul):
             raise TypeError(f"{name!r} is a choice answer, not a noul")
         return answer
+
+    @property
+    def provenance(self) -> Json:
+        """Where a served answer came from, for step records: the server's identity, URL and timings; empty in process."""
+        return {key: self.raw[key] for key in PROVENANCE_KEYS if key in self.raw}

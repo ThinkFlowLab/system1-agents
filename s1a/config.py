@@ -70,7 +70,7 @@ def chat_model_from_env() -> Model:
 
 
 def optional_chat_model() -> Model | None:
-    """The chat model when the environment names one; None otherwise (the slots that need it raise)."""
+    """The chat model when the environment names one; None otherwise (the models that need it raise)."""
     try:
         return chat_model_from_env()
     except RuntimeError:

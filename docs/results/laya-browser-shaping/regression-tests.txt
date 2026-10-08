@@ -1,0 +1,17 @@
+tests/test_decision_models_laya.py::TestLayaState::test_a_non_browser_state_passes_through PASSED [  7%]
+tests/test_decision_models_laya.py::TestLayaState::test_an_action_not_yet_measured_is_not_shown_as_no_change PASSED [ 14%]
+tests/test_decision_models_laya.py::TestLayaState::test_compaction_shrinks_the_json_size_by_an_order_of_magnitude PASSED [ 21%]
+tests/test_decision_models_laya.py::TestLayaState::test_each_element_row_becomes_one_short_line_not_a_json_object PASSED [ 28%]
+tests/test_decision_models_laya.py::TestLayaState::test_history_is_capped_at_the_last_few_actions PASSED [ 35%]
+tests/test_decision_models_laya.py::TestLayaState::test_page_text_is_dropped_and_the_title_is_capped PASSED [ 42%]
+tests/test_decision_models_laya.py::TestLayaState::test_the_probes_string_flags_are_read_strictly PASSED [ 50%]
+tests/test_decision_models_laya.py::TestLayaBrowserQuestion::test_a_blocked_row_keeps_the_name_of_its_overlay PASSED [ 57%]
+tests/test_decision_models_laya.py::TestLayaBrowserQuestion::test_a_question_without_a_goal_passes_through PASSED [ 64%]
+tests/test_decision_models_laya.py::TestLayaBrowserQuestion::test_a_target_option_becomes_its_label_and_value PASSED [ 71%]
+tests/test_decision_models_laya.py::TestLayaBrowserQuestion::test_options_that_shorten_to_the_same_text_keep_their_key PASSED [ 78%]
+tests/test_decision_models_laya.py::TestLayaBrowserQuestion::test_the_operation_head_keeps_its_string_options PASSED [ 85%]
+tests/test_decision_models_laya.py::TestLayaBrowserQuestion::test_the_rules_are_dropped_and_the_instruction_keeps_the_goal_and_the_operation PASSED [ 92%]
+tests/test_decision_models_laya.py::TestLayaBrowserQuestion::test_the_text_value_head_asks_for_a_value_not_an_operation PASSED [100%]
+================ 14 passed, 37 deselected, 3 warnings in 0.17s ================
+tests/test_browser_policy.py::TestJevWaitCollapsesIntoInPageSettling::test_a_wait_that_moved_the_page_is_recorded_as_progress PASSED [100%]
+======================== 1 passed, 3 warnings in 0.32s ========================

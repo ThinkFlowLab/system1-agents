@@ -10,7 +10,7 @@ from __future__ import annotations
 from s1a.decision_models.base import DecisionModel, JevTransport
 from s1a.decision_models.baselines import RandomModel, Rule, RuleModel
 from s1a.decision_models.cua import CuaS1Model
-from s1a.decision_models.factory import DECISION_MODEL_SLOTS, build_model
+from s1a.decision_models.factory import DECISION_MODEL_NAMES, build_model
 from s1a.decision_models.fakes import ScriptedModel, ScriptedTransport
 from s1a.decision_models.jev import JevModel, jev_question
 from s1a.decision_models.laya import LayaModel
@@ -31,7 +31,7 @@ from s1a.decision_models.types import (
 from s1a.decision_models.validation import choice_faults, validate_answers, validate_choice, validate_noul
 
 __all__ = [
-    "DECISION_MODEL_SLOTS",
+    "DECISION_MODEL_NAMES",
     "Answer",
     "DecisionModel",
     "JevTransport",

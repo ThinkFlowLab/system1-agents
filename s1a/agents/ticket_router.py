@@ -104,7 +104,7 @@ class TicketRouterEnv:
         support = Counter(row["label"] for row in self._batch)
         hits = Counter(row["expected"] for row in self._results if row["correct"])
         total = len(self._batch)
-        # Fingerprint includes state and labels, permitting checks that all slots saw identical data.
+        # Fingerprint includes state and labels, permitting checks that all models saw identical data.
         fingerprint = hashlib.sha256(
             json.dumps(self._batch, ensure_ascii=False, sort_keys=True).encode("utf-8")
         ).hexdigest()

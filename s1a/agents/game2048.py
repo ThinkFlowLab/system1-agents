@@ -1,5 +1,5 @@
 # coding: utf-8
-"""2048 (the original MIT game, self-hosted): ``s1a run game2048 --slot jev --rethink on --episodes 10``."""
+"""2048 (the original MIT game, self-hosted): ``s1a run game2048 --model jev --rethink on --episodes 10``."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ READ_STATE = r"""
 }
 """
 # The game draws every new tile from Math.random; a seeded mulberry32 in its place makes an episode's tile
-# sequence a function of the seed and the moves, so every slot plays the same boards.
+# sequence a function of the seed and the moves, so every model plays the same boards.
 SEED_RANDOM = """
 (seed) => {
   let s = seed >>> 0;

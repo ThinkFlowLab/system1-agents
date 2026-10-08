@@ -8,14 +8,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from evals.table import slot_label, window_s
+from evals.table import model_label, window_s
 
 
 @dataclass(frozen=True)
 class Trial:
     path: Path
     eval_name: str
-    slot: str
+    model: str
     seed: int
     score: float
     elapsed_s: float
@@ -50,7 +50,7 @@ def read_trial(path: Path) -> Trial:
     return Trial(
         path=path,
         eval_name=str(result.get("source") or path.parent.parent.name),
-        slot=slot_label(result),
+        model=model_label(result),
         seed=int(seed_text) if seed_text.isdigit() else 0,
         score=float(((result.get("verifier_result") or {}).get("rewards") or {}).get("reward") or 0.0),
         elapsed_s=float(metadata.get("elapsed_s") or window_s(result)),
@@ -66,8 +66,8 @@ def read_trial(path: Path) -> Trial:
 
 
 def read_browser_run(path: Path) -> Trial:
-    """A browser run's logs folder as a trial: ``answer.json`` (the run's result with its agent and slot),
-    ``decision_ticks.json`` for a decision-model slot or ``chat_calls.json`` for the chat model, and the frames
+    """A browser run's logs folder as a trial: ``answer.json`` (the run's result with its agent and model),
+    ``decision_ticks.json`` for a decision model or ``chat_calls.json`` for the chat model, and the frames
     ``evals.replay.cast`` saved under ``frames/``.
 
     A decision-model run's steps sit on the policy's own clock (each tick's ``elapsed_ms``); a chat-model run's
@@ -75,9 +75,10 @@ def read_browser_run(path: Path) -> Trial:
     second of the frames' clock, the MCP session's.
     """
     answer = json.loads((path / "answer.json").read_text(encoding="utf-8"))
-    slot, elapsed_ms = str(answer["slot"]), int(answer["elapsed_ms"])
+    model = str(answer.get("model") or answer["slot"])  # runs written by 0.1.0 name the model under "slot"
+    elapsed_ms = int(answer["elapsed_ms"])
     extra: dict[str, Any] = {"front": "browser"}
-    if slot == "llm":
+    if model == "llm":
         calls = json.loads((path / "chat_calls.json").read_text(encoding="utf-8"))
         acted = [call for call in calls if call["tool_calls"]]
         decisions = [_chat_decision(step, call) for step, call in enumerate(acted, start=1)]
@@ -85,7 +86,7 @@ def read_browser_run(path: Path) -> Trial:
     else:
         record = json.loads((path / "decision_ticks.json").read_text(encoding="utf-8"))
         ticks = list(record["ticks"])
-        decisions = [_tick_decision(tick, slot) for tick in ticks]
+        decisions = [_tick_decision(tick, model) for tick in ticks]
         candidates = [dict(tick.get("candidates") or {}) for tick in ticks]
         extra["times"] = [0] + [int(tick["elapsed_ms"]) for tick in ticks[:-1]] + [elapsed_ms] if ticks else [0]
         extra["history"] = list((record.get("report") or {}).get("history") or [])
@@ -102,7 +103,7 @@ def read_browser_run(path: Path) -> Trial:
     return Trial(
         path=path,
         eval_name=str(answer["agent"]),
-        slot=slot,
+        model=model,
         seed=0,
         score=score,
         elapsed_s=round(elapsed_ms / 1000, 1),
@@ -117,7 +118,7 @@ def read_browser_run(path: Path) -> Trial:
     )
 
 
-def _tick_decision(tick: dict[str, Any], slot: str) -> dict[str, Any]:
+def _tick_decision(tick: dict[str, Any], model: str) -> dict[str, Any]:
     target = str(tick.get("target") or "")
     key = f"{tick['operation']} · {target}" if target else str(tick["operation"])
     return {
@@ -126,7 +127,7 @@ def _tick_decision(tick: dict[str, Any], slot: str) -> dict[str, Any]:
         "ms": int(tick["decision_ms"]),
         "confidence": float(tick["confidence"]),
         "probabilities": dict(tick.get("probabilities") or {}),
-        "source": slot,
+        "source": model,
     }
 
 

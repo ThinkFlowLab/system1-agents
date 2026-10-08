@@ -16,7 +16,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase, skipUnless
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -24,11 +24,11 @@ from mcp.shared.memory import create_connected_server_and_client_session
 
 from s1a import mcp_server
 from s1a import run as agents
-from s1a.decision_models import JevModel, ScriptedTransport
+from s1a.decision_models import JevModel, ScriptedModel, ScriptedTransport
 from s1a.tool import loop, series
 from support import COUNTER
 
-RANDOM_RUN = ["--slot", "random", "--rethink", "off", "--episodes", "1", "--showcase"]
+RANDOM_RUN = ["--model", "random", "--rethink", "off", "--episodes", "1", "--showcase"]
 NO_KEYS = {"TYPESAFE_API_KEY": "", "OPENROUTER_API_KEY": "", "MODEL_NAME": "", "OPENAI_API_KEY": "", "LLM_API_KEY": ""}
 HAVE_RLCARD = importlib.util.find_spec("rlcard") is not None  # the one tool agent that runs offline
 HARNESS_LOG = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| ")  # the console entry routes these to files
@@ -104,7 +104,7 @@ class TestStdioTransport(IsolatedAsyncioTestCase):
     async def test_a_blackjack_run_leaves_the_stream_clean_and_writes_under_s1a_home(self) -> None:
         async with self._session() as session:
             run = await session.call_tool(
-                "run_agent", {"name": "blackjack", "flags": ["--slot", "rule", *RANDOM_RUN[2:]]}
+                "run_agent", {"name": "blackjack", "flags": ["--model", "rule", *RANDOM_RUN[2:]]}
             )
         self.assertEqual(self.strays, [])
         self.assertFalse(run.isError, run.content[0].text if run.content else run)
@@ -136,7 +136,7 @@ class TestMcpServer(IsolatedAsyncioTestCase):
 
     async def test_decide_returns_the_validated_choice(self) -> None:
         transport = ScriptedTransport(choose="inc")
-        with patch.object(mcp_server, "build_model", lambda slot, **kwargs: JevModel(transport)):
+        with patch.object(mcp_server, "build_model", return_value=JevModel(transport)) as build:
             async with create_connected_server_and_client_session(mcp_server.server) as session:
                 result = await session.call_tool(
                     "decide", {"state": {"n": 1}, "options": {"inc": "add one", "noop": "do nothing"}, "rules": "count"}
@@ -145,6 +145,94 @@ class TestMcpServer(IsolatedAsyncioTestCase):
         answer = _rows(result)
         self.assertEqual((answer["choice"], answer["probabilities"]["inc"], answer["ms"]), ("inc", 1.0, 9))
         self.assertEqual(transport.bodies[0]["questions"]["pick"]["instructions"]["rules"], "count")
+        build.assert_called_once_with("jev")
+
+    async def test_decide_advertises_optional_model_choices(self) -> None:
+        async with create_connected_server_and_client_session(mcp_server.server) as session:
+            tools = await session.list_tools()
+        schema = next(tool.inputSchema for tool in tools.tools if tool.name == "decide")
+        self.assertEqual(schema["properties"]["model"]["enum"], ["jev", "laya", "laya-served", "cua"])
+        self.assertEqual(schema["properties"]["model"]["default"], "jev")
+        self.assertNotIn("model", schema["required"])
+
+    async def test_decide_selects_and_closes_each_local_model_without_api_keys(self) -> None:
+        for model_name in ("laya", "laya-served", "cua"):
+            with self.subTest(model=model_name):
+                decision_model = ScriptedModel(choose="inc")
+                with (
+                    patch.dict(os.environ, NO_KEYS),
+                    patch.object(mcp_server, "build_model", return_value=decision_model) as build,
+                    patch.object(decision_model, "close", new_callable=AsyncMock) as close,
+                ):
+                    async with create_connected_server_and_client_session(mcp_server.server) as session:
+                        result = await session.call_tool(
+                            "decide",
+                            {"state": {"n": 1}, "options": {"inc": "add one"}, "rules": "count", "model": model_name},
+                        )
+                self.assertFalse(result.isError)
+                self.assertEqual(
+                    _rows(result), {"choice": "inc", "probabilities": {"inc": 1.0}, "confidence": 1.0, "ms": 9}
+                )
+                build.assert_called_once_with(model_name)
+                close.assert_awaited_once()
+
+    async def test_decide_rejects_unsupported_models_before_building_one(self) -> None:
+        with patch.object(mcp_server, "build_model") as build:
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                for model_name in ("llm", "random", "rule", "unknown"):
+                    with self.subTest(model=model_name):
+                        result = await session.call_tool(
+                            "decide", {"state": {}, "options": {"a": "a"}, "rules": "pick", "model": model_name}
+                        )
+                        self.assertTrue(result.isError)
+        build.assert_not_called()
+
+    async def test_decide_closes_a_local_model_when_the_decision_fails(self) -> None:
+        decision_model = ScriptedModel(error=RuntimeError("local inference failed"))
+        with (
+            patch.object(mcp_server, "build_model", return_value=decision_model),
+            patch.object(decision_model, "close", new_callable=AsyncMock) as close,
+        ):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                result = await session.call_tool(
+                    "decide", {"state": {}, "options": {"a": "a"}, "rules": "pick", "model": "cua"}
+                )
+        self.assertTrue(result.isError)
+        self.assertIn("local inference failed", result.content[0].text)
+        close.assert_awaited_once()
+
+    async def test_decide_reports_how_to_install_a_missing_local_model(self) -> None:
+        for model_name, module_name in (("laya", "laya"), ("cua", "cua_s1.nano")):
+            with (
+                self.subTest(model=model_name),
+                patch.dict(os.environ, NO_KEYS),
+                patch.dict(sys.modules, {module_name: None}),
+            ):
+                async with create_connected_server_and_client_session(mcp_server.server) as session:
+                    result = await session.call_tool(
+                        "decide", {"state": {}, "options": {"a": "a"}, "rules": "pick", "model": model_name}
+                    )
+                self.assertTrue(result.isError)
+                self.assertIn(f"uv sync --extra {model_name}", result.content[0].text)
+
+    async def test_local_model_loading_keeps_stdout_clean(self) -> None:
+        def build(model_name: str) -> ScriptedModel:
+            print("loading local weights")
+            return ScriptedModel(choose="a")
+
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with (
+            patch.object(mcp_server, "build_model", build),
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+        ):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                result = await session.call_tool(
+                    "decide", {"state": {}, "options": {"a": "a"}, "rules": "pick", "model": "laya"}
+                )
+        self.assertFalse(result.isError)
+        self.assertNotIn("loading local weights", stdout.getvalue())
+        self.assertIn("loading local weights", stderr.getvalue())
 
     async def test_list_agents_names_every_front_with_its_flags(self) -> None:
         async with create_connected_server_and_client_session(mcp_server.server) as session:
@@ -159,8 +247,8 @@ class TestMcpServer(IsolatedAsyncioTestCase):
                 self.assertIn(f"uv sync --extra {name}", rows[name]["description"])
         flags = {name: {row["flag"]: row for row in rows[name]["flags"]} for name in ("game2048", "flights")}
         self.assertEqual(
-            (flags["game2048"]["--slot"]["required"], flags["game2048"]["--slot"]["choices"]),
-            (True, ["jev", "llm", "random", "rule", "laya", "cua"]),
+            (flags["game2048"]["--model"]["required"], flags["game2048"]["--model"]["choices"]),
+            (True, ["jev", "llm", "random", "rule", "laya", "laya-served", "cua"]),
         )
         max_steps = str(agents.load("game2048").budget.max_steps)
         self.assertEqual(
@@ -168,7 +256,7 @@ class TestMcpServer(IsolatedAsyncioTestCase):
             (False, max_steps),
         )
         self.assertEqual(
-            (flags["game2048"]["--slot"]["takes_value"], flags["game2048"]["--headed"]["takes_value"]), (True, False)
+            (flags["game2048"]["--model"]["takes_value"], flags["game2048"]["--headed"]["takes_value"]), (True, False)
         )
         self.assertIsNone(flags["game2048"]["--headed"]["default"])  # a switch is passed alone: no value to send
         self.assertEqual(

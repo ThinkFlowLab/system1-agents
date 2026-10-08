@@ -18,7 +18,7 @@ DATA_TAG = '<script id="replay-data" type="application/json">'
 
 def trial_data(trial: Trial, frames: list[str]) -> dict[str, Any]:
     return {
-        "slot": trial.slot,
+        "model": trial.model,
         "seed": trial.seed,
         "score": trial.score,
         "elapsed_s": trial.elapsed_s,
@@ -38,12 +38,12 @@ def trial_data(trial: Trial, frames: list[str]) -> dict[str, Any]:
 
 
 def copy_frames(trials: list[Trial], out_dir: Path) -> list[list[str]]:
-    """Each trial's frames copied under ``out_dir/frames-<slot>/``; the page references them by that relative path."""
+    """Each trial's frames copied under ``out_dir/frames-<model>/``; the page references them by that relative path."""
     copied: list[list[str]] = []
     seen: dict[str, int] = {}
     for trial in trials:
-        seen[trial.slot] = seen.get(trial.slot, 0) + 1
-        folder = f"frames-{trial.slot}" + (f"-{seen[trial.slot]}" if seen[trial.slot] > 1 else "")
+        seen[trial.model] = seen.get(trial.model, 0) + 1
+        folder = f"frames-{trial.model}" + (f"-{seen[trial.model]}" if seen[trial.model] > 1 else "")
         paths: list[str] = []
         if trial.frames:
             target = out_dir / folder
@@ -56,11 +56,11 @@ def copy_frames(trials: list[Trial], out_dir: Path) -> list[list[str]]:
     return copied
 
 
-SLOT_ORDER = {"jev": 0, "llm": 1}  # Jev on the left, the chat model on the right, everything else after
+MODEL_ORDER = {"jev": 0, "llm": 1}  # Jev on the left, the chat model on the right, everything else after
 
 
 def ordered(trials: list[Trial]) -> list[Trial]:
-    return sorted(trials, key=lambda trial: SLOT_ORDER.get(trial.slot, len(SLOT_ORDER)))
+    return sorted(trials, key=lambda trial: MODEL_ORDER.get(trial.model, len(MODEL_ORDER)))
 
 
 def render_page(trials: list[Trial], *, out_dir: Path) -> str:
@@ -73,7 +73,7 @@ def render_page(trials: list[Trial], *, out_dir: Path) -> str:
         "trials": [trial_data(trial, paths) for trial, paths in zip(trials, frames)],
     }
     payload = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
-    title = f"{data['eval']}: {' vs '.join(t['slot'] for t in data['trials'])}"
+    title = f"{data['eval']}: {' vs '.join(t['model'] for t in data['trials'])}"
     return TEMPLATE.replace("__TITLE__", title).replace("__DATA__", payload)
 
 
@@ -96,8 +96,8 @@ TEMPLATE = r"""<!doctype html>
   #stage { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; padding: 16px; }
   .trial { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
   .trial h2 { margin: 0; font-size: 15px; display: flex; gap: 10px; align-items: baseline; }
-  .trial h2 .slot { text-transform: uppercase; letter-spacing: .04em; font-size: 12px; padding: 2px 8px; border-radius: 999px; color: #fff; }
-  .slot.jev { background: var(--jev); } .slot.llm { background: var(--llm); } .slot.other { background: var(--muted); }
+  .trial h2 .model { text-transform: uppercase; letter-spacing: .04em; font-size: 12px; padding: 2px 8px; border-radius: 999px; color: #fff; }
+  .model.jev { background: var(--jev); } .model.llm { background: var(--llm); } .model.other { background: var(--muted); }
   .facts { color: var(--muted); font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
   .board { min-height: 180px; display: flex; align-items: center; justify-content: center; }
   .board img { max-width: 100%; max-height: 420px; border: 1px solid var(--line); border-radius: 6px; }
@@ -155,7 +155,7 @@ TEMPLATE = r"""<!doctype html>
   const stage = document.getElementById("stage");
   const slider = document.getElementById("slider");
   const clock = document.getElementById("clock");
-  document.getElementById("title").textContent = data.eval + " · seed " + data.trials[0].seed + " · " + data.trials.map(t => t.slot).join(" vs ");
+  document.getElementById("title").textContent = data.eval + " · seed " + data.trials[0].seed + " · " + data.trials.map(t => t.model).join(" vs ");
   slider.max = maxT;
 
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -240,11 +240,11 @@ TEMPLATE = r"""<!doctype html>
       const k = step[i], view = trial.views[Math.min(k, trial.views.length - 1)] || {state: {}, candidates: {}};
       const decision = trial.decisions[k];
       const draw = trial.front === "browser" ? drawBrowser : (drawers[data.eval] || drawGeneric);
-      const slotClass = trial.slot === "jev" || trial.slot === "llm" ? trial.slot : "other";
-      const badge = trial.slot === "llm" ? "LLM" : "System 1 · " + trial.slot;
+      const modelClass = trial.model === "jev" || trial.model === "llm" ? trial.model : "other";
+      const badge = trial.model === "llm" ? "LLM" : "System 1 · " + trial.model;
       const action = decision ? '<span class="action">step ' + (k + 1) + ' of ' + trial.steps + ': ' + esc(decision.key) + '<span class="ms">' + esc(decision.ms) + ' ms' + (decision.confidence ? ", confidence " + decision.confidence.toFixed(2) : "") + '</span></span>'
                               : '<span class="action">final · score ' + esc(trial.score) + '</span>';
-      return '<section class="trial"><h2><span class="slot ' + slotClass + '">' + esc(badge) + '</span> score ' + esc(trial.score) + '</h2>' +
+      return '<section class="trial"><h2><span class="model ' + modelClass + '">' + esc(badge) + '</span> score ' + esc(trial.score) + '</h2>' +
         '<div class="facts"><span>' + trial.elapsed_s + ' s</span><span>' + trial.steps + ' steps</span><span>' + trial.decisions.length + ' decisions</span><span>' + money(trial.cost_usd) + '</span></div>' +
         '<div class="board">' + draw(view, trial, k) + '</div>' + action + bars(decision, view) +
         '<div class="timebar"><div class="done" style="width:' + Math.min(100, 100 * trial.times[k] / maxT) + '%"></div></div><div class="muted">t = ' + secs(trial.times[k]) + ' of ' + secs(trial.times[trial.times.length - 1]) + '</div></section>';

@@ -2,7 +2,7 @@
 """The template for a browser-front agent: copy this file to ``s1a/agents/<name>.py``.
 
 Change the name, the description and the goal; keep the shipped operation rules until a site family shows that it
-needs its own, then write that string here. ``s1a run <name> --slot jev --goal "..."`` runs one task; the
+needs its own, then write that string here. ``s1a run <name> --model jev --goal "..."`` runs one task; the
 policy switches (``--batch``, ``--prefetch``, ``--goal-values``) are run-time flags, not spec fields.
 """
 

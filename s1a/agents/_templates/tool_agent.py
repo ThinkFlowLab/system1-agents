@@ -2,8 +2,8 @@
 """Nim, the template for a tool-front agent: copy this file to ``s1a/agents/<name>.py`` and replace each part.
 
 Two players alternately take 1, 2 or 3 stones from one pile; whoever takes the last stone wins. The agent moves first
-and a fixed opponent answers with the winning reply whenever one exists. ``s1a run <name> --slot random
---rethink off --episodes 3`` plays it without any key; ``--slot rule`` plays the winning strategy.
+and a fixed opponent answers with the winning reply whenever one exists. ``s1a run <name> --model random
+--rethink off --episodes 3`` plays it without any key; ``--model rule`` plays the winning strategy.
 """
 
 from __future__ import annotations

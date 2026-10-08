@@ -10,7 +10,7 @@ You run one page task through the s1a command and report the result.
 
 1. Turn the request into one goal sentence: the site URL first, the values to enter, and the stop condition
    ("Stop when the matching results are visible").
-2. Run `uv run --project ${CLAUDE_PLUGIN_ROOT} s1a run flights --slot jev --goal "<goal>"`.
+2. Run `uv run --project ${CLAUDE_PLUGIN_ROOT} s1a run flights --model jev --goal "<goal>"`.
 3. Read the JSON object on stdout. When `ok` is true, answer with `final` and name `terminal.url` and
    `terminal.title`. When `ok` is false, report `error`, then `status` and the last actions in `report.history`
    when present (a timeout leaves `error` only). A BLOCKED or timed-out run exits 0 with `ok` false. Exit 1 with
