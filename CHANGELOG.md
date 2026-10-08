@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
+  complete-denominator quality metrics and per-round service latency.
+
 - Snake recipe and game client: `evals/snake` vendors the laya-mlx snake CLI
   (Apache-2.0) with single-game paced recording and a 16-game multigrid mode
   against any `/v1/systemone` backend; `recipes/snake` documents setup,
