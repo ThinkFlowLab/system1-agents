@@ -58,7 +58,9 @@ def load_reference():
     )
     items = []
     for tier in ("easy", "original", "hard"):
-        for line, text in enumerate((root / f"datasets/public/{tier}.jsonl").read_text().split("\n")[:-1], 1):
+        for line, text in enumerate(
+            (root / f"datasets/public/{tier}.jsonl").read_text(encoding="utf-8").split("\n")[:-1], 1
+        ):
             task = upstream.tasks.Task.from_dict(decode(text))
             identity = dict(
                 suite=f"jevbench-{tier}",

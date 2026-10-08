@@ -84,7 +84,9 @@ def predict(args):
                 write_json(
                     directory / "predict.meta.json", dict(round=number, planned=args.warmup if number == 0 else 231)
                 )
-                with (directory / ("records.jsonl" if number == 0 else "results.jsonl")).open("x") as stream:
+                with (directory / ("records.jsonl" if number == 0 else "results.jsonl")).open(
+                    "x", encoding="utf-8"
+                ) as stream:
                     for identity, task in selected:
                         raw = client.request(body_for(task, args.model))
                         raw_path = directory / "raw" / (digest(task.id.encode()) + ".json")
@@ -163,7 +165,7 @@ def read_round(directory, expected, upstream, model, number):
 def aggregate(args):
     upstream, items, dataset = load_reference()
     run = outside_repo(args.run)
-    meta = decode((run / "run.meta.json").read_text())
+    meta = decode((run / "run.meta.json").read_text(encoding="utf-8"))
     validate_environment(meta)
     environment = (run / "environment.json").read_bytes()
     if digest(environment) != meta["env_sha256"]:

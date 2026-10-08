@@ -3,6 +3,8 @@
 import copy
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -518,3 +520,50 @@ def test_environment_stop_reason_rejected_before_request(collect, stop_reason):
     with pytest.raises(ValueError, match="stop_reason"):
         cli.predict(args)
     assert len(calls) == 1 and not args.out.exists()
+
+
+def test_cli_uses_utf8_independent_of_locale(reference, tmp_path):
+    script = r"""
+import json
+import sys
+from pathlib import Path
+import httpx
+from benchmarks.client import DecisionClient
+from benchmarks.evidence import write_json
+from benchmarks.legs import leg1_public231 as cli
+
+root = Path(sys.argv[1])
+environment = root / "environment.json"
+write_json(environment, dict(
+    checkpoint=dict(repo="fixture", revision="fixture"),
+    backend=dict(name="MockTransport", version=httpx.__version__),
+    sampling=dict(temperature=1), hardware="CPU \u6d4b\u8bd5",
+))
+class Client(DecisionClient):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, transport=httpx.MockTransport(
+            lambda _: httpx.Response(422, text="refused\u2028request")
+        ))
+cli.DecisionClient = Client
+run = root / "run"
+sys.argv = ["public231", "predict", "--endpoint", "http://fixture.invalid",
+            "--path", "/v1/decisions", "--run-meta", str(environment),
+            "--out", str(run), "--warmup", "0", "--rounds", "1", "--limit", "2"]
+cli.main()
+sys.argv = ["public231", "aggregate", "--run", str(run), "--out", str(root / "summary")]
+cli.main()
+with (run / "round-1/results.jsonl").open(encoding="utf-8") as stream:
+    records = [json.loads(line) for line in stream]
+assert len(records) == 2 and all(row["error"] == "refused\u2028request" for row in records)
+summary = json.loads((root / "summary/summary.json").read_text(encoding="utf-8"))
+assert summary["pooled"]["attempted"] == 2 and summary["pooled"]["planned"] == 231
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script, str(tmp_path)],
+        env={**os.environ, "PYTHONUTF8": "0", "PYTHONCOERCECLOCALE": "0", "LC_ALL": "C", "PYTHONIOENCODING": "utf-8"},
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
