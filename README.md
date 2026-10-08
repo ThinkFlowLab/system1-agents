@@ -154,7 +154,7 @@ interface fits: [docs/architecture.md](docs/architecture.md), [docs/decision-mod
 - [docs/configuration.md](docs/configuration.md): environment variables, defaults and reader subsystems in one table.
 - [docs/glossary.md](docs/glossary.md): terms the documentation glosses on first mention.
 - [docs/why.md](docs/why.md): the problem, the philosophy, the precedents.
-- [docs/roadmap.md](docs/roadmap.md) and [CHANGELOG.md](CHANGELOG.md).
+- [docs/roadmap.md](docs/roadmap.md): application scenarios, benchmarks, model backends and System1-Omni integration; [CHANGELOG.md](CHANGELOG.md).
 
 ## Stay Tuned with Us
 
