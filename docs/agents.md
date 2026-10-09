@@ -14,7 +14,7 @@ hook of a running agent. The injection guard rail fails closed: a decision error
 | `game2048` | tool | score and largest tile at a move cap | `s1a run game2048 --model jev --rethink on --episodes 10` |
 | `millionaire` | tool | winnings on a 15-question quiz ladder | `s1a run millionaire --model jev --rethink off --episodes 5` |
 | `blackjack` | tool | payoff per hand (RLCard) | `s1a run blackjack --model jev --rethink off --episodes 100` |
-| `sokoban` | tool | solved fraction on 100 selected Valen levels, text boards or `--visual` renders | `s1a run sokoban --model jev --rethink off --episodes 100` |
+| `sokoban` | tool | solved fraction on 100 selected Valen levels: text boards over `jev`; `--visual` renders for an image-reading model | `s1a run sokoban --model jev --rethink off --episodes 100` |
 | `injection_guard` | rail | precision and recall on a labelled injection set | `s1a run injection_guard` |
 
 Every tool agent takes `--model jev|clm|laya|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
@@ -79,5 +79,7 @@ levels. The score is 1 for solved and 0 otherwise. Use `--model random` for an o
 rule baseline. Rethink must be off. See [protocol and provenance](../evals/sokoban/README.md).
 
 `--visual` plays the same levels over Valen's own rendering — one PNG per decision, theme and tile size from
-the level, rules and direction labels in the level's language — with the ASCII board left out. It needs
-`uv sync --extra visual` and a model that reads images (`--model llm` is rejected).
+the level, rules and direction labels in the level's language — with the ASCII board left out. No tool-front
+`--model` reads images yet, so the `jev` command above stays the text-mode run: `jev` and the other text
+backends drop the picture, and `--model llm` is rejected. `--model random --visual` smokes the rendering
+offline (`uv run --extra visual`); the served Valen backend ships as its own change.
