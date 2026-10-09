@@ -26,9 +26,11 @@ No learned-model performance has been measured by this import.
 ## Visual mode
 
 ```bash
-uv sync --extra visual
 uv run --extra visual s1a run sokoban --model random --rethink off --episodes 1 --max-steps 10 --visual
 ```
+
+The `visual` extra (Pillow) rides on the command; `uv sync --extra visual` alone would prune
+the other extras, so add it to your usual sync set instead (`uv sync --extra dev --extra report --extra visual`).
 
 `--visual` keeps the levels, episode loop, budgets and scoring untouched and swaps the
 observation: each decision is shown Valen's own rendering of the board, one PNG per move,
@@ -38,12 +40,13 @@ and the pictures stay out of the episode records (`observation_mode: visual` mar
 The rules and the four direction labels follow each level's `language` (`en`/`zh`) and are
 Valen's own instruction texts, verbatim.
 
-The model must read images: `--model llm` is rejected (the chat model reads tool text only),
-and a text-only decision model drops the picture with its usual warning. `--model random`
-smokes the rendering offline. A served Valen worker behind `/v1/systemone` is the intended
-backend; its protocol takes one PNG/JPEG data URL as `state.image`, capped at an 8 MiB body,
-a 4 MiB image and 2048 pixels per side — a bundled level at tile 44 renders far below all of
-these. The HTTP backend for that worker ships as its own change; nothing here depends on it.
+No `--model` on the tool front reads images yet: `jev` and the other text backends drop the
+picture with their usual warning and decide on the leftover text, `--model llm` is rejected
+(the chat model reads tool text only), so **the jev command at the top of this page is the
+text-mode run**. Today `--model random` is the offline smoke for the rendering; the served
+Valen worker behind `/v1/systemone` is the intended backend and ships as its own change. Its
+protocol takes one PNG/JPEG data URL as `state.image`, capped at an 8 MiB body, a 4 MiB image
+and 2048 pixels per side — a bundled level at tile 44 renders far below all of these.
 
 This is the observation Valen's preview checkpoint was trained and validated on; the text
 mode above remains the off-distribution control. Measured results belong to the runs recorded
