@@ -1,0 +1,6 @@
+time,model,run,success,total_s,decisions,median_decision_ms,reason
+12:54:27,onejev27B,1,0,47.2,7,2984,The agent has not yet selected the destination or the date; and no flight options are visible.
+12:55:17,onejev27B,2,0,43.0,7,3022,The agent has not yet selected the destination or the date; and no flight options are visible.
+12:56:08,onejev27B,3,0,43.4,7,3049,The agent has not yet selected the destination or the date; and no flight options are visible.
+12:56:59,onejev27B,4,0,43.4,7,3073,The agent has not yet selected the destination or the date; and no flight options are visible.
+12:57:50,onejev27B,5,0,43.8,7,3086,The agent has not yet selected the destination or the date; and no flight options are visible.

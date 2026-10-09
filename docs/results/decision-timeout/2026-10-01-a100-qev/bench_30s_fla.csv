@@ -1,0 +1,6 @@
+time,model,run,success,total_s,decisions,median_decision_ms,model_s,page_s,browser_s,reason
+09:49:01,onejev27B,1,1,111.0,11,2697,81.8,11.7,9.5,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+09:50:17,onejev27B,2,1,67.9,11,2639,43.8,11.2,9.7,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+09:51:34,onejev27B,3,1,68.9,11,2666,44.2,11.8,9.7,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+09:52:50,onejev27B,4,1,69.0,11,2677,44.3,11.8,9.8,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+09:54:06,onejev27B,5,1,68.1,11,2651,43.8,11.2,9.7,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
