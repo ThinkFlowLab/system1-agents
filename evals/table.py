@@ -20,9 +20,25 @@ from typing import Any
 from s1a.jobs import BOOTSTRAP_RESAMPLES, bootstrap_interval
 
 COLUMNS = (
-    "eval", "model", "attempts", "errors", "N", "score (n)", "score unknown", "score",
-    "scored median s", "steps", "decisions", "chat calls", "scored $ / episode",
-    "time (n/attempts)", "s / attempt", "time unknown", "cost (n/attempts)", "$ / attempt", "cost unknown",
+    "eval",
+    "model",
+    "attempts",
+    "errors",
+    "N",
+    "score (n)",
+    "score unknown",
+    "score",
+    "scored median s",
+    "steps",
+    "decisions",
+    "chat calls",
+    "scored $ / episode",
+    "time (n/attempts)",
+    "s / attempt",
+    "time unknown",
+    "cost (n/attempts)",
+    "$ / attempt",
+    "cost unknown",
 )
 
 
