@@ -39,7 +39,9 @@ s1a run ticket_router --model jev --rethink off --episodes 1      # the shipped 
 
 Every `run` prints one JSON object on stdout and nothing else there. The harness logs go to files under the
 checkout's `runs/logs`. A browser agent's object has `ok`, `final`, `error` and `usage` with both models; `final` is
-the answer. With `--model jev` it also has `report` and, when present (absent on a timeout), `status` and
+the answer. `screenshot` is the path of `final.png`, a PNG of the page the task ended on, or null when no page was
+open; a failed screenshot leaves it null too and names the failure in `screenshot_error`. With `--model jev` it
+also has `report` and, when present (absent on a timeout), `status` and
 `terminal`: `terminal.url` and `terminal.title` are where the answer was read. With `--model llm` it has `browser_result`, the subagent's own
 verdict; `status`, `report` and `terminal` are absent there. A task takes seconds
 to a few minutes; `--timeout` sets the wall clock (the agent's own default, 180 s for `flights`) and `--headed` shows the browser. A tool

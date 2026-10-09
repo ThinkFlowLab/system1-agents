@@ -9,14 +9,17 @@ import os
 import tempfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import patch
 
+from openjiuwen.harness.subagents import create_browser_agent
 from openjiuwen.harness.subagents.browser_agent import (
     DEFAULT_BROWSER_AGENT_TEMPERATURE,
     _browser_model_with_temperature,
 )
+from openjiuwen.harness.tools.browser_move.playwright_runtime.runtime import BrowserAgentRuntime, BrowserRuntimeRail
 
 from s1a.agents import flights
 from s1a.browser import browse
@@ -25,7 +28,7 @@ from s1a.decision_models import JevModel
 from s1a.config import chat_model_from_env
 from s1a.counting_model import CountingModel
 from support import CHAT_ENV as ENV
-from support import NoDecisionModel, browse_offline, browser_result
+from support import POLICY, NoDecisionModel, browse_offline, browser_result
 
 SPEC = flights.SPEC
 GOAL = ["--model", "jev", "--goal", "x"]
@@ -163,6 +166,7 @@ class TestBrowseAssembly(IsolatedAsyncioTestCase):
                 self.assertEqual((answer["report"]["decisions"], answer["ticks"]), (0, []))
                 self.assertEqual(answer["usage"]["decisions"], 0)
                 self.assertEqual(files, ["decision_ticks.json"])
+                self.assertEqual(seen["logs_dir"], Path(seen["workspace"]).parent, "final.png goes next to the ticks")
 
     async def test_batched_actions_ask_for_the_unsafe_dev_capability(self) -> None:
         _answer, seen, _files = await self._browse("jev", batch=True)
@@ -175,6 +179,7 @@ class TestBrowseAssembly(IsolatedAsyncioTestCase):
         self.assertEqual((answer["ok"], answer["final"], answer["usage"]["chat_calls"]), (True, "42", 0))
         self.assertEqual(answer["usage"]["chat_temperature"], 0.0, "the sampling setting the baseline really ran at")
         self.assertEqual(files, ["chat_calls.json"])
+        self.assertEqual(seen["logs_dir"], Path(seen["workspace"]).parent, "final.png goes next to the chat calls")
 
     async def test_jev_and_laya_refuse_to_run_without_a_decision_model(self) -> None:
         policy = BrowserPolicy(prefetch_values=True, batch_actions=False, goal_value_cache=False)
@@ -200,19 +205,76 @@ class TestBrowseAssembly(IsolatedAsyncioTestCase):
                 self.assertIn(model_name, str(caught.exception))
 
 
+PNG = b"\x89PNG\r\n\x1a\n the page the task ended on"
+STALE = b"\x89PNG\r\n\x1a\n the page an earlier run in the same logs dir ended on"
+SHOT = os.path.join(".playwright-mcp", "page-2026-09-29T17-34-16-081Z.png")  # relative to the MCP server's cwd
+# openjiuwen's browser logger rewrites ./logs/browser_agent.log in the cwd once a BrowserRuntimeRail is built
+QUIET_BROWSER_LOG = {"OPENJIUWEN_BROWSER_AGENT_LOG_FILE": "off"}
+
+
+def _screenshot_report(link: str) -> dict[str, str]:
+    """What ``_call_playwright_tool`` returns for ``browser_take_screenshot`` with @playwright/mcp 0.0.78."""
+    code = f"await page.screenshot({{\n  fullPage: false,\n  path: '{link}',\n  scale: 'css',\n  type: 'png'\n}});"
+    return {
+        "result": f"### Result\n- [Screenshot of viewport]({link})\n### Ran Playwright code\n```js\n"
+        f"// Screenshot viewport and save it as {link}\n{code}\n```\n[binary content: image/png]"
+    }
+
+
+class _FakeRuntime:
+    """The runtime as the final screenshot reads it: the service, the page it saw, the screenshot tool."""
+
+    def __init__(
+        self,
+        events: list[Any],
+        cwd: Path,
+        *,
+        url: str = "https://x",
+        failure: Exception | None = None,
+        hang: bool = False,
+        report: dict[str, str] | None = None,
+        shot: str = SHOT,
+    ) -> None:
+        self.events, self.cwd, self.url, self.failure, self.hang, self.shot = events, cwd, url, failure, hang, shot
+        self.report = report or _screenshot_report(shot)
+        self.service = SimpleNamespace(started=True, mcp_cfg=SimpleNamespace(params={"cwd": str(cwd)}))
+        self.calls: list[tuple[str, dict[str, Any]]] = []
+
+    def export_page_state(self) -> dict[str, Any]:
+        return {"url": self.url}
+
+    async def _call_playwright_tool(self, tool_name: str, inputs: dict[str, Any]) -> dict[str, str]:
+        self.events.append("screenshot")
+        self.calls.append((tool_name, inputs))
+        if self.hang:
+            await asyncio.sleep(60)
+        if self.failure is not None:
+            raise self.failure
+        (self.cwd / self.shot).parent.mkdir(parents=True, exist_ok=True)
+        (self.cwd / self.shot).write_bytes(PNG)
+        return self.report
+
+
 class _FakeAgent:
-    def __init__(self, events: list[Any]) -> None:
+    """The agent surface ``run_task`` uses; a runtime sits in a real ``BrowserRuntimeRail``, as the factory puts it."""
+
+    def __init__(self, events: list[Any], runtime: _FakeRuntime | None = None) -> None:
         self.events = events
+        self.rails = [] if runtime is None else [BrowserRuntimeRail(runtime)]
 
     async def ensure_initialized(self) -> None:
         self.events.append("init")
+
+    def configured_rails(self) -> list[Any]:
+        return self.rails
 
     async def cleanup_task_resources(self) -> None:
         self.events.append("cleanup")
 
 
 class TestRunTask(IsolatedAsyncioTestCase):
-    """``run_task`` releases the browser and the Runner session after every run, finished or timed out."""
+    """``run_task`` saves the page the task ended on, then releases the browser and the Runner session, after every
+    run: finished, timed out, or with a screenshot that failed."""
 
     def _runner(self, events: list[Any], *, hang: bool) -> type:
         class FakeRunner:
@@ -229,20 +291,114 @@ class TestRunTask(IsolatedAsyncioTestCase):
 
         return FakeRunner
 
-    async def test_a_finished_run_releases_the_browser_and_the_session(self) -> None:
-        events: list[Any] = []
-        with patch.object(browse, "Runner", self._runner(events, hang=False)):
-            answer = await browse.run_task(_FakeAgent(events), "g", timeout_s=1)
-        self.assertEqual((answer["ok"], answer["final"]), (True, "done"))
-        conversation = events[1][1]
-        self.assertEqual(events, ["init", ("run", conversation), "cleanup", ("release", conversation)])
+    async def _run(
+        self,
+        events: list[Any],
+        runtime: _FakeRuntime | None,
+        logs_dir: Path,
+        *,
+        hang: bool = False,
+        timeout_s: float = 1,
+    ) -> dict[str, Any]:
+        with patch.dict(os.environ, QUIET_BROWSER_LOG), patch.object(browse, "Runner", self._runner(events, hang=hang)):
+            return await browse.run_task(_FakeAgent(events, runtime), "g", timeout_s=timeout_s, logs_dir=logs_dir)
 
-    async def test_a_timed_out_run_is_released_too(self) -> None:
+    async def test_a_finished_run_saves_the_page_then_releases_the_browser_and_the_session(self) -> None:
         events: list[Any] = []
-        with patch.object(browse, "Runner", self._runner(events, hang=True)):
-            answer = await browse.run_task(_FakeAgent(events), "g", timeout_s=0.01)
+        with tempfile.TemporaryDirectory() as tmp:
+            logs_dir = Path(tmp) / "logs"
+            logs_dir.mkdir()
+            runtime = _FakeRuntime(events, Path(tmp))
+            answer = await self._run(events, runtime, logs_dir)
+            self.assertEqual((logs_dir / "final.png").read_bytes(), PNG, "the PNG the MCP server wrote")
+        self.assertEqual((answer["ok"], answer["final"], answer["error"]), (True, "done", None))
+        self.assertEqual(answer["screenshot"], str(logs_dir / "final.png"), "the file's path")
+        self.assertNotIn("screenshot_error", answer)
+        self.assertEqual(runtime.calls, [("browser_take_screenshot", {"type": "png", "fullPage": False})])
+        conversation = events[1][1]
+        self.assertEqual(events, ["init", ("run", conversation), "screenshot", "cleanup", ("release", conversation)])
+
+    async def test_a_timed_out_run_is_saved_and_released_too(self) -> None:
+        events: list[Any] = []
+        with tempfile.TemporaryDirectory() as tmp:
+            answer = await self._run(events, _FakeRuntime(events, Path(tmp)), Path(tmp), hang=True, timeout_s=0.01)
+            self.assertEqual((Path(tmp) / "final.png").read_bytes(), PNG)
         self.assertIn("timeout", answer["error"])
-        self.assertEqual(events[2:], ["cleanup", ("release", events[1][1])])
+        self.assertEqual(answer["screenshot"], str(Path(tmp) / "final.png"))
+        self.assertEqual(events[2:], ["screenshot", "cleanup", ("release", events[1][1])])
+
+    async def test_a_reused_logs_dir_gets_this_runs_page(self) -> None:
+        events: list[Any] = []
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "final.png").write_bytes(STALE)
+            answer = await self._run(events, _FakeRuntime(events, Path(tmp)), Path(tmp))
+            self.assertEqual((Path(tmp) / "final.png").read_bytes(), PNG)
+        self.assertEqual(answer["screenshot"], str(Path(tmp) / "final.png"))
+
+    async def test_parentheses_in_the_screenshot_path_are_part_of_it(self) -> None:
+        """@playwright/mcp writes the path raw in its link, as with ``--output-dir "shots (1)"``."""
+        shots = {
+            "directory": os.path.join("shots (1)", "page-2026-10-07T00-00-00-000Z.png"),
+            "nested": os.path.join("a (b)", "c) (d", "page (2).png"),
+        }
+        for case, shot in shots.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
+                events: list[Any] = []
+                logs_dir = Path(tmp) / "logs"
+                logs_dir.mkdir()
+                answer = await self._run(events, _FakeRuntime(events, Path(tmp), shot=shot), logs_dir)
+                self.assertEqual((logs_dir / "final.png").read_bytes(), PNG, "the PNG the MCP server wrote")
+                self.assertEqual(answer["screenshot"], str(logs_dir / "final.png"))
+                self.assertNotIn("screenshot_error", answer)
+
+    async def test_a_failed_screenshot_changes_neither_the_outcome_nor_the_release(self) -> None:
+        cases = {
+            "RuntimeError": {"failure": RuntimeError("### Error\n- Page Title: Order 4411 for Jane Roe")},
+            "TimeoutError": {"hang": True},
+            "FileNotFoundError": {"report": {"result": "### Result\nno file was written"}},
+        }
+        for error, case in cases.items():
+            with self.subTest(error=error), tempfile.TemporaryDirectory() as tmp:
+                events: list[Any] = []
+                (Path(tmp) / "final.png").write_bytes(STALE)  # an earlier run's page in a reused logs dir
+                with patch.object(browse, "SCREENSHOT_TIMEOUT_S", 0.01):
+                    answer = await self._run(events, _FakeRuntime(events, Path(tmp), **case), Path(tmp))
+                self.assertFalse((Path(tmp) / "final.png").exists(), "no judge grades the earlier page")
+                self.assertEqual((answer["ok"], answer["final"], answer["error"]), (True, "done", None))
+                self.assertEqual((answer["screenshot"], answer["screenshot_error"]), (None, error))
+                self.assertNotIn("4411", json.dumps(answer), "the tool's error text stays out of the answer")
+                self.assertEqual(events[2:], ["screenshot", "cleanup", ("release", events[1][1])])
+
+    async def test_nothing_is_taken_without_a_page(self) -> None:
+        """No runtime, a stopped service or no page seen: the screenshot tool would launch a browser for one."""
+        for case in ("no runtime", "service stopped", "no page seen"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
+                events: list[Any] = []
+                runtime = _FakeRuntime(events, Path(tmp), url="" if case == "no page seen" else "https://x")
+                runtime.service.started = case != "service stopped"
+                (Path(tmp) / "final.png").write_bytes(STALE)  # an earlier run's page in a reused logs dir
+                answer = await self._run(events, None if case == "no runtime" else runtime, Path(tmp))
+                self.assertFalse((Path(tmp) / "final.png").exists(), "no judge grades the earlier page")
+                self.assertEqual((answer["ok"], answer["screenshot"]), (True, None))
+                self.assertNotIn("screenshot_error", answer)
+                self.assertEqual(events[2:], ["cleanup", ("release", events[1][1])])
+
+
+class TestFinalScreenshotRuntime(IsolatedAsyncioTestCase):
+    """The screenshot finds the runtime ``create_browser_agent`` builds, for a decision model and for the chat model."""
+
+    async def test_the_rail_holds_the_runtime_the_factory_bound_and_a_fresh_one_is_skipped(self) -> None:
+        with patch.dict(os.environ, {**ENV, **QUIET_BROWSER_LOG}, clear=True), tempfile.TemporaryDirectory() as tmp:
+            counted = CountingModel(chat_model_from_env(), [])
+            slot_model = BrowserDecisionModel(SPEC, POLICY, counted, decision_model=NoDecisionModel(), value_model=None)
+            agent = create_browser_agent(slot_model, language="en", workspace=str(Path(tmp) / "workspace"))
+            self.assertIs(browse.browser_runtime(agent), slot_model._runtime)
+            answer: dict[str, Any] = {"screenshot": None}
+            await browse.save_final_screenshot(agent, answer, Path(tmp))
+            self.assertEqual(answer, {"screenshot": None}, "no MCP server and no page yet: nothing to take")
+            self.assertFalse((Path(tmp) / "final.png").exists())
+            chat_agent = create_browser_agent(counted, language="en", workspace=str(Path(tmp) / "chat"))
+            self.assertIsInstance(browse.browser_runtime(chat_agent), BrowserAgentRuntime)
 
 
 class TestPlay(IsolatedAsyncioTestCase):
@@ -254,17 +410,29 @@ class TestPlay(IsolatedAsyncioTestCase):
 
         async def fake_browse(spec: Any, policy: Any, **kwargs: Any) -> dict[str, Any]:
             seen.update(spec=spec, policy=policy, **kwargs)
-            return {"ok": True, "final": "42", "error": None, "ticks": [{"tick": 1}], "report": {}, "usage": {}}
+            return {
+                "ok": True,
+                "final": "42",
+                "screenshot": str(kwargs["logs_dir"] / "final.png"),
+                "error": None,
+                "ticks": [{"tick": 1}],
+                "report": {},
+                "usage": {},
+            }
 
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, ENV, clear=True):
             args = browse.parser(SPEC).parse_args(["--model", "llm", "--goal", "g", "--logs-dir", tmp, "--batch", "on"])
             with patch.object(browse, "browse", fake_browse), patch.object(browse, "BrowserProfiler", None):
                 answer = await browse.play(SPEC, args)
             written = json.loads((Path(tmp) / "answer.json").read_text(encoding="utf-8"))
-        self.assertEqual(answer, {"ok": True, "final": "42", "error": None, "report": {}, "usage": {}})
+        final_png = str(Path(tmp) / "final.png")
+        self.assertEqual(
+            answer, {"ok": True, "final": "42", "screenshot": final_png, "error": None, "report": {}, "usage": {}}
+        )
         self.assertEqual(
             written, {**answer, "agent": "flights", "model": "llm"}, "the result lands next to the run's records"
         )
+        self.assertEqual(written["screenshot"], final_png, "the judge's screenshot is named in answer.json")
         self.assertEqual((seen["model_name"], seen["max_steps"], seen["policy"].batch_actions), ("llm", 100, True))
         self.assertEqual((seen["goal"], seen["timeout_s"], seen["headless"]), ("g", 180.0, True))
         self.assertIsNone(seen["decision_model"], "the chat model needs no model")
