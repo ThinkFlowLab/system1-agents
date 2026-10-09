@@ -8,12 +8,14 @@ import tempfile
 from pathlib import Path
 from unittest import TestCase
 
-from evals.reconcile import load_plan, markdown, read_artifacts, reconcile
+from evals.reconcile import PlannedAttempt, load_plan, markdown, read_artifacts, reconcile
 from evals.table import read_results, rows as score_rows
 
 
-def _result(root: Path, eval_name: str, model: str, task_name: str, *, errored: bool = False) -> Path:
-    folder = root / eval_name / "job-1" / task_name.rsplit("/", 1)[-1]
+def _result(
+    root: Path, eval_name: str, model: str, task_name: str, *, errored: bool = False, job_name: str = "job-1"
+) -> Path:
+    folder = root / eval_name / job_name / task_name.rsplit("/", 1)[-1]
     folder.mkdir(parents=True)
     result = {
         "task_name": task_name,
@@ -111,7 +113,7 @@ class TestReconcile(TestCase):
         )
         report = markdown(result)
         self.assertIn(
-            "Planned attempts: 6; recorded outcomes: 3; missing: 1; interrupted: 1; unsupported: 1; errors: 1; unexpected results: 2.",
+            "Planned attempts: 6; recorded outcomes: 3; missing: 1; interrupted: 1; unsupported: 1; ambiguous: 0; errors: 1; unexpected results: 2.",
             report,
         )
         self.assertIn("game2048/job-1/1/result.json", report)
@@ -127,6 +129,28 @@ class TestReconcile(TestCase):
             after = score_rows(read_results(root))
         self.assertEqual(before, after)
         self.assertEqual((before[0]["attempts"], before[0]["score_n"], before[0]["mean_score"]), (1, 1, 0.0))
+
+    def test_multiple_artifacts_for_one_key_are_order_invariant_and_ambiguous(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "results"
+            root.mkdir()
+            _result(root, "game2048", "jev", "game2048/0", job_name="job-a")
+            _result(root, "game2048", "jev", "game2048/0", errored=True, job_name="job-b")
+            artifacts = read_artifacts(root)
+            attempt = PlannedAttempt("repeat", "game2048", "jev", "game2048/0", "planned")
+            forward = reconcile([attempt], artifacts)
+            reverse = reconcile([attempt], list(reversed(artifacts)))
+
+        self.assertEqual(forward, reverse)
+        self.assertEqual(len(forward), 1)
+        self.assertEqual(forward[0].status, "ambiguous")
+        self.assertEqual(forward[0].reason, "2 result artifacts match this key; no result was assigned.")
+        self.assertEqual(
+            forward[0].artifact,
+            "game2048/job-a/0/result.json; game2048/job-b/0/result.json",
+        )
+        self.assertIn("ambiguous: 1", markdown(forward))
+        self.assertIn("recorded outcomes: 0", markdown(forward))
 
     def test_manifest_rejects_duplicate_match_keys_and_terminal_state_without_reason(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -97,9 +97,12 @@ result, create a version-1 JSON manifest and pass it with `--attempt-plan`:
 `planned` with no artifact is reported as `missing`; explicitly declared `interrupted` and `unsupported` attempts
 remain separate. A saved exception result is an `error` and remains a recorded attempt. The report also flags
 results absent from the manifest and results that contradict an `unsupported` declaration. It matches using the
-existing result fields `(eval folder, model label, task_name)`, so that tuple must be unique in a plan; use distinct
-task names (normally including the seed) for repeated tasks. Missing artifacts alone do not prove that a run was
-interrupted. This additive report does not modify the score, error, timing, cost, or attempt semantics of the table.
+existing result fields `(eval folder, model label, task_name)`, so that tuple must be unique in a plan. If multiple
+artifacts have the same tuple, the planned attempt is `ambiguous`; all candidate paths are shown and none is assigned
+as its outcome. The current writer repeats `task_name` when the same seed is run again in another job, so use distinct
+task names for repeats when those runs must be associated with separate planned entries. Missing artifacts alone do
+not prove that a run was interrupted. This additive report does not modify the score, error, timing, cost, or attempt
+semantics of the table.
 
 ```sh
 uv run python -m evals.table evals/results --attempt-plan evals/attempt-plan.json

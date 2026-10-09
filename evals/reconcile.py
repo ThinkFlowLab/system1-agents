@@ -137,14 +137,31 @@ def read_artifacts(results_root: Path) -> list[ResultArtifact]:
 
 
 def reconcile(attempts: list[PlannedAttempt], artifacts: list[ResultArtifact]) -> list[ReconciledAttempt]:
-    """Match planned attempts to their exact saved task results; retain every extra artifact as unplanned."""
+    """Match planned attempts only when their result key identifies exactly one artifact.
+
+    Duplicate artifacts with the same key are ambiguous: retain all candidate paths on the planned row rather than
+    assigning one by path or input order. Unmatched artifacts remain visible as unplanned results.
+    """
     by_key: dict[AttemptKey, list[ResultArtifact]] = {}
     for artifact in artifacts:
         by_key.setdefault(artifact.key, []).append(artifact)
     rows: list[ReconciledAttempt] = []
     for attempt in attempts:
-        matches = by_key.get(attempt.key, [])
-        artifact = matches.pop(0) if matches else None
+        matches = sorted(by_key.pop(attempt.key, []), key=lambda item: item.path)
+        if len(matches) > 1:
+            rows.append(
+                ReconciledAttempt(
+                    attempt_id=attempt.attempt_id,
+                    eval_name=attempt.eval_name,
+                    model=attempt.model,
+                    task_name=attempt.task_name,
+                    status="ambiguous",
+                    reason=f"{len(matches)} result artifacts match this key; no result was assigned.",
+                    artifact="; ".join(item.path for item in matches),
+                )
+            )
+            continue
+        artifact = matches[0] if matches else None
         if artifact is None:
             status = "missing" if attempt.status == "planned" else attempt.status
             rows.append(
@@ -200,7 +217,8 @@ def markdown(rows: list[ReconciledAttempt]) -> str:
         f"Planned attempts: {planned_total}; recorded outcomes: "
         f"{counts.get('recorded', 0) + counts.get('error', 0) + counts.get('unexpected-result', 0)}; "
         f"missing: {counts.get('missing', 0)}; interrupted: {counts.get('interrupted', 0)}; "
-        f"unsupported: {counts.get('unsupported', 0)}; errors: {counts.get('error', 0)}; "
+        f"unsupported: {counts.get('unsupported', 0)}; ambiguous: {counts.get('ambiguous', 0)}; "
+        f"errors: {counts.get('error', 0)}; "
         f"unexpected results: {counts.get('unexpected-result', 0) + counts.get('unplanned-result', 0)}.",
         "",
         "| Attempt | Eval | Model | Task | Status | Artifact | Reason |",
