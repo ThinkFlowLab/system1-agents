@@ -47,6 +47,12 @@ Fonts under `evals/2048/style/fonts` are Clear Sans by Intel Corporation, Apache
 commit `c96c4f736c6928d2cb1166bc105a24cebdfcdc40`, Apache-2.0.
 Changes: removed unused hash, inverse-action and clone helpers; applied repository formatting.
 
+`s1a/agents/_sokoban_render.py`, and the visual-mode rules and direction names in
+`s1a/agents/sokoban.py`, are adapted from the same commit's
+[render.py](https://github.com/Liuziyu77/Valen/blob/c96c4f736c6928d2cb1166bc105a24cebdfcdc40/evaluation/sokoban/render.py)
+and [dataset.py](https://github.com/Liuziyu77/Valen/blob/c96c4f736c6928d2cb1166bc105a24cebdfcdc40/evaluation/sokoban/dataset.py),
+Apache-2.0. The renderer's drawing logic is unchanged, formatted; the rules and direction texts are verbatim.
+
 `s1a/agents/_data/sokoban_levels.jsonl` and `tests/fixtures/sokoban_reference.jsonl` are unchanged copies of
 `eval_sokoban/levels.jsonl` and `eval_sokoban/reference.jsonl` from
 [Valen-Team/Valen-Eval-Game](https://huggingface.co/datasets/Valen-Team/Valen-Eval-Game/tree/4f25038cd30d9a96aa377eea176a4d2e1680a35c),

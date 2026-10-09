@@ -238,13 +238,14 @@ Everything outside `openjiuwen` is an extra. An agent whose extra is missing say
 | `alfworld` | alfworld, textworld | `s1a run alfworld`; also `ALFWORLD_DATA` and Python 3.11, see `evals/README.md` |
 | `alfworld-visual` | the `alfworld` extra, ai2thor 2.1.0, torch | `evals/replay/thor_replay.py`, the AI2-THOR scene behind an ALFWorld trial in the replay page; the 400 MB Unity build downloads on first use |
 | `report` | pillow, playwright | `python -m evals.replay`, the showcase pages and GIFs; `--gif` also needs `uv run playwright install chromium` |
+| `visual` | pillow | `s1a run sokoban --visual`: the board renderer; text-board Sokoban stays dependency-free |
 | `laya` | laya (torch, transformers) | `--model laya` on every agent and on `decide` and `probe`: Laya in process, no Jev key; the checkpoint downloads into the Hugging Face cache (`HF_HOME`) on first use |
 | `cua` | cua-s1 (torch), huggingface-hub | `--model cua` on tool and browser agents and on `decide` and `probe`: Cua-S1 Nano in process; the 3 MB checkpoint downloads into the Hugging Face cache (`HF_HOME`) on first use |
 | `omnijev` | torch, torchvision, transformers, peft, accelerate, safetensors | `--model omnijev` on the browser agents: OmniJev in process, no Jev key; the model code is a clone of the OmniJev repository named by `OMNIJEV_REPO`, the checkpoint and base model by `OMNIJEV_CHECKPOINT` and `OMNIJEV_BASE` (`docs/configuration.md`) |
 | `dev` | pytest, pytest-asyncio, ruff, ty, jsonschema, pyyaml, referencing | the test suite, `scripts/smoke.sh` and the lint and type checks; the last three check the served-Laya fixtures against `docs/api/` |
 | `cua-four-b` | the `cua` extra, transformers 5, peft, torchvision, pillow | optional local Cua-S1 4B; set `CUA_S1_VARIANT=4b`, and `CUA_S1_MODALITY=text` or `multimodal` |
 
-`uv sync --all-extras` installs all eight. The CLI runs from a checkout; a wheel install (`uv tool install`,
+`uv sync --all-extras` installs all nine. The CLI runs from a checkout; a wheel install (`uv tool install`,
 `pip install`) is unsupported, because the data folders (`evals/2048`, `evals/millionaire`, `evals/labelled`) sit
 next to the package; the command refuses to start outside a checkout with one line on stderr. Runs, logs and
 results go under the checkout (`runs/`, `evals/results`), or under `S1A_HOME` when that variable names another
