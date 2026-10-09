@@ -71,6 +71,59 @@ consistency before re-scoring. Orphan or missing raw files are errors. It never 
 an existing summary; use a new output directory for another recomputation. These checks
 detect inconsistent evidence, not coordinated rewriting of an unsigned archive.
 
+## Changed-image replay
+
+Replay a frozen screenshot sequence against official JEV `/v1/decide` or native
+Omni `/v1/systemone`, using the same `DecisionClient` without a model override:
+
+```bash
+python -m benchmarks.legs.changed_image_replay \
+  --manifest /absolute/path/to/sequence.jsonl \
+  --endpoint http://127.0.0.1:8000 --path /v1/systemone \
+  --run-meta /absolute/path/to/environment.json \
+  --cache-state unknown --out /absolute/path/to/results/image-replay
+```
+
+Each JSONL line has a unique nonempty `id`, a nonempty `group`, and the original
+`request` object. For example (replace the placeholder with actual base64 bytes):
+
+```json
+{"id":"frame-1","group":"game-over","request":{"kind":"choice","state":["Inspect the screenshot.",{"image":"data:image/png;base64,..."}],"question":"Game over?","options":["No","Yes"]}}
+```
+
+`state` is a list with at least one inline PNG/JPEG image, either `{"image": URI}`
+or `{"type":"image_url","image_url":{"url": URI}}`. Preflight checks every row,
+base64 encoding and MIME signature before any request; image decoding stays with
+the service. Remote URLs are rejected. `choice` requires 2–256 string options;
+`noul` and `score` omit options. The original request, image order and option order
+are preserved. Repeated requests with distinct IDs are sent again. There are no
+warmups, retries, deduplication, service restarts or cache resets.
+
+Run metadata requires `checkpoint.repo/revision` and `backend.name/version` from
+the actual service. Include source revisions, hardware and cache configuration
+as available. `--cache-state` records only the caller's declaration: the caller
+must arrange a cold service, and resetting counters does not empty its caches.
+Keep any canonical-ID alias map alongside the external input evidence.
+
+The fresh output directory must be outside this repository. It retains the exact
+`manifest.jsonl`, `environment.json`, `run.meta.json`, one `raw/NNNNNN.json` per
+attempt and `results.jsonl`. Records include sequence/id/group/kind, hashes of
+the request serialized by `benchmarks.evidence.dump`, image URIs in order, raw
+evidence and original response text. Raw evidence retains request, HTTP status,
+text, decoded response, client error, timestamp and latency. `completion.json`
+counts planned/attempted/remaining/succeeded/failed and records the stop reason.
+HTTP 400/422 refusals and malformed answers remain failed records; access errors,
+other non-2xx responses, transport failures and interruptions stop the sequence.
+
+Response validation checks kind/effective_kind, ordered options, probability
+count/range and choice/index consistency. `noul` uses `false,true`; `score` uses
+`0` through `5`. This is structural validation, not reference agreement or task
+quality, and does not add three-kind support to the Agents `DecisionModel` API.
+Use the independent Omni harness for numerical reference comparison. Client
+`latency_s` ends after `response.text` is read, before JSON decoding; it excludes
+service startup. Short replays do not establish stable p95 latency, and replaying
+2048 screenshots does not establish autonomous game completion.
+
 ## Tests
 
 ```bash
