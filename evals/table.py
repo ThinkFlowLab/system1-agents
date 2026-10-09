@@ -147,7 +147,7 @@ def rows(trials: list[Trial]) -> list[dict[str, Any]]:
                 if scored_costs and None not in scored_costs
                 else None,
                 "cost_n": len(costs),
-                "mean_cost_all_usd": round(statistics.mean(costs), 4) if costs else None,
+                "mean_cost_all_usd": round(statistics.mean(costs), 6) if costs else None,
                 "cost_unknown": len(all_members) - len(costs),
             }
         )
@@ -157,7 +157,7 @@ def rows(trials: list[Trial]) -> list[dict[str, Any]]:
 def markdown(table: list[dict[str, Any]]) -> str:
     lines = ["| " + " | ".join(COLUMNS) + " |", "|" + "---|" * len(COLUMNS)]
     for row in table:
-        cost = "n/a" if row["mean_cost_all_usd"] is None else f"{row['mean_cost_all_usd']:.4f}"
+        cost = "n/a" if row["mean_cost_all_usd"] is None else f"{row['mean_cost_all_usd']:.6f}"
         scored_cost = "n/a" if row["mean_cost_usd"] is None else f"{row['mean_cost_usd']:.4f}"
         score = "n/a" if row["ci95"] is None else f"{row['mean_score']} [{row['ci95'][0]}, {row['ci95'][1]}]"
         cells = [

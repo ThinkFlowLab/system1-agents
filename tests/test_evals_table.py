@@ -73,7 +73,7 @@ class TestTable(TestCase):
             (row,) = rows(read_results(root))
         self.assertEqual(
             (row["N"], row["attempts"], row["errors"], row["mean_score"], row["mean_cost_all_usd"]),
-            (1, 3, 2, 1.0, 0.0001),
+            (1, 3, 2, 1.0, 0.000033),
         )
         self.assertEqual((row["cost_n"], row["cost_unknown"]), (3, 0))
         self.assertIn("| blackjack | jev | 3 | 2 | 1 | 1/3 | 0 | 1.0 [1.0, 1.0] |", markdown([row]))
@@ -104,7 +104,7 @@ class TestTable(TestCase):
             root = Path(tmp)
             write_job("blackjack", [_episode(0, 1.0, 0.0001), _episode(1, 1.0, None)], results_dir=root)
             (row,) = rows(read_results(root))
-        self.assertIsNone(row["mean_cost_all_usd"])
+        self.assertEqual(row["mean_cost_all_usd"], 0.0001)
         self.assertEqual((row["cost_n"], row["cost_unknown"]), (1, 1))
         self.assertIn("n/a", markdown([row]))
 
