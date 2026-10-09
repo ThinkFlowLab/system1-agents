@@ -149,7 +149,8 @@ The gates and the templates: [docs/skills.md](docs/skills.md#build-a-system-1-ag
 - `ticket_router`: 30 labelled support tickets to five queues.
 - `alfworld`: household tasks in text, with the AI2-THOR scene in the replays.
 - `game2048`, `millionaire`, `blackjack`, `sokoban`: games with a score per episode.
-  Sokoban uses text boards from Valen’s selected evaluation levels; see [the protocol](evals/sokoban/README.md).
+  Sokoban plays Valen’s selected evaluation levels as text boards or, with `--visual`, as Valen’s rendered
+  boards; see [the protocol](evals/sokoban/README.md).
 - `injection_guard`: a rail that answers one question at a hook of a running agent and fails closed.
 
 These use cases are [application candidates](CONTRIBUTING.md#application-candidates) for the required

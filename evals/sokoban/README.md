@@ -1,4 +1,4 @@
-# Sokoban (text-board adaptation)
+# Sokoban (text boards and, with --visual, Valen's rendered boards)
 
 ```bash
 uv run s1a run sokoban --model random --rethink off --episodes 1 --max-steps 10
@@ -19,14 +19,41 @@ level ID, text observation mode, pushes and whether the environment step limit w
 The standard episode records include the final board, steps, elapsed time and decisions.
 
 These are Valen's **selected** 100 evaluation levels (35 easy, 65 medium), not an unbiased
-sample. They retained successful 2B RLCD cases before filling the set. Results here use
-symbolic text boards and must not be compared as equivalent to Valen's image-only evaluation.
+sample. They retained successful 2B RLCD cases before filling the set. Text-mode results use
+symbolic boards and must not be compared as equivalent to Valen's image-only evaluation.
 No learned-model performance has been measured by this import.
 
-The simulator comes from Valen, not vllm-jev's demo assets. The level definitions are
-bundled without changes; evaluator-only reference solutions live under `tests/fixtures`
-and are never loaded by the agent. Tests replay all 100 reference solutions to validate
-transitions and level compatibility; this is not model accuracy.
+## Visual mode
+
+```bash
+uv sync --extra visual
+uv run --extra visual s1a run sokoban --model random --rethink off --episodes 1 --max-steps 10 --visual
+```
+
+`--visual` keeps the levels, episode loop, budgets and scoring untouched and swaps the
+observation: each decision is shown Valen's own rendering of the board, one PNG per move,
+drawn with the `theme` and `tile_size` the level carries, alongside the remaining step
+budget. The ASCII board never accompanies the picture — the preview checkpoint read images —
+and the pictures stay out of the episode records (`observation_mode: visual` marks the mode).
+The rules and the four direction labels follow each level's `language` (`en`/`zh`) and are
+Valen's own instruction texts, verbatim.
+
+The model must read images: `--model llm` is rejected (the chat model reads tool text only),
+and a text-only decision model drops the picture with its usual warning. `--model random`
+smokes the rendering offline. A served Valen worker behind `/v1/systemone` is the intended
+backend; its protocol takes one PNG/JPEG data URL as `state.image`, capped at an 8 MiB body,
+a 4 MiB image and 2048 pixels per side — a bundled level at tile 44 renders far below all of
+these. The HTTP backend for that worker ships as its own change; nothing here depends on it.
+
+This is the observation Valen's preview checkpoint was trained and validated on; the text
+mode above remains the off-distribution control. Measured results belong to the runs recorded
+under `evals/results/`, not to this import.
+
+The simulator and the renderer both come from Valen, not vllm-jev's demo assets. The level
+definitions are bundled without changes; evaluator-only reference solutions live under
+`tests/fixtures` and are never loaded by the agent. Tests replay reference solutions over
+both observation modes to validate transitions, level compatibility and rendering; this is
+not model accuracy.
 
 See [third-party provenance](../../THIRD_PARTY_LICENSES.md#valen-sokoban) for pinned
 code/data revisions and [the upstream dataset card](https://huggingface.co/datasets/Valen-Team/Valen-Eval-Game)

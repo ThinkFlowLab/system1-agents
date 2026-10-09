@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Sokoban `--visual`: the same levels, loop and scoring with the board rendered by Valen's own renderer — one
+  PNG per decision, the theme and tile size each level carries, and Valen's instruction and direction texts in
+  the level's language (`en`/`zh`). The ASCII board never rides with the picture and stays out of the episode
+  records; the `visual` extra (Pillow) is needed, text-board runs stay dependency-free.
 - Optional local Cua-S1 4B inference through the `cua-four-b` extra and `CUA_S1_VARIANT=4b`, supporting text and
   multimodal input. Desktop `--pixel-target` offers named screenshot points; clicks remain bound to the observed
   window and capture.

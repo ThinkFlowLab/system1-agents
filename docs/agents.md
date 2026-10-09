@@ -14,7 +14,7 @@ hook of a running agent. The injection guard rail fails closed: a decision error
 | `game2048` | tool | score and largest tile at a move cap | `s1a run game2048 --model jev --rethink on --episodes 10` |
 | `millionaire` | tool | winnings on a 15-question quiz ladder | `s1a run millionaire --model jev --rethink off --episodes 5` |
 | `blackjack` | tool | payoff per hand (RLCard) | `s1a run blackjack --model jev --rethink off --episodes 100` |
-| `sokoban` | tool | solved fraction on 100 selected Valen levels, using text boards | `s1a run sokoban --model jev --rethink off --episodes 100` |
+| `sokoban` | tool | solved fraction on 100 selected Valen levels, text boards or `--visual` renders | `s1a run sokoban --model jev --rethink off --episodes 100` |
 | `injection_guard` | rail | precision and recall on a labelled injection set | `s1a run injection_guard` |
 
 Every tool agent takes `--model jev|clm|laya|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
@@ -77,3 +77,7 @@ reads is `RULES` in `s1a/agents/ticket_router.py`.
 boards. No extra is needed. `--seed` is the zero-based level offset; the selected range must fit within 100
 levels. The score is 1 for solved and 0 otherwise. Use `--model random` for an offline smoke run; there is no
 rule baseline. Rethink must be off. See [protocol and provenance](../evals/sokoban/README.md).
+
+`--visual` plays the same levels over Valen's own rendering — one PNG per decision, theme and tile size from
+the level, rules and direction labels in the level's language — with the ASCII board left out. It needs
+`uv sync --extra visual` and a model that reads images (`--model llm` is rejected).
