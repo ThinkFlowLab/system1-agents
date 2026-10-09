@@ -70,7 +70,8 @@ def window_s(result: dict[str, Any]) -> float:
     Keep the historic float return contract for replay consumers; reporting code that needs to distinguish
     missing timing data should use ``recorded_window_s``.
     """
-    return recorded_window_s(result) or 0.0
+    elapsed = recorded_window_s(result)
+    return 0.0 if elapsed is None else elapsed
 
 
 def model_label(result: dict[str, Any]) -> str:
