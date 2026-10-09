@@ -44,10 +44,13 @@ state) and its rethink events in `agent/episode.json`; the count of chat-model c
 `result.json`. For `llm` the decisions are the chat calls that produced an `act`; a tick whose key was
 not offered is kept with `accepted: false`, counted as an `invalid_key`, and skipped by the replay. Its iteration
 cap is twice the game's budget, since the chat model spends turns on unknown keys.
-A run that reaches the iteration cap has `result_type: error` in `extra`; its score still counts. An episode that
-raised (a decisions failure, an env error) keeps `error` set: `summary.json` reports it under `errors`, computes
-the score statistics over the `scored` episodes only, and `evals.table` skips trials whose `result.json` has
-`exception_info`.
+A run that reaches the iteration cap has `result_type: error` in `extra`; its recorded reward still counts as an
+outcome because the episode did not raise. An episode that raised (a decisions failure, an env error) keeps
+`exception_info`: it counts as an attempt and an error, but does not enter score statistics. The table reports
+`attempts`, `errors`, and non-error `N` separately. Score uses only non-error trials with a recorded reward; an
+actual reward of `0` is retained, while a missing reward is reported as score-unknown. Time and cost include failed attempts when
+recorded and show their known-value denominator and unknown count; missing timestamps or cost are never treated as
+zero. The legacy steps, decisions, and chat-call means remain scoped to non-error trials.
 
 ## Setup
 
@@ -68,7 +71,11 @@ act against a bare loop (loop overhead); and, later, Jev's top probability again
 `summary.json` also holds decisions, chat calls, tokens (`chat_input_tokens`, `chat_output_tokens`,
 `chat_cache_tokens`) and `cost_usd` (Jev at $0.042 per M input tokens; the chat model at OpenRouter's catalogue
 price for `MODEL_NAME`, or custom rates from `CHAT_USD_PER_M_*`, see [docs/configuration.md](../docs/configuration.md)). `python -m evals.table evals/results` prints one row per eval and model over every
-job folder. ALFWorld's game files sort by task type; `--stride 11` from offset 0 takes twelve games across
+job folder. Its `s / attempt` and `$ / attempt` columns are means across all attempts with known values, including
+errors; `time (n/attempts)` and `cost (n/attempts)` show their denominators. The unknown columns count attempts
+without those values. The score column remains the mean with a 95% bootstrap interval over the non-error scored
+subset; `score (n)` states its count over all attempts, and `score unknown` counts non-error trials without a
+reward. ALFWorld's game files sort by task type; `--stride 11` from offset 0 takes twelve games across
 the six types. Every model plays the same tile draws because 2048 seeds the page's `Math.random`.
 
 ## Showcase runs and replays

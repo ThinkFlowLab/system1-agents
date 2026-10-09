@@ -54,12 +54,14 @@ class TestTable(TestCase):
 
         by_key = {(row["eval"], row["model"]): row for row in table}
         blackjack = by_key[("blackjack", "jev")]
-        self.assertEqual((blackjack["N"], blackjack["mean_score"], blackjack["median_s"]), (3, 0.333, 1.5))
         self.assertEqual(
-            (blackjack["mean_steps"], blackjack["mean_decisions"], blackjack["mean_cost_usd"]), (2, 2, 0.0001)
+            (blackjack["N"], blackjack["attempts"], blackjack["score_n"], blackjack["mean_score"]),
+            (3, 3, 3, 0.333),
         )
-        text = markdown(table)
-        self.assertIn("| blackjack | jev | 3 | 0 |", text)
+        self.assertEqual(
+            (blackjack["mean_steps"], blackjack["mean_decisions"], blackjack["mean_cost_all_usd"]), (2, 2, 0.0001)
+        )
+        self.assertIn("| blackjack | jev | 3 | 0 | 3 | 3/3 | 0 |", markdown(table))
 
     def test_errored_trials_are_counted_and_not_scored(self) -> None:
         failed = _episode(1, 0.0, 0.0)
@@ -69,8 +71,12 @@ class TestTable(TestCase):
             write_job("blackjack", [_episode(0, 1.0, 0.0001), failed], results_dir=root)
             write_job("blackjack", [failed], results_dir=root)
             (row,) = rows(read_results(root))
-        self.assertEqual((row["N"], row["errors"], row["mean_score"], row["mean_cost_usd"]), (1, 2, 1.0, 0.0001))
-        self.assertIn("| blackjack | jev | 1 | 2 | 1.0 [1.0, 1.0] |", markdown([row]))
+        self.assertEqual(
+            (row["N"], row["attempts"], row["errors"], row["mean_score"], row["mean_cost_all_usd"]),
+            (1, 3, 2, 1.0, 0.0001),
+        )
+        self.assertEqual((row["cost_n"], row["cost_unknown"]), (3, 0))
+        self.assertIn("| blackjack | jev | 3 | 2 | 1 | 1/3 | 0 | 1.0 [1.0, 1.0] |", markdown([row]))
 
     def test_a_model_whose_every_trial_errored_has_no_score(self) -> None:
         failed = _episode(0, 0.0, None)
@@ -79,7 +85,8 @@ class TestTable(TestCase):
             write_job("blackjack", [failed], results_dir=Path(tmp))
             (row,) = rows(read_results(Path(tmp)))
         self.assertEqual((row["N"], row["errors"], row["mean_score"]), (0, 1, None))
-        self.assertIn("| blackjack | jev | 0 | 1 | n/a | n/a | n/a | n/a | n/a | n/a |", markdown([row]))
+        self.assertEqual((row["attempts"], row["errors"], row["score_n"], row["mean_score"]), (1, 1, 0, None))
+        self.assertIn("| blackjack | jev | 1 | 1 | 0 | 0/1 | 0 | n/a |", markdown([row]))
 
     def test_rows_are_keyed_by_the_results_folder_not_the_recorded_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -97,5 +104,45 @@ class TestTable(TestCase):
             root = Path(tmp)
             write_job("blackjack", [_episode(0, 1.0, 0.0001), _episode(1, 1.0, None)], results_dir=root)
             (row,) = rows(read_results(root))
-        self.assertIsNone(row["mean_cost_usd"])
+        self.assertIsNone(row["mean_cost_all_usd"])
+        self.assertEqual((row["cost_n"], row["cost_unknown"]), (1, 1))
         self.assertIn("n/a", markdown([row]))
+
+    def test_missing_reward_and_timestamps_stay_unknown_but_zero_reward_and_cost_are_preserved(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            zero = _episode(0, 0.0, 0.0)
+            write_job("blackjack", [zero], results_dir=root)
+            result_file = next(root.glob("*/*/*/result.json"))
+            import json
+
+            result = json.loads(result_file.read_text())
+            result["agent_result"]["metadata"].pop("elapsed_s", None)
+            result["agent_execution"] = {}
+            (result["verifier_result"]["rewards"]).pop("reward", None)
+            result_file.write_text(json.dumps(result))
+            (row,) = rows(read_results(root))
+        self.assertEqual(
+            (row["attempts"], row["N"], row["score_n"], row["score_unknown"], row["mean_score"]),
+            (1, 1, 0, 1, None),
+        )
+        self.assertEqual((row["time_n"], row["time_unknown"], row["mean_elapsed_all_s"]), (0, 1, None))
+        self.assertEqual((row["cost_n"], row["cost_unknown"], row["mean_cost_all_usd"]), (1, 0, 0.0))
+
+    def test_error_cost_and_elapsed_are_included_when_recorded_and_unknowns_are_counted(self) -> None:
+        failed = _episode(1, 0.0, 0.0)
+        failed.error = "timeout"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_job("blackjack", [failed], results_dir=root)
+            result_file = next(root.glob("*/*/*/result.json"))
+            import json
+
+            result = json.loads(result_file.read_text())
+            result["agent_result"].pop("cost_usd", None)
+            (result["agent_result"].get("metadata") or {}).pop("elapsed_s", None)
+            result["agent_execution"] = {}
+            result_file.write_text(json.dumps(result))
+            (row,) = rows(read_results(root))
+        self.assertEqual((row["attempts"], row["errors"], row["N"]), (1, 1, 0))
+        self.assertEqual((row["cost_n"], row["cost_unknown"], row["time_n"], row["time_unknown"]), (0, 1, 0, 1))
