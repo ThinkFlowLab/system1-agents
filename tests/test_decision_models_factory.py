@@ -44,7 +44,7 @@ class TestBuildModel(TestCase):
         rule = build_model("rule", rule=("always-inc", lambda state, options: "inc"))
         self.assertIsInstance(rule, RuleModel)
         self.assertEqual(rule.name, "always-inc")
-        self.assertEqual(DECISION_MODEL_NAMES, ("jev", "laya", "laya-served", "cua", "random", "rule"))
+        self.assertEqual(DECISION_MODEL_NAMES, ("jev", "clm", "laya", "laya-served", "cua", "random", "rule"))
 
     def test_the_errors(self) -> None:
         with self.assertRaises(RuntimeError):

@@ -1,0 +1,4 @@
+{"n": 1, "tool": "browser_navigate", "request_ms": 863, "response_ms": 1841, "frame_ms": 2032}
+{"n": 2, "tool": "browser_run_code_unsafe", "request_ms": 1851, "response_ms": 4621, "frame_ms": 4785}
+{"n": 3, "tool": "browser_run_code_unsafe", "request_ms": 4625, "response_ms": 7183, "frame_ms": 7319}
+{"n": 4, "tool": "browser_run_code_unsafe", "request_ms": 7186, "response_ms": 8366, "frame_ms": 8498}

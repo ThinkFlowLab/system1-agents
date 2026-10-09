@@ -1,0 +1,12 @@
+system1-agents 22e685b484c3d7813bad5079ee846217f4a7f0cf (main, the #36 merge)
+system1-omni 99865743d27316fbe81362dc0f0e6de6fda86284
+Open-Jev 3308a15ccd7eea1df7a37d6ddc39b023b801ba16
+{"status": "ready", "model": "Qwen/Qwen3.5-9B", "method": "lora_decision_head"}
+{"status": "ready", "model": "Qwen/Qwen3.5-9B", "method": "lora_decision_head"}
+NVIDIA A40, 46068 MiB, 615.71.09
+== default-5s  14:56:04
+   exit 0 frames 5
+== timeout-30s S1A_DECISION_TIMEOUT_S=30 14:56:43
+   exit 0 frames 20
+== timeout-1s S1A_DECISION_TIMEOUT_S=1 14:58:47
+   exit 0 frames 5

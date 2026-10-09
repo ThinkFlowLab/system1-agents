@@ -7,6 +7,7 @@ import os
 
 from s1a.decision_models.base import DecisionModel
 from s1a.decision_models.baselines import RandomModel, Rule, RuleModel
+from s1a.decision_models.clm import ClmModel
 from s1a.decision_models.cua import CuaS1Model
 from s1a.decision_models.cua_four_b import CuaFourBModel
 from s1a.decision_models.jev import JevModel
@@ -15,6 +16,7 @@ from s1a.decision_models.served import ServedLayaModel
 
 DECISION_MODEL_NAMES = (
     "jev",
+    "clm",
     "laya",
     "laya-served",
     "cua",
@@ -24,10 +26,12 @@ DECISION_MODEL_NAMES = (
 
 
 def build_model(model_name: str, *, seed: int = 0, rule: tuple[str, Rule] | None = None) -> DecisionModel:
-    """``jev``, ``laya``, ``laya-served`` and ``cua`` from the environment, ``random`` from the seed, ``rule`` from the agent's baseline."""
+    """``jev``, ``clm``, ``laya``, ``laya-served`` and ``cua`` from the environment, ``random`` from the seed, ``rule`` from the agent's baseline."""
     match model_name:
         case "jev":
             return JevModel.from_env()
+        case "clm":
+            return ClmModel.from_env()  # CLM over HTTP; no torch, no cloud key
         case "laya":
             return LayaModel.from_env()  # the laya import happens inside
         case "laya-served":

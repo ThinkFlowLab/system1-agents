@@ -46,15 +46,28 @@ class TestPieces(TestCase):
         self.assertTrue(
             desktop.shows(Snapshot(window, None, (Element(2, "AXStaticText", "PASS", "", None, ()),), {}), "PASS")
         )
+        self.assertTrue(
+            desktop.shows(
+                Snapshot(window, None, (Element(3, "AXButton", "Saved", "", "t", (), enabled=False),), {}), "Saved"
+            )
+        )
 
-    def test_the_plan_rule_follows_the_labels_with_variants_then_says_done_or_abstains(self) -> None:
+    def test_the_plan_rule_follows_the_labels_with_variants_then_abstains(self) -> None:
         rule = desktop.plan_rule(desktop.parse_plan("1, 2,Multiply|×,7,Equals|="))
         offered = {f"click:{label}": "" for label in ("1", "2", "×", "7", "=")}
         self.assertEqual(
             [rule({"presses": ["x"] * n}, offered) for n in range(6)],
-            ["click:1", "click:2", "click:×", "click:7", "click:=", "done"],
+            ["click:1", "click:2", "click:×", "click:7", "click:=", "abstain"],
         )
         self.assertEqual(rule({"presses": []}, {"click:9": ""}), "abstain")
+
+    def test_the_plan_can_name_text_actions(self) -> None:
+        rule = desktop.plan_rule(desktop.parse_plan("type:Body,Save"))
+        offered = {"type:Body": "", "click:Save": ""}
+        self.assertEqual(
+            [rule({"presses": ["x"] * n}, offered) for n in range(3)],
+            ["type:Body", "click:Save", "abstain"],
+        )
 
     def test_the_flags_require_app_goal_and_expect_and_default_to_a_dry_run(self) -> None:
         args = series.parser(desktop.SPEC).parse_args(
@@ -70,6 +83,58 @@ class TestPieces(TestCase):
         )
         with patch.object(desktop, "driver_from_env", lambda label: FakeCalculator()):
             self.assertIsNone(desktop.make_series(args).baseline)
+
+    def test_each_series_uses_a_fresh_driver_session_label(self) -> None:
+        args = series.parser(desktop.SPEC).parse_args(
+            ["--model", "rule", "--rethink", "off", "--episodes", "1", *CALCULATOR]
+        )
+        labels: list[str] = []
+
+        def driver(label: str) -> FakeCalculator:
+            labels.append(label)
+            return FakeCalculator()
+
+        with patch.object(desktop, "driver_from_env", driver):
+            desktop.make_series(args)
+            desktop.make_series(args)
+        self.assertEqual(len(labels), 2)
+        self.assertNotEqual(labels[0], labels[1])
+        self.assertTrue(all(label.startswith("s1a-desktop-") for label in labels))
+
+    def test_app_path_is_mac_only(self) -> None:
+        args = series.parser(desktop.SPEC).parse_args(
+            ["--model", "rule", "--rethink", "off", "--episodes", "1", *CALCULATOR, "--app-path", "/tmp/Fixture.app"]
+        )
+        with patch("sys.platform", "win32"), self.assertRaisesRegex(ValueError, "macOS"):
+            desktop.make_series(args)
+
+    def test_file_verification_requires_the_visible_result_and_exact_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "saved.txt"
+            args = series.parser(desktop.SPEC).parse_args(
+                [
+                    "--model",
+                    "rule",
+                    "--rethink",
+                    "off",
+                    "--episodes",
+                    "1",
+                    *CALCULATOR,
+                    "--text",
+                    "hello",
+                    "--verify-file",
+                    str(path),
+                ]
+            )
+            with patch.object(desktop, "driver_from_env", lambda label: FakeCalculator()):
+                env = desktop.make_series(args).env_for(0)
+            window = Window(42, 7, "Calculator", "Calculator")
+            shown = Snapshot(window, "s1", (Element(0, "AXStaticText", "", "84", None, ()),), {})
+            self.assertFalse(env._done_when(shown))
+            path.write_text("wrong", encoding="utf-8")
+            self.assertFalse(env._done_when(shown))
+            path.write_text("hello", encoding="utf-8")
+            self.assertTrue(env._done_when(shown))
 
 
 async def _noop(app: str, driver: object, window_title: str = "") -> None:
@@ -103,6 +168,7 @@ class TestLaunch(IsolatedAsyncioTestCase):
                 _result({"apps": []}),
                 _result({"pid": 100, "windows": windows}),
                 _result({"windows": listed}),
+                _result({"windows": listed}),
                 _result({"elements": []}),
                 _result({}),
             ) as (driver, session, _),
@@ -113,8 +179,8 @@ class TestLaunch(IsolatedAsyncioTestCase):
                 env = task.env_for(0)
                 await env.reset()
                 self.assertEqual((await env.observe())["title"], "Draft")
-        name, target = session.calls[4]
-        self.assertEqual((name, target["pid"], target["window_id"]), ("get_window_state", 42, 7))
+        target = next(args for name, args in session.calls if name == "get_window_state")
+        self.assertEqual((target["pid"], target["window_id"]), (42, 7))
 
     async def test_windows_launches_through_driver_without_running_macos_open(self) -> None:
         fake = FakeCalculator()

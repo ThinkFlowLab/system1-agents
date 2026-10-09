@@ -29,7 +29,7 @@ from s1a.pricing import cost_usd
 from s1a.spec import Json, RailSpec, Verdict
 
 QUESTION = "check"
-RAIL_MODEL_NAMES = ("jev", "laya", "laya-served")
+RAIL_MODEL_NAMES = ("jev", "clm", "laya", "laya-served")
 
 
 def question(spec: RailSpec) -> Question:
@@ -174,7 +174,7 @@ def parser(spec: RailSpec) -> argparse.ArgumentParser:
         "--model",
         choices=RAIL_MODEL_NAMES,
         default="jev",
-        help="who answers the question: jev or laya-served over HTTP, laya in process",
+        help="who answers the question: jev, clm or laya-served over HTTP, laya in process",
     )
     return build
 

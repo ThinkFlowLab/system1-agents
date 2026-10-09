@@ -16,9 +16,9 @@ hook of a running agent. The injection guard rail fails closed: a decision error
 | `blackjack` | tool | payoff per hand (RLCard) | `s1a run blackjack --model jev --rethink off --episodes 100` |
 | `injection_guard` | rail | precision and recall on a labelled injection set | `s1a run injection_guard` |
 
-Every tool agent takes `--model jev|laya|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
+Every tool agent takes `--model jev|clm|laya|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
 `--max-steps` and `--timeout`, and writes a Harbor-shaped job folder under `evals/results/<agent>/`. A browser agent
-takes `--model jev|laya|cua|llm` and `--goal`. A rail takes `--model jev|laya`, the two models that answer `noul`.
+takes `--model jev|clm|laya|cua|llm` and `--goal`. A rail takes `--model jev|clm|laya|laya-served`, the models that answer `noul`.
 `uv run python -m evals.table evals/results` aggregates every job folder per eval and model into one table.
 
 Every `run` prints one JSON object on stdout and nothing else there; `s1a-mcp` serves the same agents over stdio
@@ -30,8 +30,22 @@ models behind them: [architecture.md](architecture.md#models).
 
 `s1a run <agent> --help` lists every flag with its default. Beyond the shared ones: `flights` and `allrecipes` take `--goal`,
 `--batch on|off`, `--prefetch on|off`, `--goal-values on|off`, `--profile-out` and `--logs-dir`; `desktop` takes
-`--app`, `--goal`, `--expect`, `--execute`, `--plan` and `--clear`; `ticket_router` takes `--dataset` and
+`--app`, `--app-path`, `--window-title`, `--goal`, `--expect`, `--execute`, `--plan`, `--clear`, `--text`,
+`--text-target`, `--text-mode`, `--verify-file` and `--pixel-target`; `ticket_router` takes `--dataset` and
 `--batch-size`; `injection_guard` takes `--labelled-set`. The four games take no flag of their own.
+
+### Desktop text input
+
+`--text` supplies the content for a `type:*` action. `--text-target` selects an exact field label or native
+identifier. The default `--text-mode insert` inserts at the current selection; `replace` sets the whole field.
+Both require a fresh readback before the input is recorded as successful. Chinese and multiline text are
+supported through native field replacement. `--window-title` selects the document when an app has several windows.
+
+`--verify-file` requires the expected window state and a file changed during this episode whose UTF-8 content
+matches `--text`. Without `--execute`, the first decision is only recorded as a plan.
+The [macOS fixture](../evals/desktop/README.md) provides a local Laya demo and a fixed-plan execution check.
+
+### Desktop screenshot targets
 
 `--pixel-target KEY=X,Y` offers named points in screenshot fractions. Local Cua-S1 4B multimodal can select
 among them when controls have no accessibility elements. Each click carries its screenshot capture ID.

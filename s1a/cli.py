@@ -21,6 +21,7 @@ from s1a.spec import Json
 
 DECIDE_MODEL_NAMES = (
     "jev",
+    "clm",
     "laya",
     "laya-served",
     "cua",
@@ -39,7 +40,7 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("flags", nargs=argparse.REMAINDER)
     decide = commands.add_parser(
         "decide",
-        help="one choice question to a decision model: jev or laya-served over HTTP, or laya and cua in process",
+        help="one choice question to a decision model: jev, clm or laya-served over HTTP, or laya and cua in process",
     )
     decide.add_argument("--state", required=True, help="a JSON object, or @path to a file holding one")
     decide.add_argument(
@@ -50,7 +51,7 @@ def parser() -> argparse.ArgumentParser:
         "--model",
         choices=DECIDE_MODEL_NAMES,
         default="jev",
-        help="who answers: jev or laya-served over HTTP, laya and cua in process",
+        help="who answers: jev, clm or laya-served over HTTP, laya and cua in process",
     )
     fit = commands.add_parser("probe", help="the fit probe: hand-written choice cases from a JSONL file")
     fit.add_argument(
@@ -62,7 +63,7 @@ def parser() -> argparse.ArgumentParser:
         "--model",
         choices=DECIDE_MODEL_NAMES,
         default="jev",
-        help="who answers: jev or laya-served over HTTP, laya and cua in process",
+        help="who answers: jev, clm or laya-served over HTTP, laya and cua in process",
     )
     return build
 

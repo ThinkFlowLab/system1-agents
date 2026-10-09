@@ -4,7 +4,7 @@ import base64
 import json
 import os
 from unittest import IsolatedAsyncioTestCase, TestCase
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, call, patch
 
 from mcp.types import CallToolResult, ImageContent
 
@@ -52,7 +52,7 @@ class TestVisualTargets(IsolatedAsyncioTestCase):
         fake.window_state.return_value = snapshot
         env = WindowEnv(fake, app_name="Canvas", goal="Save", done_when=lambda s: False, execute=False, clear_labels=())
         await env.reset()
-        self.assertEqual(set(await env.candidates()), {"done", "abstain"})
+        self.assertEqual(set(await env.candidates()), {"abstain"})
         self.assertEqual([e["label"] for e in (await env.observe())["elements"]], ["Saved"])
 
     async def test_window_title_selects_the_canvas_among_auxiliary_windows(self) -> None:
@@ -100,7 +100,7 @@ class TestVisualTargets(IsolatedAsyncioTestCase):
             async with task.session:
                 await task.env_for(0).reset()
         launch.assert_awaited_once_with("/tmp/Canvas.app", driver, "Canvas task")
-        driver.find_window.assert_awaited_once_with("Canvas", "Canvas task")
+        self.assertEqual(driver.find_window.await_args_list, [call("Canvas", "Canvas task")] * 2)
 
     async def test_multimodal_ax_task_receives_current_window_image(self) -> None:
         driver = AsyncMock()
@@ -124,7 +124,7 @@ class TestVisualTargets(IsolatedAsyncioTestCase):
         )
         await env.reset()
         self.assertEqual(await env.images(), (Image(b"Canvas task"),))
-        self.assertEqual(set(await env.candidates()), {"done", "abstain"})
+        self.assertEqual(set(await env.candidates()), {"abstain"})
 
     async def test_screenshot_goes_to_model_and_selected_point_uses_its_capture(self) -> None:
         picture = Image(b"png")

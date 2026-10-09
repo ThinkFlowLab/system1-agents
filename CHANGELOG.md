@@ -9,6 +9,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - Optional local Cua-S1 4B inference through the `cua-four-b` extra and `CUA_S1_VARIANT=4b`, supporting text and
   multimodal input. Desktop `--pixel-target` offers named screenshot points; clicks remain bound to the observed
   window and capture.
+- Verified desktop text input through `--text`, `--text-target`, and `--text-mode` (insert or replace).
+  Completion requires confirmed input and fresh field readback; `--verify-file` also requires matching contents
+  in a freshly written file. `--window-title` selects an exact window and `--app-path` launches a macOS app bundle.
 - Snake recipe and game client: `evals/snake` vendors the laya-mlx snake CLI
   (Apache-2.0) with single-game paced recording and a 16-game multigrid mode
   against any `/v1/systemone` backend; `recipes/snake` documents setup,
@@ -28,6 +31,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `--model clm`: CLM's `clm-serve` behind the decision-model interface, over its `/v1/systemone`. The engine owns
+  everything after a frozen Qwen3-8B encoder, so no torch and no cloud key are needed on this side. Offered
+  everywhere the other HTTP models are: `run`, `decide`, `probe`, rails, the browser front and the MCP server.
+  See [docs/clm.md](docs/clm.md) and the [ticket-router evidence](evals/ticket_router/CLM.md).
 - `.coderabbit.yaml` and the `review-pr` skill: CodeRabbit reviews every non-draft pull request except Dependabot's, forks
   included, once an owner installs the CodeRabbit GitHub App, against `.claude/skills/review-pr/SKILL.md` and the linked issues.
   Maintainers can run the same skill by hand.
@@ -65,6 +72,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- Desktop click candidates omit disabled or unlabelled controls and application menu items, including in
+  click-only tasks.
 - Backend contribution guidance requires cold in-process model load timing, profiling above 5 s, and
   complete checkpoint coverage before skipping random weight initialization.
 - `--model laya` loads in about 3 s instead of about 35 s: the encoder is built with transformers' weight init

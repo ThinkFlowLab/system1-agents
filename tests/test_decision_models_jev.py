@@ -329,3 +329,11 @@ class TestDecisionTimeout(TestCase):
                     JevModel.from_env()
                 self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
                 self.assertIn("S1A_DECISION_TIMEOUT_S", str(caught.exception))
+
+    def test_an_explicit_deadline_that_is_not_a_finite_positive_number_is_a_config_error(self) -> None:
+        for value in (0.0, -3.0, float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=value), patch.dict(os.environ, {**self.ENV, "S1A_DECISION_TIMEOUT_S": ""}):
+                with self.assertRaises(BaseError) as caught:
+                    JevModel.from_env(timeout_s=value)
+                self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
+                self.assertIn("timeout_s", str(caught.exception))

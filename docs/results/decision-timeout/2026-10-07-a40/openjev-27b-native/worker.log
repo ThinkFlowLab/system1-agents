@@ -1,0 +1,2 @@
+Error: cudaMalloc: out of memory (2)
+exit 1
