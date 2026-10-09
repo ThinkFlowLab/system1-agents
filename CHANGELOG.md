@@ -19,6 +19,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- Browser front: the screenshot for an image-reading decision model is read from the `png` field of the
+  capture's own result, layer by layer, and must decode to a PNG. Before, a pattern search over the whole run-code
+  output could take PNG-like text from elsewhere in the result, such as the page state, for the picture.
 - Fit-probe cases with no options, no accepted answer, or an accepted key outside the offered options now fail
   input validation instead of skewing the fit verdict.
 - Windows development checks: the smoke script accepts CRLF output, shell scripts and Git hooks retain LF

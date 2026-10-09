@@ -91,7 +91,8 @@ SCREENSHOT_JS = (
     "return JSON.stringify({png: png.toString('base64')}); }"
 )
 SCREENSHOT_ATTEMPTS = 2  # a failed capture is tried once more before the step goes on without a picture
-_SCREENSHOT_RE = re.compile(r'png\\*"\s*:\s*\\*"([A-Za-z0-9+/=]+)')
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_RUN_CODE_LAYERS = 4  # compact RPC envelope, MCP content list, result field, JSON text (possibly encoded twice)
 
 
 @dataclass(frozen=True)
@@ -431,14 +432,14 @@ class BrowserDecisionModel(Model):
                 raw = await executor(SCREENSHOT_JS)
             except Exception:  # noqa: BLE001 - a failed capture degrades to a text-only observation
                 logger.warning("[BrowserDecisionModel] screenshot failed", exc_info=True)
-            found = _SCREENSHOT_RE.search(json.dumps(raw, default=str)) if raw is not None else None
+            found = _png_from_run_code(raw)
             if found is not None:
                 break
         ms = round((time.perf_counter() - started) * 1000)
         if found is None:
             logger.warning("[BrowserDecisionModel] no screenshot in the run-code result")
             return None, ms
-        return Image(base64.b64decode(found.group(1))), ms
+        return Image(found), ms
 
     async def _raw_probe(self, *, settle_ms: int, quiet_ms: int, after: dict[str, Any] | None) -> dict[str, Any]:
         params = {
@@ -835,6 +836,38 @@ class BrowserDecisionModel(Model):
 def _progressed(snapshot: dict[str, Any], before_key: Any) -> bool:
     """A page moved on only when a probe that succeeded shows a different ``page_key``."""
     return not snapshot.get("error") and snapshot.get("page_key") != before_key
+
+
+def _png_from_run_code(raw: Any) -> bytes | None:
+    """The PNG that ``SCREENSHOT_JS`` returned, read from the ``png`` field of its result object.
+
+    The object arrives as is, or wrapped: in the compact RPC envelope (``payload``), as the text of an MCP content
+    list, under ``result``/``text``/``data``, or as JSON text after a ``### Result`` header, possibly encoded twice.
+    Each layer is opened in turn. ``None`` when no layer holds a ``png`` string, or when that string is not base64 of
+    a PNG, so text elsewhere in the result (the page's own content included) is never taken for the picture."""
+    for _layer in range(_RUN_CODE_LAYERS + 1):
+        if isinstance(raw, dict) and "png" in raw:
+            break
+        if isinstance(raw, dict):
+            content = raw.get("content")
+            if isinstance(content, list):
+                raw = "\n".join(
+                    str(i.get("text") or "") for i in content if isinstance(i, dict) and i.get("type") == "text"
+                )
+            else:
+                raw = next((raw[key] for key in ("payload", "result", "text", "data") if key in raw), None)
+        elif isinstance(raw, str):
+            raw = extract_json_object(raw) or None
+        else:
+            return None
+    png = raw.get("png") if isinstance(raw, dict) else None
+    if not isinstance(png, str):
+        return None
+    try:
+        data = base64.b64decode(png, validate=True)
+    except ValueError:
+        return None
+    return data if data.startswith(PNG_SIGNATURE) else None
 
 
 def _json_field(content: Any, key: str) -> Any:
