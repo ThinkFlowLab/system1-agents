@@ -21,8 +21,8 @@ from s1a.jobs import BOOTSTRAP_RESAMPLES, bootstrap_interval
 
 COLUMNS = (
     "eval", "model", "attempts", "errors", "N", "score (n)", "score unknown", "score",
-    "time (n/attempts)", "s / attempt", "time unknown", "steps", "decisions", "chat calls",
-    "cost (n/attempts)", "$ / attempt", "cost unknown",
+    "scored median s", "steps", "decisions", "chat calls", "scored $ / episode",
+    "time (n/attempts)", "s / attempt", "time unknown", "cost (n/attempts)", "$ / attempt", "cost unknown",
 )
 
 
@@ -100,7 +100,9 @@ def rows(trials: list[Trial]) -> list[dict[str, Any]]:
     for (eval_name, model), all_members in sorted(groups.items()):
         members = [member for member in all_members if not member.errored]
         scores = [member.score for member in members if member.score is not None]
+        scored_elapsed = [member.elapsed_s for member in members if member.elapsed_s is not None]
         elapsed = [member.elapsed_s for member in all_members if member.elapsed_s is not None]
+        scored_costs = [member.cost_usd for member in members]
         costs = [member.cost_usd for member in all_members if member.cost_usd is not None]
         steps = [member.steps for member in members if member.steps is not None]
         table.append(
@@ -117,12 +119,16 @@ def rows(trials: list[Trial]) -> list[dict[str, Any]]:
                 "time_n": len(elapsed),
                 "mean_elapsed_all_s": round(statistics.mean(elapsed), 1) if elapsed else None,
                 "time_unknown": len(all_members) - len(elapsed),
+                "median_s": round(statistics.median(scored_elapsed), 1) if scored_elapsed else None,
                 "mean_steps": round(statistics.mean(steps), 1) if steps else None,
                 "mean_decisions": round(statistics.mean(member.decisions for member in members), 1)
                 if members
                 else None,
                 "mean_chat_calls": round(statistics.mean(member.chat_calls for member in members), 1)
                 if members
+                else None,
+                "mean_cost_usd": round(statistics.mean(scored_costs), 4)
+                if scored_costs and None not in scored_costs
                 else None,
                 "cost_n": len(costs),
                 "mean_cost_all_usd": round(statistics.mean(costs), 4) if costs else None,
@@ -136,17 +142,18 @@ def markdown(table: list[dict[str, Any]]) -> str:
     lines = ["| " + " | ".join(COLUMNS) + " |", "|" + "---|" * len(COLUMNS)]
     for row in table:
         cost = "n/a" if row["mean_cost_all_usd"] is None else f"{row['mean_cost_all_usd']:.4f}"
+        scored_cost = "n/a" if row["mean_cost_usd"] is None else f"{row['mean_cost_usd']:.4f}"
         score = "n/a" if row["ci95"] is None else f"{row['mean_score']} [{row['ci95'][0]}, {row['ci95'][1]}]"
         cells = [
             row[key] if row[key] is not None else "n/a"
-            for key in ("mean_elapsed_all_s", "mean_steps", "mean_decisions", "mean_chat_calls")
+            for key in ("median_s", "mean_steps", "mean_decisions", "mean_chat_calls")
         ]
         lines.append(
             f"| {row['eval']} | {row['model']} | {row['attempts']} | {row['errors']} | {row['N']} | "
             f"{row['score_n']}/{row['attempts']} | {row['score_unknown']} | {score} | "
-            f"{row['time_n']}/{row['attempts']} | "
-            f"{cells[0]} | {row['time_unknown']} | {cells[1]} | {cells[2]} | {cells[3]} | "
-            f"{row['cost_n']}/{row['attempts']} | {cost} | {row['cost_unknown']} |"
+            f"{cells[0]} | {cells[1]} | {cells[2]} | {cells[3]} | {scored_cost} | "
+            f"{row['time_n']}/{row['attempts']} | {row['mean_elapsed_all_s'] if row['mean_elapsed_all_s'] is not None else 'n/a'} | "
+            f"{row['time_unknown']} | {row['cost_n']}/{row['attempts']} | {cost} | {row['cost_unknown']} |"
         )
     return "\n".join(lines)
 
