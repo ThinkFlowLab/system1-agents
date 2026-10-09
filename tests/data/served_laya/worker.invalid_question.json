@@ -1,0 +1,17 @@
+{
+ "status": 422,
+ "content_type": "application/json",
+ "body": {
+  "detail": "question 'q': unknown type 'bogus'; use one of ['choice', 'noul', 'score']"
+ },
+ "request": {
+  "model": "english",
+  "state": "I was charged twice for my order. Please refund the duplicate today.",
+  "questions": {
+   "q": {
+    "type": "bogus",
+    "instructions": "?"
+   }
+  }
+ }
+}

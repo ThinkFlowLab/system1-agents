@@ -18,7 +18,7 @@ from openjiuwen.core.common.exception.errors import BaseError
 from openjiuwen.core.foundation.llm import AssistantMessage, AssistantMessageChunk, Model, ToolCall, init_model
 
 from s1a.decision_models import DecisionModel, ChoiceQuestion, Observation
-from s1a.env import Env
+from s1a.env import Env, VisualEnv
 
 ACT_TOOL = "act"
 OBSERVE_TOOL = "observe"
@@ -80,6 +80,7 @@ class ToolDecisionModel(Model):
         self._fallback = fallback
         self._act_name = ACT_TOOL
         self.name = decision_model.name  # lands in every tick's ``source`` and in ``Episode.policy``
+        self.bills_input_tokens = decision_model.bills_input_tokens
 
     async def invoke(self, messages: Any, *, tools: Any = None, **kwargs: Any) -> AssistantMessage:
         act_name = tool_name(tools, ACT_TOOL)
@@ -137,9 +138,10 @@ class ToolDecisionModel(Model):
         if state.notices:
             request_state["harness_notices"] = list(state.notices)
         started = time.perf_counter()
+        images = await env.images() if isinstance(env, VisualEnv) else ()
         try:
             decision = await self._decision_model.decide_many(
-                Observation(request_state), {"pick": ChoiceQuestion(offered, rules=self._rules)}
+                Observation(request_state, images), {"pick": ChoiceQuestion(offered, rules=self._rules)}
             )
         except BaseError as exc:  # any decisions failure ends the episode as BLOCKED, recorded
             state.error = f"decision failed: {exc}"
@@ -157,6 +159,8 @@ class ToolDecisionModel(Model):
                 "plan": bool(state.plan),
                 "blocked": sorted(state.blocked),
                 "source": self.name,
+                "model": decision.model,
+                **decision.provenance,
             }
         )
         state.blocked = set()  # a block, the notices and the plan last one turn

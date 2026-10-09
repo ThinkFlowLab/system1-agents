@@ -174,3 +174,18 @@ class TestProbe(IsolatedAsyncioTestCase):
                 self.assertIn(f"{path}:3", str(caught.exception))
             path.write_text(f"{good}\n", encoding="utf-8")
             self.assertEqual(len(probe.read_cases(path)), 1)
+
+    def test_probe_rejects_cases_without_an_offered_correct_answer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cases.jsonl"
+            cases = (
+                ({"options": {}, "accept": ["a"]}, "options must offer at least one choice"),
+                ({"options": {"a": "one"}, "accept": []}, "accept must name at least one offered option"),
+                ({"options": {"a": "one"}, "accept": ["a", "typo"]}, "accept names keys not in options: typo"),
+            )
+            for fields, message in cases:
+                with self.subTest(fields=fields):
+                    path.write_text(json.dumps({"state": {}, "rules": "r", **fields}) + "\n", encoding="utf-8")
+                    with self.assertRaises(ValueError) as caught:
+                        probe.read_cases(path)
+                    self.assertEqual(str(caught.exception), f"{path}:1: {message}")

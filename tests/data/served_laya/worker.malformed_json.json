@@ -1,0 +1,7 @@
+{
+ "status": 400,
+ "content_type": "application/json",
+ "body": {
+  "detail": "request body must be valid JSON"
+ }
+}

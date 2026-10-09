@@ -1,0 +1,10 @@
+{"n": 1, "tool": "browser_navigate", "request_ms": 407, "response_ms": 1456, "frame_ms": 1582}
+{"n": 2, "tool": "browser_run_code_unsafe", "request_ms": 1469, "response_ms": 2123, "frame_ms": 2255}
+{"n": 3, "tool": "browser_run_code_unsafe", "request_ms": 2130, "response_ms": 2876, "frame_ms": 2996}
+{"n": 4, "tool": "browser_click", "request_ms": 58181, "response_ms": 58382, "frame_ms": 58532}
+{"n": 5, "tool": "browser_run_code_unsafe", "request_ms": 58420, "response_ms": 59066, "frame_ms": 59154}
+{"n": 6, "tool": "browser_run_code_unsafe", "request_ms": 59074, "response_ms": 59728, "frame_ms": 59786}
+{"n": 7, "tool": "browser_run_code_unsafe", "request_ms": 85692, "response_ms": 86309, "frame_ms": 86377}
+{"n": 8, "tool": "browser_run_code_unsafe", "request_ms": 86315, "response_ms": 86941, "frame_ms": 87008}
+{"n": 9, "tool": "browser_run_code_unsafe", "request_ms": 86946, "response_ms": 87575, "frame_ms": 87655}
+{"n": 10, "tool": "browser_run_code_unsafe", "request_ms": 87582, "response_ms": 88200, "frame_ms": 88263}

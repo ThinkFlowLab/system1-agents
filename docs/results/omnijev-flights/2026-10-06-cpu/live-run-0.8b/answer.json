@@ -1,0 +1,48 @@
+{
+ "ok": false,
+ "final": "{\"browser_result\":{\"status\":\"blocked\",\"task_id\":\"b4e5aef223f594db\",\"current_phase\":\"extraction\",\"missing_fields\":[\"result_count:0/1\"],\"unverified_fields\":[],\"missing_slots\":[],\"unavailable_slots\":[],\"requested_slots\":[],\"blockers\":[\"task_deadline_exhausted\"],\"field_coverage\":[],\"evidence\":[],\"observations\":[],\"current_page\":{\"url\":\"https://www.google.com/travel/flights?hl=en\",\"title\":\"Find Cheap Flights Worldwide & Book Your Ticket - Google Flights\"},\"requested_result_count\":1,\"observed_result_count\":0,\"terminal_reason\":\"task_deadline_exhausted\",\"retryable\":false,\"recommended_recovery\":\"collect_missing_evidence_from_current_page\",\"resume_count\":0,\"deadline\":{\"budget_s\":240.0,\"elapsed_s\":300.109,\"remaining_s\":0.0,\"invocation_remaining_s\":0.0}}}",
+ "screenshot": null,
+ "error": "result_type='error': {\"browser_result\":{\"status\":\"blocked\",\"task_id\":\"b4e5aef223f594db\",\"current_phase\":\"extraction\",\"missing_fields\":[\"result_count:0/1\"],\"unverified_fields\":[],\"missing_slots\":[],\"unavailable_slots\":[],\"",
+ "elapsed_ms": 300822,
+ "usage": {
+  "decisions": 2,
+  "chat_calls": 5,
+  "chat_input_tokens": 1552,
+  "chat_output_tokens": 26,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.000531
+ },
+ "report": {
+  "elapsed_ms": 303076,
+  "decisions": 2,
+  "interactions": 2,
+  "waits": 0,
+  "median_decision_ms": 131993,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 12241,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 0,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "agent": "flights",
+ "model": "omnijev"
+}

@@ -1,0 +1,41 @@
+{
+ "status": 200,
+ "content_type": "application/json",
+ "body": {
+  "status": "ok",
+  "ready": true,
+  "loaded": [
+   "english"
+  ],
+  "preparing": [],
+  "device": "mps",
+  "requested_device": "mps",
+  "device_mismatch": false,
+  "weights_dtype": "torch.float16",
+  "autocast_dtype": "torch.float16",
+  "mps_amp_min_rows": 5,
+  "checkpoint": "convaiinnovations/laya",
+  "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+  "warmup_ms": 37682.8,
+  "models": {
+   "english": {
+    "device": "mps",
+    "requested_device": "mps",
+    "device_mismatch": false,
+    "weights_dtype": "torch.float16",
+    "autocast_dtype": "torch.float16",
+    "mps_amp_min_rows": 5,
+    "checkpoint": "convaiinnovations/laya",
+    "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+    "warmup_ms": 37682.8
+   }
+  },
+  "compile": {
+   "enabled": true,
+   "active": true,
+   "graphs_at_ready": 3,
+   "graphs_now": 3,
+   "recompiled_after_ready": false
+  }
+ }
+}

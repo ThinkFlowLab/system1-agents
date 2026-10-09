@@ -76,4 +76,21 @@ key-free rung is the offline test from step 4. The paid rung follows. A browser 
 needs the chat-model key and a Jev key: `uv run s1a run <name> --model jev --goal "..."`. A rail runs its
 labelled set and needs a Jev key: `uv run s1a run <name> --labelled-set records.jsonl`.
 
-Report the table and stop. Series of a hundred episodes cost money; ask the user before starting one.
+Report the table, then prepare the demo/evidence handoff below. Series of a hundred episodes cost money;
+ask the user before starting one.
+
+## 6. Demo and handoff
+
+For a reusable use case, add a recipe using [the recipe template](../../../recipes/TEMPLATE.md) and
+[add-agent-recipe skill](../../../.agents/skills/add-agent-recipe/SKILL.md), then update the recipe index.
+Follow [CONTRIBUTING.md's video guide](../../../CONTRIBUTING.md#agent-video-demos)
+for the required video of the application/task, the System1-Agents decision-model agent and System1-Omni
+inference in the same run. Show actual input, selected/executed actions, engine identity and checked result.
+Choose an application from the guide's README candidates that exercises the new agent's actual behavior.
+Use a terminal recording for a text agent or rail; label scripted checks and recorded replays.
+Use a supported System1-Omni path; record missing support or integration as a review gap. Follow PR #35's
+worked example linked in the guide. Keep an important PR draft until its video is supplied or a maintainer
+accepts the documented exception.
+Prepare the PR's **Demo / evidence** section with the clip, reproduction command and linked run artifacts.
+Recording, model execution and uploading each require the authorization/resources already established for
+the task. If any are unavailable, report the gap and hand off the prepared instructions.

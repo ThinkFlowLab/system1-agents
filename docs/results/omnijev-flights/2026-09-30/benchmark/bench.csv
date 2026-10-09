@@ -1,0 +1,12 @@
+time,model,run,success,total_s,decisions,median_decision_ms,reason
+15:33:18,jev,1,1,38.9,13,299,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:34:01,jev,2,1,35.4,13,367,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:34:42,jev,3,1,34.0,13,321,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:35:24,jev,4,1,33.9,12,347,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:36:04,jev,5,1,33.0,13,283,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:38:05,omnijev,1,0,97.1,25,1440,The task was to find flights from Zurich to London; but the current results are for train travel from Zurich to St Pancras International; and the date is November 1; not November 1; 2026.
+15:40:04,omnijev,2,0,95.7,25,1446,The task was to find flights from Zurich to London; but the current results are for train travel from Zurich to St Pancras International; and the date is November 1; not November 1; 2026.
+15:42:10,omnijev,3,0,101.7,25,1016,The agent has not yet selected the correct date (November 1; 2026) and has not displayed flight options.
+15:44:36,omnijev,4,0,121.9,25,1061,The agent is stuck on a location selection pop-up and has not yet started searching for flights.
+15:46:37,omnijev,5,0,97.4,25,1451,The task was to find flights from Zurich to London; but the current results are for train travel from Zurich to St Pancras International; and the date is November 1; not November 1; 2026.
+15:47:21,clm,1,0,36.5,21,3,The agent stopped on the initial flight search page; not on a page displaying flight results.

@@ -1,0 +1,125 @@
+recording: docs/results/laya-browser-shaping/zurich-london.jsonl (12 ticks)  tokenizer: convaiinnovations/laya@55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851
+
+== window max_len=512 head_max_len=192
+tick elements question          | off: state tok, options tok, cut  | on: state tok, options tok, cut
+   0       25 operation         |   1173 ( 316 kept)   131  fits              |    253 ( 253 kept)   131  fits             
+   0       25 click_target      |   1173 ( 316 kept)   669  cut to 7/option   |    253 ( 253 kept)   144  fits             
+   0       25 type_text_target  |   1173 ( 316 kept)   118  fits              |    253 ( 253 kept)    24  fits             
+   0       25 press_enter_target|   1173 ( 316 kept)    36  fits              |    253 ( 253 kept)     8  fits             
+   1        3 operation         |    256 ( 256 kept)    86  fits              |     91 (  91 kept)    86  fits             
+   1        3 click_target      |    256 ( 256 kept)   136  fits              |     91 (  91 kept)    22  fits             
+   2       24 operation         |   1235 ( 316 kept)   131  fits              |    312 ( 312 kept)   131  fits             
+   2       24 click_target      |   1235 ( 316 kept)   640  cut to 8/option   |    312 ( 312 kept)   136  fits             
+   2       24 type_text_target  |   1235 ( 316 kept)    94  fits              |    312 ( 312 kept)    20  fits             
+   2       24 press_enter_target|   1235 ( 316 kept)    36  fits              |    312 ( 312 kept)     8  fits             
+   3       10 operation         |    794 ( 316 kept)   131  fits              |    249 ( 249 kept)   131  fits             
+   3       10 type_text_target  |    794 ( 316 kept)    46  fits              |    249 ( 249 kept)     9  fits             
+   3       10 press_enter_target|    794 ( 316 kept)    46  fits              |    249 ( 249 kept)     9  fits             
+   3       10 click_target      |    794 ( 316 kept)   409  cut to 19/option  |    249 ( 249 kept)    94  fits             
+   4       24 operation         |   1289 ( 316 kept)   131  fits              |    315 ( 315 kept)   131  fits             
+   4       24 click_target      |   1289 ( 316 kept)   640  cut to 8/option   |    315 ( 315 kept)   138  fits             
+   4       24 type_text_target  |   1289 ( 316 kept)    94  fits              |    315 ( 315 kept)    22  fits             
+   4       24 press_enter_target|   1289 ( 316 kept)    36  fits              |    315 ( 315 kept)    10  fits             
+   5       10 operation         |    884 ( 316 kept)   131  fits              |    253 ( 253 kept)   131  fits             
+   5       10 type_text_target  |    884 ( 316 kept)    44  fits              |    253 ( 253 kept)     8  fits             
+   5       10 press_enter_target|    884 ( 316 kept)    44  fits              |    253 ( 253 kept)     8  fits             
+   5       10 click_target      |    884 ( 316 kept)   412  cut to 19/option  |    253 ( 253 kept)   102  fits             
+   6       25 operation         |   1393 ( 316 kept)   131  fits              |    340 ( 318 kept)   131  fits             
+   6       25 click_target      |   1393 ( 316 kept)   667  cut to 7/option   |    340 ( 316 kept)   147  fits             
+   6       25 type_text_target  |   1393 ( 316 kept)    96  fits              |    340 ( 340 kept)    24  fits             
+   6       25 press_enter_target|   1393 ( 316 kept)    70  fits              |    340 ( 340 kept)    18  fits             
+   7       25 operation         |   1431 ( 316 kept)   131  fits              |    342 ( 318 kept)   131  fits             
+   7       25 click_target      |   1431 ( 316 kept)   671  cut to 7/option   |    342 ( 316 kept)   150  fits             
+   7       25 type_text_target  |   1431 ( 316 kept)   100  fits              |    342 ( 342 kept)    27  fits             
+   7       25 press_enter_target|   1431 ( 316 kept)   100  fits              |    342 ( 342 kept)    27  fits             
+   8       66 operation         |   4499 ( 316 kept)   105  fits              |    926 ( 344 kept)   105  fits             
+   8       66 type_text_target  |   4499 ( 316 kept)    48  fits              |    926 ( 439 kept)     6  fits             
+   8       66 click_target      |   4499 ( 236 kept)  3225  cut to 4/option   |    926 ( 236 kept)   695  cut to 4/option  
+   9       67 operation         |   4726 ( 316 kept)   131  fits              |    998 ( 318 kept)   131  fits             
+   9       67 type_text_target  |   4726 ( 316 kept)    49  fits              |    998 ( 434 kept)    11  fits             
+   9       67 press_enter_target|   4726 ( 316 kept)    49  fits              |    998 ( 433 kept)    11  fits             
+   9       67 click_target      |   4726 ( 232 kept)  3275  cut to 4/option   |    998 ( 232 kept)   717  cut to 4/option  
+  10       25 operation         |   1541 ( 316 kept)   131  fits              |    374 ( 318 kept)   131  fits             
+  10       25 click_target      |   1541 ( 316 kept)   672  cut to 7/option   |    374 ( 316 kept)   152  fits             
+  10       25 type_text_target  |   1541 ( 316 kept)   101  fits              |    374 ( 374 kept)    29  fits             
+  10       25 press_enter_target|   1541 ( 316 kept)   101  fits              |    374 ( 374 kept)    29  fits             
+  11       55 operation         |   3185 ( 316 kept)   131  fits              |    718 ( 318 kept)   131  fits             
+  11       55 click_target      |   3185 ( 304 kept)  1550  cut to 4/option   |    718 ( 304 kept)   407  cut to 4/option  
+  11       55 type_text_target  |   3185 ( 316 kept)   101  fits              |    718 ( 416 kept)    29  fits             
+  11       55 press_enter_target|   3185 ( 316 kept)   101  fits              |    718 ( 415 kept)    29  fits             
+
+== window max_len=1536 head_max_len=1024
+tick elements question          | off: state tok, options tok, cut  | on: state tok, options tok, cut
+   0       25 operation         |   1173 ( 896 kept)   131  fits              |    253 ( 253 kept)   131  fits             
+   0       25 click_target      |   1173 ( 508 kept)   669  fits              |    253 ( 253 kept)   144  fits             
+   0       25 type_text_target  |   1173 ( 801 kept)   118  fits              |    253 ( 253 kept)    24  fits             
+   0       25 press_enter_target|   1173 ( 883 kept)    36  fits              |    253 ( 253 kept)     8  fits             
+   1        3 operation         |    256 ( 256 kept)    86  fits              |     91 (  91 kept)    86  fits             
+   1        3 click_target      |    256 ( 256 kept)   136  fits              |     91 (  91 kept)    22  fits             
+   2       24 operation         |   1235 ( 896 kept)   131  fits              |    312 ( 312 kept)   131  fits             
+   2       24 click_target      |   1235 ( 508 kept)   640  fits              |    312 ( 312 kept)   136  fits             
+   2       24 type_text_target  |   1235 ( 825 kept)    94  fits              |    312 ( 312 kept)    20  fits             
+   2       24 press_enter_target|   1235 ( 883 kept)    36  fits              |    312 ( 312 kept)     8  fits             
+   3       10 operation         |    794 ( 794 kept)   131  fits              |    249 ( 249 kept)   131  fits             
+   3       10 type_text_target  |    794 ( 794 kept)    46  fits              |    249 ( 249 kept)     9  fits             
+   3       10 press_enter_target|    794 ( 794 kept)    46  fits              |    249 ( 249 kept)     9  fits             
+   3       10 click_target      |    794 ( 511 kept)   409  fits              |    249 ( 249 kept)    94  fits             
+   4       24 operation         |   1289 ( 896 kept)   131  fits              |    315 ( 315 kept)   131  fits             
+   4       24 click_target      |   1289 ( 508 kept)   640  fits              |    315 ( 315 kept)   138  fits             
+   4       24 type_text_target  |   1289 ( 825 kept)    94  fits              |    315 ( 315 kept)    22  fits             
+   4       24 press_enter_target|   1289 ( 883 kept)    36  fits              |    315 ( 315 kept)    10  fits             
+   5       10 operation         |    884 ( 884 kept)   131  fits              |    253 ( 253 kept)   131  fits             
+   5       10 type_text_target  |    884 ( 875 kept)    44  fits              |    253 ( 253 kept)     8  fits             
+   5       10 press_enter_target|    884 ( 875 kept)    44  fits              |    253 ( 253 kept)     8  fits             
+   5       10 click_target      |    884 ( 508 kept)   412  fits              |    253 ( 253 kept)   102  fits             
+   6       25 operation         |   1393 ( 896 kept)   131  fits              |    340 ( 340 kept)   131  fits             
+   6       25 click_target      |   1393 ( 508 kept)   667  fits              |    340 ( 340 kept)   147  fits             
+   6       25 type_text_target  |   1393 ( 823 kept)    96  fits              |    340 ( 340 kept)    24  fits             
+   6       25 press_enter_target|   1393 ( 849 kept)    70  fits              |    340 ( 340 kept)    18  fits             
+   7       25 operation         |   1431 ( 896 kept)   131  fits              |    342 ( 342 kept)   131  fits             
+   7       25 click_target      |   1431 ( 508 kept)   671  fits              |    342 ( 342 kept)   150  fits             
+   7       25 type_text_target  |   1431 ( 819 kept)   100  fits              |    342 ( 342 kept)    27  fits             
+   7       25 press_enter_target|   1431 ( 819 kept)   100  fits              |    342 ( 342 kept)    27  fits             
+   8       66 operation         |   4499 ( 922 kept)   105  fits              |    926 ( 926 kept)   105  fits             
+   8       66 type_text_target  |   4499 ( 871 kept)    48  fits              |    926 ( 926 kept)     6  fits             
+   8       66 click_target      |   4499 ( 508 kept)  3225  cut to 15/option  |    926 ( 775 kept)   695  fits             
+   9       67 operation         |   4726 ( 896 kept)   131  fits              |    998 ( 998 kept)   131  fits             
+   9       67 type_text_target  |   4726 ( 870 kept)    49  fits              |    998 ( 998 kept)    11  fits             
+   9       67 press_enter_target|   4726 ( 870 kept)    49  fits              |    998 ( 998 kept)    11  fits             
+   9       67 click_target      |   4726 ( 508 kept)  3275  cut to 15/option  |    998 ( 753 kept)   717  fits             
+  10       25 operation         |   1541 ( 896 kept)   131  fits              |    374 ( 374 kept)   131  fits             
+  10       25 click_target      |   1541 ( 508 kept)   672  fits              |    374 ( 374 kept)   152  fits             
+  10       25 type_text_target  |   1541 ( 818 kept)   101  fits              |    374 ( 374 kept)    29  fits             
+  10       25 press_enter_target|   1541 ( 818 kept)   101  fits              |    374 ( 374 kept)    29  fits             
+  11       55 operation         |   3185 ( 896 kept)   131  fits              |    718 ( 718 kept)   131  fits             
+  11       55 click_target      |   3185 ( 508 kept)  1550  cut to 20/option  |    718 ( 718 kept)   407  fits             
+  11       55 type_text_target  |   3185 ( 818 kept)   101  fits              |    718 ( 718 kept)    29  fits             
+  11       55 press_enter_target|   3185 ( 818 kept)   101  fits              |    718 ( 718 kept)    29  fits             
+
+== tick 8 click_target, compaction off: 66 options, first 6
+  1: {"element": "[1] Departure", "current_value": "", "role": "textbox", "region": "dialog:Back Departure Return E
+  2: {"element": "[2] Select your ticket type. One way", "current_value": "One way", "role": "combobox", "expanded"
+  3: {"element": "[3] Friday, September 25, 2026 ????", "current_value": "", "role": "button", "region": "dialog:Ba
+  4: {"element": "[4] Saturday, September 26, 2026 ????", "current_value": "", "role": "button", "region": "dialog:
+  5: {"element": "[5] Sunday, September 27, 2026 ????", "current_value": "", "role": "button", "region": "dialog:Ba
+  6: {"element": "[6] Monday, September 28, 2026 ????", "current_value": "", "role": "button", "region": "dialog:Ba
+
+== tick 8 click_target, compaction on: 66 options, first 6
+  1: "Departure"
+  2: "Select your ticket type. One = One way"
+  3: "Friday, September 25, 2026 ?"
+  4: "Saturday, September 26, 2026"
+  5: "Sunday, September 27, 2026 ?"
+  6: "Monday, September 28, 2026 ?"
+
+== tick 8 state rows, compaction off (first 4 of 66)
+  {"index": "1", "role": "textbox", "label": "Departure", "value": "", "region": "dialog:Back Departure Return Enter a date or use the arrow keys to ", 
+  {"index": "2", "role": "combobox", "label": "Select your ticket type. One way", "value": "One way", "expanded": "false", "region": "dialog:Back Depart
+  {"index": "3", "role": "button", "label": "Friday, September 25, 2026 ????", "value": "", "region": "dialog:Back Departure Return Enter a date or use 
+  {"index": "4", "role": "button", "label": "Saturday, September 26, 2026 ????", "value": "", "region": "dialog:Back Departure Return Enter a date or us
+
+== tick 8 state rows, compaction on (first 4 of 66)
+  "1 textbox Departure"
+  "2 combobox Select your ticket type. One way =One way"
+  "3 button Friday, September 25, 2026 ????"
+  "4 button Saturday, September 26, 2026 ????"

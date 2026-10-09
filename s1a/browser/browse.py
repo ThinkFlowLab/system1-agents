@@ -36,10 +36,13 @@ from s1a.spec import BrowserAgentSpec, positive_float, positive_int
 Answer = dict[str, Any]
 BROWSER_MODEL_NAMES = (
     "jev",
+    "clm",
     "laya",
+    "laya-served",
     "cua",
+    "omnijev",
     "llm",
-)  # a decision model (Jev over HTTP, Laya or Cua-S1 in process) or the chat model
+)  # a decision model (Jev or served Laya over HTTP, Laya, Cua-S1 or OmniJev in process) or the chat model
 RUNS_DIR = HOME / "runs" / "browser"
 
 
@@ -164,7 +167,7 @@ async def browse(
     workspace = str(logs_dir / "workspace")  # the harness scaffolds SOUL.md, memory/ and friends here, not in the cwd
     instance = BrowserInstanceConfig(launch_args=browser_launch_args(headless))
     match model_name:
-        case "jev" | "laya" | "cua":
+        case "jev" | "clm" | "laya" | "laya-served" | "cua" | "omnijev":
             if decision_model is None:
                 raise RuntimeError(f"--model {model_name} needs a decision model")
             slot_model = BrowserDecisionModel(spec, policy, counted, decision_model=decision_model, value_model=None)
@@ -224,7 +227,7 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
         "--model",
         choices=BROWSER_MODEL_NAMES,
         required=True,
-        help="who decides each browser step: jev (over HTTP), laya or cua (in process), or llm (the chat model in MODEL_NAME)",
+        help="who decides each browser step: jev, clm or laya-served (over HTTP), laya, cua or omnijev (in process; omnijev reads a screenshot), or llm (the chat model in MODEL_NAME)",
     )
     build.add_argument(
         "--goal", default=spec.goal, required=spec.goal is None, help="the task; the spec's goal when it has one"

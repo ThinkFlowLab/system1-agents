@@ -56,6 +56,13 @@ def read_cases(path: Path) -> list[dict[str, Any]]:
             raise ValueError(
                 f"{path}:{line_number}: a case needs state (object), options (key to text), rules (text) and accept (list of keys)"
             )
+        if not case["options"]:
+            raise ValueError(f"{path}:{line_number}: options must offer at least one choice")
+        if not case["accept"]:
+            raise ValueError(f"{path}:{line_number}: accept must name at least one offered option")
+        unknown = sorted(set(case["accept"]) - set(case["options"]))
+        if unknown:
+            raise ValueError(f"{path}:{line_number}: accept names keys not in options: {', '.join(unknown)}")
         cases.append(case)
     return cases
 

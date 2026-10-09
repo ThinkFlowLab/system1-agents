@@ -1,0 +1,47 @@
+{
+ "status": 200,
+ "content_type": "application/json",
+ "body": {
+  "model": "laya-rl-agent",
+  "answers": {
+   "department": {
+    "type": "choice",
+    "choice": "billing",
+    "probabilities": {
+     "billing": 0.952,
+     "technical": 0.048
+    },
+    "confidence": 0.722,
+    "answer_confidence": 0.952,
+    "action": {
+     "act_probability": 1.0
+    }
+   }
+  },
+  "usage": {
+   "input_tokens": 40,
+   "output_tokens": 0
+  },
+  "routing": {
+   "model": "english",
+   "repo": "convaiinnovations/laya",
+   "reason": "explicit model='english'",
+   "detection": null,
+   "workflow": null
+  }
+ },
+ "request": {
+  "model": "english",
+  "state": "I was charged twice for my order. Please refund the duplicate today.",
+  "questions": {
+   "department": {
+    "type": "choice",
+    "instructions": "Which team should handle this?",
+    "criteria": {
+     "billing": "Charges and refunds",
+     "technical": "Software problems"
+    }
+   }
+  }
+ }
+}

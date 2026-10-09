@@ -8,6 +8,7 @@ behind ``JevModel``. Nothing in here reads an answer.
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import time
 from typing import Any
@@ -29,6 +30,26 @@ _TRANSPORT_RETRIES = 1
 # double-billed decision when the server closed the socket after reading the request instead.
 _RETRIED_TRANSPORT = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError)
 _MAX_RETRY_AFTER_S = 5.0
+
+
+def decisions_timeout_from_env() -> float:
+    """The deadline for one decision, retries included: ``S1A_DECISION_TIMEOUT_S`` when set, else
+    ``DECISIONS_TIMEOUT_S``. A local System One server (OneJev, CLM) behind ``TYPESAFE_API_URL`` can take several
+    seconds on a page with many options, past the 5 s that fits Jev."""
+    raw = (os.getenv("S1A_DECISION_TIMEOUT_S") or "").strip()
+    if not raw:
+        return DECISIONS_TIMEOUT_S
+    try:
+        value = float(raw)
+    except ValueError:
+        value = 0.0
+    # float() also reads nan, inf and 1e9999 (inf): nan passes `<= 0` and poisons the deadline, inf removes it
+    if not math.isfinite(value) or value <= 0:
+        raise build_error(
+            StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+            error_msg=f"S1A_DECISION_TIMEOUT_S must be a finite, positive number of seconds, not {raw!r}",
+        )
+    return value
 
 
 def decisions_backend_from_env() -> str:
@@ -78,6 +99,12 @@ class JevDecisionsClient:
             raise build_error(
                 StatusCode.MODEL_SERVICE_CONFIG_ERROR,
                 error_msg="no Jev key: set TYPESAFE_API_KEY or OPENROUTER_API_KEY in .env or the environment",
+            )
+        # the same guard as S1A_DECISION_TIMEOUT_S, for a deadline passed in code (JevModel.from_env(timeout_s=...))
+        if not math.isfinite(timeout_s) or timeout_s <= 0:
+            raise build_error(
+                StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+                error_msg=f"timeout_s must be a finite, positive number of seconds, not {timeout_s!r}",
             )
         self.url = url
         self.model = model

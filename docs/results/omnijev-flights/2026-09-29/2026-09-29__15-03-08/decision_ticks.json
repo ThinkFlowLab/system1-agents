@@ -1,0 +1,310 @@
+{
+ "report": {
+  "elapsed_ms": 33942,
+  "decisions": 7,
+  "interactions": 6,
+  "waits": 0,
+  "median_decision_ms": 1430,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 877,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 4,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Departure",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 1640,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 3139,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where from?",
+   "confidence": 0.906,
+   "elements": 25,
+   "elapsed_ms": 6897,
+   "probabilities": {
+    "15": 1.0,
+    "16": 0.0,
+    "17": 0.0,
+    "18": 0.0
+   },
+   "candidates": {
+    "15": "Where from?",
+    "16": "Where to?",
+    "17": "Departure",
+    "18": "Return"
+   },
+   "screenshot_ms": 693,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 2,
+   "probe_ms": 1312,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 915,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Zürich, Switzerland",
+   "confidence": 0.975,
+   "elements": 10,
+   "elapsed_ms": 9949,
+   "probabilities": {
+    "3": 0.954,
+    "5": 0.038,
+    "2": 0.006,
+    "4": 0.002,
+    "6": 0.001,
+    "7": 0.0
+   },
+   "candidates": {
+    "3": "Zürich, Switzerland",
+    "5": "Zurich Airport (ZRH)",
+    "2": "Origin, Select multiple airports",
+    "4": "Toggle nearby airports for Zürich, Switzerland",
+    "6": "Zürich HB",
+    "7": "Lake Zurich, Illinois, USA"
+   },
+   "screenshot_ms": 682,
+   "text": null
+  },
+  {
+   "tick": 3,
+   "probe_ms": 857,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1318,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where to?",
+   "confidence": 0.733,
+   "elements": 25,
+   "elapsed_ms": 14306,
+   "probabilities": {
+    "16": 0.984,
+    "18": 0.008,
+    "17": 0.006,
+    "15": 0.002
+   },
+   "candidates": {
+    "16": "Where to?",
+    "18": "Return",
+    "17": "Departure",
+    "15": "Where from?"
+   },
+   "screenshot_ms": 772,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "London"
+  },
+  {
+   "tick": 4,
+   "probe_ms": 791,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1275,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "London, United Kingdom",
+   "confidence": 0.931,
+   "elements": 9,
+   "elapsed_ms": 17280,
+   "probabilities": {
+    "3": 0.763,
+    "5": 0.194,
+    "2": 0.019,
+    "7": 0.014,
+    "4": 0.006,
+    "6": 0.001
+   },
+   "candidates": {
+    "3": "London, United Kingdom",
+    "5": "Heathrow Airport (LHR)",
+    "2": "Destination, Select multiple airports",
+    "7": "London Gatwick Airport (LGW)",
+    "4": "Toggle nearby airports for London, United Kingdom",
+    "6": "London Stansted Airport (STN)"
+   },
+   "screenshot_ms": 736,
+   "text": null
+  },
+  {
+   "tick": 5,
+   "probe_ms": 877,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1430,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change ticket type. Round trip",
+   "confidence": 0.393,
+   "elements": 26,
+   "elapsed_ms": 20476,
+   "probabilities": {
+    "12": 0.696,
+    "18": 0.253,
+    "19": 0.027,
+    "16": 0.008,
+    "6": 0.003,
+    "20": 0.002
+   },
+   "candidates": {
+    "12": "Change ticket type. Round trip",
+    "18": "Departure",
+    "19": "Return",
+    "16": "Swap origin and destination.",
+    "6": "Flights",
+    "20": "Search"
+   },
+   "screenshot_ms": 851,
+   "text": null
+  },
+  {
+   "tick": 6,
+   "probe_ms": 3811,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 3,
+   "action_settle_ms": 1000,
+   "decision_ms": 2007,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Departure",
+   "confidence": 0.511,
+   "elements": 26,
+   "elapsed_ms": 28247,
+   "probabilities": {
+    "18": 0.603,
+    "19": 0.391,
+    "15": 0.003,
+    "17": 0.003
+   },
+   "candidates": {
+    "18": "Departure",
+    "19": "Return",
+    "15": "Where from?",
+    "17": "Where to?"
+   },
+   "screenshot_ms": 750,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 7,
+   "probe_ms": 752,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2095,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Return",
+   "confidence": 0.473,
+   "elements": 26,
+   "elapsed_ms": 32030,
+   "probabilities": {
+    "19": 0.988,
+    "18": 0.005,
+    "17": 0.004,
+    "15": 0.003
+   },
+   "candidates": {
+    "19": "Return",
+    "18": "Departure",
+    "17": "Where to?",
+    "15": "Where from?"
+   },
+   "screenshot_ms": 752,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": "value model returned no usable text"
+  }
+ ],
+ "final": {
+  "status": "BLOCKED",
+  "reason": "no value for field 'Return': value model returned no usable text",
+  "url": "https://www.google.com/travel/flights?tfs=CBwQARocagwIAxIIL20vMDg5NjZyDAgDEggvbS8wNGpwbBocagwIAxIIL20vMDRqcGxyDAgDEggvbS8wODk2NkABSAFwAYIBCwj___________8BmAEB&tfu=KgIIAw&hl=en",
+  "title": "Find Cheap Flights Worldwide & Book Your Ticket - Google Flights",
+  "steps": 6,
+  "elapsed_ms": 33597,
+  "page_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nSign in\nFlights\n1\nSearch\nFlexible? Discover the best flight deals with AI\nDescribe your ideal trip, and let Google Flights find the best deals for you\nExplore deals with AI\nFind and book cheap flights worldwide and track prices\nFind cheap flights from Germany to anywhere\nFrankfurt am Main\nMunich\nBerlin\nDüsseldorf",
+  "answer": "The page does not show any flight options for the specified criteria. It only displays example flight deals from Frankfurt am Main to other cities."
+ },
+ "usage": {
+  "decisions": 7,
+  "chat_calls": 10,
+  "chat_input_tokens": 3805,
+  "chat_output_tokens": 81,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.001344
+ }
+}

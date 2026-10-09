@@ -1,0 +1,28 @@
+snake/ is ported from mizorewww/laya-mlx (Apache-2.0, see LICENSE-laya-mlx).
+
+Modifications against the upstream laya_mlx/snake module:
+- shim.py (new): maps laya_mlx.Agent's predict(state, questions) onto the
+  system1-omni /v1/systemone request/response contract.
+- snake/policy.py: decision backend swapped to shim.SystemOneBackend; metadata
+  records backend health/URL instead of a local MLX checkpoint. decide() is
+  verbatim upstream.
+- snake/cli.py: --backend/--model replace the local-checkpoint arguments;
+  --optimize and the benchmark subcommand dropped (no-op against a remote
+  backend / not re-validated); startup message and summary "network" field
+  follow the backend.
+- snake/ui.py: title/engine/network rows read backend-driven stats instead of
+  the upstream hard-coded MLX strings.
+- snake/replay.py: ffmpeg command assembly factored into ffmpeg_mp4_cmd for
+  reuse by multi_replay; raster sizing includes line spacing to keep tall
+  grids inside the output image. Raster fonts resolve
+  per-platform (macOS Menlo, Linux DejaVu Sans Mono, Windows Consola), or
+  via --font.
+- snake/warmup.py (new): warmup shared by cli.py and multi.py; stops before
+  deciding again on a won or dead game (the upstream inline warmup in cli.py
+  only checked dead).
+- snake/multi.py, snake/multi_ui.py, snake/multi_replay.py (new): N-game
+  orchestration, grid composition and replay rendering. Stop sibling games
+  on failure or interruption, sort concurrent frames by timestamp and size
+  grid slots from the board dimensions.
+- Formatting: all Python files were reformatted to the repository ruff style
+  (ruff format); snake/{game,__init__,__main__}.py carry no functional changes.

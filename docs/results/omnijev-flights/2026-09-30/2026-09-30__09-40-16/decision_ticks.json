@@ -1,0 +1,995 @@
+{
+ "report": {
+  "elapsed_ms": 103264,
+  "decisions": 25,
+  "interactions": 25,
+  "waits": 0,
+  "median_decision_ms": 1173,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 804,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 3,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "One way",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Next",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Sunday, November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Done. Search for one-way flights, departing on November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change location",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "OK",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Location ​ Germany",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "OK",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Flights from popular destinations",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Flight Deals",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Got it",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "City or airport",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": null
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 5853,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 3036,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where from?",
+   "confidence": 0.915,
+   "elements": 20,
+   "elapsed_ms": 10903,
+   "probabilities": {
+    "15": 1.0,
+    "16": 0.0,
+    "17": 0.0,
+    "18": 0.0
+   },
+   "candidates": {
+    "15": "Where from?",
+    "16": "Where to?",
+    "17": "Departure",
+    "18": "Return"
+   },
+   "screenshot_ms": 684,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 2,
+   "probe_ms": 1321,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 704,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Zürich, Switzerland",
+   "confidence": 0.988,
+   "elements": 10,
+   "elapsed_ms": 13723,
+   "probabilities": {
+    "3": 0.954,
+    "5": 0.036,
+    "2": 0.005,
+    "4": 0.003,
+    "6": 0.001,
+    "7": 0.0
+   },
+   "candidates": {
+    "3": "Zürich, Switzerland",
+    "5": "Zurich Airport (ZRH)",
+    "2": "Origin, Select multiple airports",
+    "4": "Toggle nearby airports for Zürich, Switzerland",
+    "6": "Zürich HB",
+    "7": "Lake Zurich, Illinois, USA"
+   },
+   "screenshot_ms": 670,
+   "text": null
+  },
+  {
+   "tick": 3,
+   "probe_ms": 740,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 940,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where to?",
+   "confidence": 0.478,
+   "elements": 20,
+   "elapsed_ms": 17409,
+   "probabilities": {
+    "16": 0.996,
+    "15": 0.001,
+    "17": 0.001,
+    "18": 0.001
+   },
+   "candidates": {
+    "16": "Where to?",
+    "15": "Where from?",
+    "17": "Departure",
+    "18": "Return"
+   },
+   "screenshot_ms": 765,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "London"
+  },
+  {
+   "tick": 4,
+   "probe_ms": 1277,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 738,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "London, United Kingdom",
+   "confidence": 0.95,
+   "elements": 9,
+   "elapsed_ms": 20363,
+   "probabilities": {
+    "3": 0.754,
+    "5": 0.201,
+    "2": 0.023,
+    "7": 0.012,
+    "4": 0.006,
+    "9": 0.002
+   },
+   "candidates": {
+    "3": "London, United Kingdom",
+    "5": "Heathrow Airport (LHR)",
+    "2": "Destination, Select multiple airports",
+    "7": "London Gatwick Airport (LGW)",
+    "4": "Toggle nearby airports for London, United Kingdom",
+    "9": "London City Airport (LCY)"
+   },
+   "screenshot_ms": 768,
+   "text": null
+  },
+  {
+   "tick": 5,
+   "probe_ms": 741,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 992,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change ticket type. Round trip",
+   "confidence": 0.685,
+   "elements": 21,
+   "elapsed_ms": 24081,
+   "probabilities": {
+    "12": 0.924,
+    "18": 0.059,
+    "16": 0.008,
+    "19": 0.006,
+    "13": 0.001,
+    "15": 0.001
+   },
+   "candidates": {
+    "12": "Change ticket type. Round trip",
+    "18": "Departure",
+    "16": "Swap origin and destination.",
+    "19": "Return",
+    "13": "1 passenger",
+    "15": "Where from?"
+   },
+   "screenshot_ms": 754,
+   "text": null
+  },
+  {
+   "tick": 6,
+   "probe_ms": 737,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 491,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "One way",
+   "confidence": 0.996,
+   "elements": 3,
+   "elapsed_ms": 27246,
+   "probabilities": {
+    "2": 0.995,
+    "1": 0.005,
+    "3": 0.0
+   },
+   "candidates": {
+    "2": "One way",
+    "1": "Round trip",
+    "3": "Multi-city"
+   },
+   "screenshot_ms": 752,
+   "text": null
+  },
+  {
+   "tick": 7,
+   "probe_ms": 738,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 954,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Departure",
+   "confidence": 0.704,
+   "elements": 20,
+   "elapsed_ms": 30890,
+   "probabilities": {
+    "18": 0.999,
+    "14": 0.0,
+    "19": 0.0,
+    "12": 0.0,
+    "1": 0.0,
+    "2": 0.0
+   },
+   "candidates": {
+    "18": "Departure",
+    "14": "Change seating class. Economy",
+    "19": "Search",
+    "12": "Change ticket type. One way",
+    "1": "Main menu",
+    "2": "Google"
+   },
+   "screenshot_ms": 742,
+   "text": null
+  },
+  {
+   "tick": 8,
+   "probe_ms": 1663,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1772,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.501,
+   "elements": 49,
+   "elapsed_ms": 35971,
+   "probabilities": {
+    "SCROLL_DOWN": 0.584,
+    "CLICK": 0.33,
+    "WAIT": 0.077,
+    "BLOCKED": 0.008,
+    "TYPE_TEXT": 0.001,
+    "DONE": 0.0
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 801,
+   "text": null
+  },
+  {
+   "tick": 9,
+   "probe_ms": 1107,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1911,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Next",
+   "confidence": 0.44,
+   "elements": 50,
+   "elapsed_ms": 40018,
+   "probabilities": {
+    "49": 0.555,
+    "36": 0.126,
+    "35": 0.115,
+    "38": 0.036,
+    "39": 0.031,
+    "42": 0.025
+   },
+   "candidates": {
+    "49": "Next",
+    "36": "Monday, November 2, 2026",
+    "35": "Saturday, October 31, 2026 , 84 euros",
+    "38": "Wednesday, November 4, 2026",
+    "39": "Monday, November 9, 2026",
+    "42": "Monday, November 16, 2026"
+   },
+   "screenshot_ms": 798,
+   "text": null
+  },
+  {
+   "tick": 10,
+   "probe_ms": 1851,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2651,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Sunday, November 1, 2026",
+   "confidence": 0.993,
+   "elements": 82,
+   "elapsed_ms": 46060,
+   "probabilities": {
+    "36": 0.931,
+    "66": 0.021,
+    "81": 0.008,
+    "37": 0.006,
+    "67": 0.004,
+    "40": 0.003
+   },
+   "candidates": {
+    "36": "Sunday, November 1, 2026",
+    "66": "Tuesday, December 1, 2026",
+    "81": "Next",
+    "37": "Monday, November 2, 2026",
+    "67": "Wednesday, December 2, 2026",
+    "40": "Thursday, November 5, 2026"
+   },
+   "screenshot_ms": 801,
+   "text": null
+  },
+  {
+   "tick": 11,
+   "probe_ms": 1308,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2821,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Done. Search for one-way flights, departing on November 1, 2026",
+   "confidence": 0.413,
+   "elements": 82,
+   "elapsed_ms": 51764,
+   "probabilities": {
+    "82": 0.967,
+    "36": 0.027,
+    "1": 0.002,
+    "62": 0.001,
+    "66": 0.001,
+    "81": 0.0
+   },
+   "candidates": {
+    "82": "Done. Search for one-way flights, departing on November 1, 2026",
+    "36": "Sunday, November 1, 2026, departure date. , 74 euros",
+    "1": "Departure",
+    "62": "Friday, November 27, 2026 , 27 euros, Cheapest price",
+    "66": "Tuesday, December 1, 2026",
+    "81": "Next"
+   },
+   "screenshot_ms": 792,
+   "text": null
+  },
+  {
+   "tick": 12,
+   "probe_ms": 741,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 994,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.532,
+   "elements": 20,
+   "elapsed_ms": 54955,
+   "probabilities": {
+    "SCROLL_DOWN": 0.599,
+    "PRESS_ENTER": 0.236,
+    "CLICK": 0.106,
+    "WAIT": 0.036,
+    "DONE": 0.022,
+    "BLOCKED": 0.0
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "DONE": "The page shows every requirement of the task met.",
+    "BLOCKED": "None of the offered operations can move the task forward."
+   },
+   "screenshot_ms": 743,
+   "text": null
+  },
+  {
+   "tick": 13,
+   "probe_ms": 1265,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 840,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.386,
+   "elements": 15,
+   "elapsed_ms": 58011,
+   "probabilities": {
+    "SCROLL_DOWN": 0.488,
+    "SCROLL_UP": 0.227,
+    "WAIT": 0.204,
+    "CLICK": 0.065,
+    "DONE": 0.014,
+    "BLOCKED": 0.002
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "SCROLL_UP": "Move the viewport up the page.",
+    "WAIT": "Give the page time to finish updating.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "DONE": "The page shows every requirement of the task met.",
+    "BLOCKED": "None of the offered operations can move the task forward."
+   },
+   "screenshot_ms": 781,
+   "text": null
+  },
+  {
+   "tick": 14,
+   "probe_ms": 750,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1173,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.342,
+   "elements": 27,
+   "elapsed_ms": 60823,
+   "probabilities": {
+    "SCROLL_DOWN": 0.452,
+    "WAIT": 0.259,
+    "CLICK": 0.2,
+    "SCROLL_UP": 0.077,
+    "DONE": 0.01,
+    "BLOCKED": 0.002
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "WAIT": "Give the page time to finish updating.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "SCROLL_UP": "Move the viewport up the page.",
+    "DONE": "The page shows every requirement of the task met.",
+    "BLOCKED": "None of the offered operations can move the task forward."
+   },
+   "screenshot_ms": 740,
+   "text": null
+  },
+  {
+   "tick": 15,
+   "probe_ms": 1247,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1336,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Main menu",
+   "confidence": 0.644,
+   "elements": 43,
+   "elapsed_ms": 64288,
+   "probabilities": {
+    "1": 0.388,
+    "32": 0.332,
+    "13": 0.063,
+    "14": 0.027,
+    "16": 0.018,
+    "25": 0.018
+   },
+   "candidates": {
+    "1": "Main menu",
+    "32": "Location ​ Germany",
+    "13": "Flights from popular destinations",
+    "14": "Flights to popular destinations",
+    "16": "Flights from New York",
+    "25": "Flights from Berlin"
+   },
+   "screenshot_ms": 740,
+   "text": null
+  },
+  {
+   "tick": 16,
+   "probe_ms": 754,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1528,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change location",
+   "confidence": 0.388,
+   "elements": 55,
+   "elapsed_ms": 68107,
+   "probabilities": {
+    "20": 0.209,
+    "44": 0.183,
+    "25": 0.078,
+    "30": 0.06,
+    "27": 0.059,
+    "28": 0.059
+   },
+   "candidates": {
+    "20": "Change location",
+    "44": "Location ​ Germany",
+    "25": "Flights from popular destinations",
+    "30": "Flights from London",
+    "27": "Popular flights routes",
+    "28": "Flights from New York"
+   },
+   "screenshot_ms": 759,
+   "text": null
+  },
+  {
+   "tick": 17,
+   "probe_ms": 804,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 489,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "OK",
+   "confidence": 0.883,
+   "elements": 2,
+   "elapsed_ms": 71573,
+   "probabilities": {
+    "2": 0.982,
+    "1": 0.018
+   },
+   "candidates": {
+    "2": "OK",
+    "1": "Cancel"
+   },
+   "screenshot_ms": 836,
+   "text": null
+  },
+  {
+   "tick": 18,
+   "probe_ms": 742,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1332,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Location ​ Germany",
+   "confidence": 0.481,
+   "elements": 43,
+   "elapsed_ms": 75139,
+   "probabilities": {
+    "32": 0.285,
+    "1": 0.224,
+    "13": 0.136,
+    "14": 0.053,
+    "25": 0.033,
+    "19": 0.026
+   },
+   "candidates": {
+    "32": "Location ​ Germany",
+    "1": "Main menu",
+    "13": "Flights from popular destinations",
+    "14": "Flights to popular destinations",
+    "25": "Flights from Berlin",
+    "19": "Flights from Toronto"
+   },
+   "screenshot_ms": 742,
+   "text": null
+  },
+  {
+   "tick": 19,
+   "probe_ms": 804,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 484,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "OK",
+   "confidence": 0.664,
+   "elements": 2,
+   "elapsed_ms": 78675,
+   "probabilities": {
+    "2": 0.991,
+    "1": 0.009
+   },
+   "candidates": {
+    "2": "OK",
+    "1": "Cancel"
+   },
+   "screenshot_ms": 841,
+   "text": null
+  },
+  {
+   "tick": 20,
+   "probe_ms": 755,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1334,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Main menu",
+   "confidence": 0.28,
+   "elements": 43,
+   "elapsed_ms": 82239,
+   "probabilities": {
+    "1": 0.326,
+    "32": 0.139,
+    "13": 0.088,
+    "25": 0.042,
+    "14": 0.038,
+    "6": 0.036
+   },
+   "candidates": {
+    "1": "Main menu",
+    "32": "Location ​ Germany",
+    "13": "Flights from popular destinations",
+    "25": "Flights from Berlin",
+    "14": "Flights to popular destinations",
+    "6": "Flights"
+   },
+   "screenshot_ms": 737,
+   "text": null
+  },
+  {
+   "tick": 21,
+   "probe_ms": 744,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1532,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Flights from popular destinations",
+   "confidence": 0.351,
+   "elements": 55,
+   "elapsed_ms": 85992,
+   "probabilities": {
+    "25": 0.143,
+    "28": 0.114,
+    "27": 0.104,
+    "44": 0.067,
+    "37": 0.064,
+    "26": 0.061
+   },
+   "candidates": {
+    "25": "Flights from popular destinations",
+    "28": "Flights from New York",
+    "27": "Popular flights routes",
+    "44": "Location ​ Germany",
+    "37": "Flights from Berlin",
+    "26": "Flights to popular destinations"
+   },
+   "screenshot_ms": 794,
+   "text": null
+  },
+  {
+   "tick": 22,
+   "probe_ms": 773,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1327,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Main menu",
+   "confidence": 0.564,
+   "elements": 43,
+   "elapsed_ms": 89529,
+   "probabilities": {
+    "1": 0.154,
+    "32": 0.124,
+    "16": 0.081,
+    "25": 0.077,
+    "6": 0.061,
+    "14": 0.051
+   },
+   "candidates": {
+    "1": "Main menu",
+    "32": "Location ​ Germany",
+    "16": "Flights from New York",
+    "25": "Flights from Berlin",
+    "6": "Flights",
+    "14": "Flights to popular destinations"
+   },
+   "screenshot_ms": 742,
+   "text": null
+  },
+  {
+   "tick": 23,
+   "probe_ms": 1245,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1525,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Flight Deals",
+   "confidence": 0.465,
+   "elements": 55,
+   "elapsed_ms": 94227,
+   "probabilities": {
+    "16": 0.111,
+    "27": 0.083,
+    "20": 0.081,
+    "1": 0.081,
+    "6": 0.081,
+    "28": 0.065
+   },
+   "candidates": {
+    "16": "Flight Deals",
+    "27": "Popular flights routes",
+    "20": "Change location",
+    "1": "Main menu",
+    "6": "Flights",
+    "28": "Flights from New York"
+   },
+   "screenshot_ms": 746,
+   "text": null
+  },
+  {
+   "tick": 24,
+   "probe_ms": 1155,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 459,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Got it",
+   "confidence": 0.627,
+   "elements": 2,
+   "elapsed_ms": 97737,
+   "probabilities": {
+    "2": 0.989,
+    "1": 0.011
+   },
+   "candidates": {
+    "2": "Got it",
+    "1": "Learn more about Flight Deals"
+   },
+   "screenshot_ms": 660,
+   "text": null
+  },
+  {
+   "tick": 25,
+   "probe_ms": 654,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1090,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "City or airport",
+   "confidence": 0.507,
+   "elements": 21,
+   "elapsed_ms": 101268,
+   "probabilities": {
+    "12": 0.891,
+    "13": 0.109
+   },
+   "candidates": {
+    "12": "City or airport",
+    "13": "When, where, and how do you want to travel?"
+   },
+   "screenshot_ms": 658,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  }
+ ],
+ "final": null,
+ "usage": {
+  "decisions": 25,
+  "chat_calls": 11,
+  "chat_input_tokens": 28367,
+  "chat_output_tokens": 159,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.008908
+ }
+}

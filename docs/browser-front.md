@@ -85,7 +85,7 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
     | `MAX_PROBE_SETTLE_MS` | 1500 | `load(3 s) + settle + 1 s` last-resort must stay at least 1 s under the 30 s transport timeout |
     | `WAIT_SETTLE_BUDGET_MS` | 3000 | in-page wait one WAIT streak may spend before BLOCKED |
     | `ACTION_SETTLE_START_MS`, `ACTION_SETTLE_BUDGET_MS` | 250, 1000 | first and total post-action wait |
-    | `DECISIONS_TIMEOUT_S` | 5 | Jev answers in 0.4 to 1.3 s through the proxy; a dead connection must not stall a step; one transport retry |
+    | `DECISIONS_TIMEOUT_S` | 5 | Jev answers in 0.4 to 1.3 s through the proxy; a dead connection must not stall a step; one transport retry; `S1A_DECISION_TIMEOUT_S` overrides it for a slower System One server ([configuration.md](configuration.md)) |
     | `DECISION_ATTEMPTS` | 2 | one re-ask of the same request when an answer fails validation; a transport error is final |
     | `BATCH_ACTION_TIMEOUT_MS` | 2000 | a stamp lost to a re-render fails fast; the returned probe re-stamps |
 

@@ -1,0 +1,83 @@
+{
+ "ok": true,
+ "final": "The page does not show any flight options for the specified criteria. It only displays example flight deals from Frankfurt am Main to other cities.",
+ "screenshot": null,
+ "error": null,
+ "elapsed_ms": 37153,
+ "usage": {
+  "decisions": 7,
+  "chat_calls": 10,
+  "chat_input_tokens": 3805,
+  "chat_output_tokens": 81,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.001344
+ },
+ "report": {
+  "elapsed_ms": 36468,
+  "decisions": 7,
+  "interactions": 6,
+  "waits": 0,
+  "median_decision_ms": 1441,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 859,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 4,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Departure",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   }
+  ]
+ },
+ "status": "BLOCKED",
+ "terminal": {
+  "status": "BLOCKED",
+  "reason": "no value for field 'Return': value model returned no usable text",
+  "url": "https://www.google.com/travel/flights?tfs=CBwQARocagwIAxIIL20vMDg5NjZyDAgDEggvbS8wNGpwbBocagwIAxIIL20vMDRqcGxyDAgDEggvbS8wODk2NkABSAFwAYIBCwj___________8BmAEB&tfu=KgIIAw&hl=en",
+  "title": "Find Cheap Flights Worldwide & Book Your Ticket - Google Flights",
+  "steps": 6,
+  "elapsed_ms": 36105,
+  "page_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nSign in\nFlights\n1\nSearch\nFlexible? Discover the best flight deals with AI\nDescribe your ideal trip, and let Google Flights find the best deals for you\nExplore deals with AI\nFind and book cheap flights worldwide and track prices\nFind cheap flights from Germany to anywhere\nFrankfurt am Main\nMunich\nBerlin\nDüsseldorf",
+  "answer": "The page does not show any flight options for the specified criteria. It only displays example flight deals from Frankfurt am Main to other cities."
+ },
+ "agent": "flights",
+ "model": "omnijev"
+}

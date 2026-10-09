@@ -22,7 +22,7 @@ def parser(spec: ToolAgentSpec) -> argparse.ArgumentParser:
         "--model",
         choices=MODEL_NAMES,
         required=True,
-        help="who decides: jev (over HTTP), laya or cua (in process), llm (the chat model in MODEL_NAME), random, or rule (the agent's baseline)",
+        help="who decides: jev, clm or laya-served (over HTTP), laya or cua (in process), llm (the chat model in MODEL_NAME), random, or rule (the agent's baseline)",
     )
     build.add_argument(
         "--rethink",
@@ -83,7 +83,7 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
         raise RuntimeError("--model llm needs the chat model: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
     if args.rethink == "on" and spec.budget.stall_after > 0 and chat is None:
         raise RuntimeError("--rethink on needs the chat model for plans: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
-    shared = build_model(args.model) if args.model in ("jev", "laya", "cua") else None
+    shared = build_model(args.model) if args.model in ("jev", "clm", "laya", "laya-served", "cua") else None
     run = await asyncio.to_thread(spec.series, args)  # question fetches, game file parsing: seconds of blocking I/O
     if args.model == "rule":
         shared = build_model("rule", rule=run.baseline)

@@ -1,4 +1,9 @@
-# system1-agents
+<h1 align="center" id="system1-agents">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/system1-agents-dark.png">
+    <img src="docs/assets/logos/system1-agents.png" alt="System1-Agents" width="760">
+  </picture>
+</h1>
 
 > [!NOTE]
 > **Give your agents a System 1 decision model. Start from a prebuilt agent or build your own.**
@@ -53,6 +58,28 @@ wall clock. The other Allrecipes runs, longer games and the Google Flights drive
   <tr>
     <td><img src="docs/assets/demos/blackjack-comparison-2x.gif" alt="One Blackjack hand, Jev on the left, the chat model on the right"><br><sub>Blackjack, one hand, replay at 2× speed</sub></td>
     <td></td>
+  </tr>
+</table>
+
+### OmniJev: a decision model that reads the screen
+
+[OmniJev](https://github.com/tinnel123666888/OmniJev) (Apache-2.0, Beijing Zhongguancun Academy, CASIA and Zevo) is a
+System 1 decision model on Qwen3.5 vision-language backbones (0.8B, 2B, 4B): it answers the same typed questions as
+Jev over a screenshot, a video or a robot camera. `--model omnijev` puts it in the slot of the browser agents, which
+then send it a screenshot of the page at every step ([docs/decision-models.md](docs/decision-models.md)).
+
+The clips below are OmniJev's own v1.1 demos with its 4B model: replays of recorded trajectories with the model's
+probabilities, not s1a runs and not live control. They are shown from the OmniJev repository and keep their upstream
+terms.
+
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/tinnel123666888/OmniJev/14dbec4f71e194852c8d7b88ab36ef639493f400/docs/media/v11/web.gif" alt="OmniJev on Mind2Web web tasks: a Central Park to JFK route and a nightstand comparison, with the model's probabilities per step"><br><sub>Web: Mind2Web test tasks (OmniJev v1.1 replay)</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/tinnel123666888/OmniJev/14dbec4f71e194852c8d7b88ab36ef639493f400/docs/media/v11/phone.gif" alt="OmniJev on AndroidControl phone tasks: London weather, a 59-minute timer and a drawing tutorial"><br><sub>Phone: AndroidControl tasks (OmniJev v1.1 replay)</sub></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/tinnel123666888/OmniJev/14dbec4f71e194852c8d7b88ab36ef639493f400/docs/media/v11/arcade.gif" alt="OmniJev on Atari recordings: Enduro, Skiing and Pong, next input and steering"><br><sub>Games: Enduro, Skiing and Pong (OmniJev v1.1 replay)</sub></td>
+    <td><img src="https://raw.githubusercontent.com/tinnel123666888/OmniJev/14dbec4f71e194852c8d7b88ab36ef639493f400/docs/media/v11/robot.gif" alt="OmniJev on a two-view Bridge robot recording folding a cloth: jog direction, gripper and move size"><br><sub>Robotics: folding a cloth, two camera views (OmniJev v1.1 replay)</sub></td>
   </tr>
 </table>
 
@@ -125,8 +152,11 @@ The gates and the templates: [docs/skills.md](docs/skills.md#build-a-system-1-ag
   Sokoban uses text boards from Valen’s selected evaluation levels; see [the protocol](evals/sokoban/README.md).
 - `injection_guard`: a rail that answers one question at a hook of a running agent and fails closed.
 
-Every agent runs on `jev`, `laya` or `cua`, and on the chat model for the comparison. Flags, run commands and
-extras: [docs/agents.md](docs/agents.md).
+These use cases are [application candidates](CONTRIBUTING.md#application-candidates) for the required
+application + System1-Agents + System1-Omni video in important PRs.
+
+Every agent runs on `jev`, `laya` or `cua`, and on the chat model for the comparison; the browser agents also run on
+`omnijev`, which decides over a screenshot. Flags, run commands and extras: [docs/agents.md](docs/agents.md).
 
 ## How it works
 
@@ -140,8 +170,11 @@ interface fits: [docs/architecture.md](docs/architecture.md), [docs/decision-mod
 - [docs/benchmarks.md](docs/benchmarks.md): the six runs above, the Google Flights driver comparison and its 2026-09-23 rerun, a longer game, the guard rail.
 - [docs/skills.md](docs/skills.md): the caller skill, the builder skill, what to delegate.
 - [docs/agents.md](docs/agents.md): every agent with its flags, run command and extra.
+- [Agent use-case recipes](recipes/README.md): setup, run commands, result checks and demos for complete tasks.
 - [docs/architecture.md](docs/architecture.md) and [docs/decision-models.md](docs/decision-models.md): the fronts, the model slot, the model interface, adding a backend.
 - [docs/browser-front.md](docs/browser-front.md): the browser policy, decision by decision.
+- [docs/served-laya.md](docs/served-laya.md): Laya served by system1-omni as a decision model over HTTP, with its [API spec](docs/api/laya-systemone.openapi.yaml).
+- [docs/clm.md](docs/clm.md): CLM as a decision model over HTTP (`--model clm`), the engine that owns everything after a frozen Qwen3-8B encoder.
 - [docs/configuration.md](docs/configuration.md): environment variables, defaults and reader subsystems in one table.
 - [docs/glossary.md](docs/glossary.md): terms the documentation glosses on first mention.
 - [docs/why.md](docs/why.md): the problem, the philosophy, the precedents.

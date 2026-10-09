@@ -95,7 +95,8 @@ It produces the module, its test and a row in the agents table, and stops at the
 1. Intake: the task, where the state comes from, how the options are enumerated each step, the score, and whether
    any step needs arithmetic, deduction, search or generated text.
 2. Fit probe before any code: 8 to 12 hand-written decisions through `s1a probe cases.jsonl`. Under 80 percent
-   right, or one miss that needed deduction, the verdict is "not a decision-model task".
+   right, or one miss that needed deduction, the verdict is "not a decision-model task". Each case needs at least
+   one option and one `accept` key from its `options`; invalid cases stop before any model call.
 3. Front: a tool loop for an environment that enumerates moves and scores, a browser policy for a page with visible
    controls, a rail for one question at a hook of a running agent.
 4. Scaffold from the front's template under `s1a/agents/_templates/`, with the state-design rules from the skill's

@@ -1,0 +1,1016 @@
+{
+ "report": {
+  "elapsed_ms": 113866,
+  "decisions": 25,
+  "interactions": 25,
+  "waits": 0,
+  "median_decision_ms": 1053,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 776,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 2,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "One way",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Next",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Sunday, November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Done. Search for one-way flights, departing on November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Frankfurt am Main",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Frankfurt am Main",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Munich",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Munich",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "SCROLL_UP",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Munich",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change location",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "OK",
+    "kind": "click",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 5602,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 3115,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where from?",
+   "confidence": 0.901,
+   "elements": 25,
+   "elapsed_ms": 10708,
+   "probabilities": {
+    "15": 1.0,
+    "16": 0.0,
+    "17": 0.0,
+    "18": 0.0
+   },
+   "candidates": {
+    "15": "Where from?",
+    "16": "Where to?",
+    "17": "Departure",
+    "18": "Return"
+   },
+   "screenshot_ms": 689,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 2,
+   "probe_ms": 1296,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 722,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Zürich, Switzerland",
+   "confidence": 0.982,
+   "elements": 10,
+   "elapsed_ms": 13540,
+   "probabilities": {
+    "3": 0.969,
+    "5": 0.023,
+    "2": 0.004,
+    "4": 0.002,
+    "6": 0.001,
+    "9": 0.0
+   },
+   "candidates": {
+    "3": "Zürich, Switzerland",
+    "5": "Zurich Airport (ZRH)",
+    "2": "Origin, Select multiple airports",
+    "4": "Toggle nearby airports for Zürich, Switzerland",
+    "6": "Zürich HB",
+    "9": "Zurich, Netherlands"
+   },
+   "screenshot_ms": 686,
+   "text": null
+  },
+  {
+   "tick": 3,
+   "probe_ms": 756,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1053,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where to?",
+   "confidence": 0.753,
+   "elements": 25,
+   "elapsed_ms": 17364,
+   "probabilities": {
+    "16": 0.994,
+    "17": 0.003,
+    "18": 0.002,
+    "15": 0.001
+   },
+   "candidates": {
+    "16": "Where to?",
+    "17": "Departure",
+    "18": "Return",
+    "15": "Where from?"
+   },
+   "screenshot_ms": 783,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "London"
+  },
+  {
+   "tick": 4,
+   "probe_ms": 1275,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 745,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "London, United Kingdom",
+   "confidence": 0.93,
+   "elements": 9,
+   "elapsed_ms": 20338,
+   "probabilities": {
+    "3": 0.787,
+    "5": 0.163,
+    "2": 0.027,
+    "7": 0.012,
+    "4": 0.009,
+    "6": 0.001
+   },
+   "candidates": {
+    "3": "London, United Kingdom",
+    "5": "Heathrow Airport (LHR)",
+    "2": "Destination, Select multiple airports",
+    "7": "London Gatwick Airport (LGW)",
+    "4": "Toggle nearby airports for London, United Kingdom",
+    "6": "London Stansted Airport (STN)"
+   },
+   "screenshot_ms": 775,
+   "text": null
+  },
+  {
+   "tick": 5,
+   "probe_ms": 752,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1101,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change ticket type. Round trip",
+   "confidence": 0.594,
+   "elements": 26,
+   "elapsed_ms": 24185,
+   "probabilities": {
+    "12": 0.778,
+    "18": 0.181,
+    "19": 0.024,
+    "16": 0.007,
+    "13": 0.001,
+    "20": 0.001
+   },
+   "candidates": {
+    "12": "Change ticket type. Round trip",
+    "18": "Departure",
+    "19": "Return",
+    "16": "Swap origin and destination.",
+    "13": "1 passenger",
+    "20": "Search"
+   },
+   "screenshot_ms": 751,
+   "text": null
+  },
+  {
+   "tick": 6,
+   "probe_ms": 741,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 496,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "One way",
+   "confidence": 0.996,
+   "elements": 3,
+   "elapsed_ms": 27389,
+   "probabilities": {
+    "2": 0.995,
+    "1": 0.005,
+    "3": 0.0
+   },
+   "candidates": {
+    "2": "One way",
+    "1": "Round trip",
+    "3": "Multi-city"
+   },
+   "screenshot_ms": 767,
+   "text": null
+  },
+  {
+   "tick": 7,
+   "probe_ms": 753,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1072,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Departure",
+   "confidence": 0.7,
+   "elements": 25,
+   "elapsed_ms": 31187,
+   "probabilities": {
+    "18": 0.999,
+    "19": 0.0,
+    "14": 0.0,
+    "9": 0.0,
+    "12": 0.0,
+    "13": 0.0
+   },
+   "candidates": {
+    "18": "Departure",
+    "19": "Search",
+    "14": "Change seating class. Economy",
+    "9": "Change appearance",
+    "12": "Change ticket type. One way",
+    "13": "1 passenger"
+   },
+   "screenshot_ms": 749,
+   "text": null
+  },
+  {
+   "tick": 8,
+   "probe_ms": 1658,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1772,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.545,
+   "elements": 49,
+   "elapsed_ms": 36292,
+   "probabilities": {
+    "SCROLL_DOWN": 0.621,
+    "CLICK": 0.294,
+    "WAIT": 0.077,
+    "BLOCKED": 0.007,
+    "TYPE_TEXT": 0.001,
+    "DONE": 0.0
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 813,
+   "text": null
+  },
+  {
+   "tick": 9,
+   "probe_ms": 1655,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1902,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Next",
+   "confidence": 0.421,
+   "elements": 50,
+   "elapsed_ms": 40943,
+   "probabilities": {
+    "49": 0.537,
+    "36": 0.126,
+    "35": 0.108,
+    "38": 0.043,
+    "39": 0.036,
+    "42": 0.025
+   },
+   "candidates": {
+    "49": "Next",
+    "36": "Monday, November 2, 2026",
+    "35": "Saturday, October 31, 2026 , 84 euros",
+    "38": "Wednesday, November 4, 2026",
+    "39": "Monday, November 9, 2026",
+    "42": "Monday, November 16, 2026"
+   },
+   "screenshot_ms": 839,
+   "text": null
+  },
+  {
+   "tick": 10,
+   "probe_ms": 1868,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2638,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Sunday, November 1, 2026",
+   "confidence": 0.991,
+   "elements": 82,
+   "elapsed_ms": 47007,
+   "probabilities": {
+    "36": 0.942,
+    "66": 0.013,
+    "81": 0.007,
+    "37": 0.006,
+    "40": 0.003,
+    "67": 0.003
+   },
+   "candidates": {
+    "36": "Sunday, November 1, 2026",
+    "66": "Tuesday, December 1, 2026",
+    "81": "Next",
+    "37": "Monday, November 2, 2026",
+    "40": "Thursday, November 5, 2026",
+    "67": "Wednesday, December 2, 2026"
+   },
+   "screenshot_ms": 798,
+   "text": null
+  },
+  {
+   "tick": 11,
+   "probe_ms": 1320,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2809,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Done. Search for one-way flights, departing on November 1, 2026",
+   "confidence": 0.45,
+   "elements": 82,
+   "elapsed_ms": 52737,
+   "probabilities": {
+    "82": 0.975,
+    "36": 0.021,
+    "1": 0.001,
+    "66": 0.0,
+    "62": 0.0,
+    "81": 0.0
+   },
+   "candidates": {
+    "82": "Done. Search for one-way flights, departing on November 1, 2026",
+    "36": "Sunday, November 1, 2026, departure date. , 74 euros",
+    "1": "Departure",
+    "66": "Tuesday, December 1, 2026",
+    "62": "Friday, November 27, 2026 , 27 euros, Cheapest price",
+    "81": "Next"
+   },
+   "screenshot_ms": 810,
+   "text": null
+  },
+  {
+   "tick": 12,
+   "probe_ms": 746,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1105,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.707,
+   "elements": 25,
+   "elapsed_ms": 56067,
+   "probabilities": {
+    "SCROLL_DOWN": 0.749,
+    "PRESS_ENTER": 0.134,
+    "CLICK": 0.074,
+    "WAIT": 0.021,
+    "DONE": 0.021,
+    "BLOCKED": 0.0
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "DONE": "The page shows every requirement of the task met.",
+    "BLOCKED": "None of the offered operations can move the task forward."
+   },
+   "screenshot_ms": 763,
+   "text": null
+  },
+  {
+   "tick": 13,
+   "probe_ms": 773,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1036,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Frankfurt am Main",
+   "confidence": 0.38,
+   "elements": 21,
+   "elapsed_ms": 58831,
+   "probabilities": {
+    "13": 0.82,
+    "21": 0.05,
+    "1": 0.05,
+    "6": 0.021,
+    "19": 0.014,
+    "16": 0.008
+   },
+   "candidates": {
+    "13": "Frankfurt am Main",
+    "21": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "1": "Main menu",
+    "6": "Flights",
+    "19": "Find flights from Frankfurt am Main (FRA) to London (LGW) from €134. Operated by Condor. Oct 29 to Nov 4. Nonstop",
+    "16": "Düsseldorf"
+   },
+   "screenshot_ms": 795,
+   "text": null
+  },
+  {
+   "tick": 14,
+   "probe_ms": 4324,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 3,
+   "action_settle_ms": 1000,
+   "decision_ms": 1037,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Frankfurt am Main",
+   "confidence": 0.42,
+   "elements": 21,
+   "elapsed_ms": 66186,
+   "probabilities": {
+    "13": 0.729,
+    "1": 0.113,
+    "21": 0.043,
+    "6": 0.031,
+    "16": 0.016,
+    "2": 0.013
+   },
+   "candidates": {
+    "13": "Frankfurt am Main",
+    "1": "Main menu",
+    "21": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "6": "Flights",
+    "16": "Düsseldorf",
+    "2": "Google"
+   },
+   "screenshot_ms": 1298,
+   "text": null
+  },
+  {
+   "tick": 15,
+   "probe_ms": 3821,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 3,
+   "action_settle_ms": 1000,
+   "decision_ms": 1018,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Main menu",
+   "confidence": 0.611,
+   "elements": 21,
+   "elapsed_ms": 72516,
+   "probabilities": {
+    "1": 0.363,
+    "21": 0.176,
+    "14": 0.102,
+    "6": 0.099,
+    "16": 0.078,
+    "2": 0.036
+   },
+   "candidates": {
+    "1": "Main menu",
+    "21": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "14": "Munich",
+    "6": "Flights",
+    "16": "Düsseldorf",
+    "2": "Google"
+   },
+   "screenshot_ms": 811,
+   "text": null
+  },
+  {
+   "tick": 16,
+   "probe_ms": 748,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1359,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Main menu",
+   "confidence": 0.717,
+   "elements": 33,
+   "elapsed_ms": 76113,
+   "probabilities": {
+    "1": 0.292,
+    "26": 0.229,
+    "33": 0.054,
+    "6": 0.045,
+    "20": 0.041,
+    "12": 0.038
+   },
+   "candidates": {
+    "1": "Main menu",
+    "26": "Munich",
+    "33": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "6": "Flights",
+    "20": "Change location",
+    "12": "Explore"
+   },
+   "screenshot_ms": 793,
+   "text": null
+  },
+  {
+   "tick": 17,
+   "probe_ms": 743,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1017,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Main menu",
+   "confidence": 0.546,
+   "elements": 21,
+   "elapsed_ms": 79357,
+   "probabilities": {
+    "1": 0.273,
+    "21": 0.262,
+    "6": 0.145,
+    "14": 0.111,
+    "16": 0.058,
+    "2": 0.03
+   },
+   "candidates": {
+    "1": "Main menu",
+    "21": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "6": "Flights",
+    "14": "Munich",
+    "16": "Düsseldorf",
+    "2": "Google"
+   },
+   "screenshot_ms": 794,
+   "text": null
+  },
+  {
+   "tick": 18,
+   "probe_ms": 762,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1359,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Munich",
+   "confidence": 0.697,
+   "elements": 33,
+   "elapsed_ms": 82951,
+   "probabilities": {
+    "26": 0.189,
+    "1": 0.157,
+    "33": 0.097,
+    "6": 0.07,
+    "5": 0.062,
+    "12": 0.061
+   },
+   "candidates": {
+    "26": "Munich",
+    "1": "Main menu",
+    "33": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "6": "Flights",
+    "5": "Explore",
+    "12": "Explore"
+   },
+   "screenshot_ms": 793,
+   "text": null
+  },
+  {
+   "tick": 19,
+   "probe_ms": 744,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1012,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Munich",
+   "confidence": 0.198,
+   "elements": 21,
+   "elapsed_ms": 86713,
+   "probabilities": {
+    "14": 0.461,
+    "21": 0.201,
+    "1": 0.144,
+    "6": 0.045,
+    "2": 0.029,
+    "10": 0.022
+   },
+   "candidates": {
+    "14": "Munich",
+    "21": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "1": "Main menu",
+    "6": "Flights",
+    "2": "Google",
+    "10": "Google apps"
+   },
+   "screenshot_ms": 800,
+   "text": null
+  },
+  {
+   "tick": 20,
+   "probe_ms": 3796,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 3,
+   "action_settle_ms": 1000,
+   "decision_ms": 1011,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_UP",
+   "target": null,
+   "confidence": 0.43,
+   "elements": 21,
+   "elapsed_ms": 93025,
+   "probabilities": {
+    "SCROLL_UP": 0.525,
+    "CLICK": 0.285,
+    "SCROLL_DOWN": 0.08,
+    "WAIT": 0.065,
+    "BLOCKED": 0.044,
+    "DONE": 0.0
+   },
+   "candidates": {
+    "SCROLL_UP": "Move the viewport up the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 811,
+   "text": null
+  },
+  {
+   "tick": 21,
+   "probe_ms": 776,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1093,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.235,
+   "elements": 25,
+   "elapsed_ms": 95810,
+   "probabilities": {
+    "SCROLL_DOWN": 0.344,
+    "PRESS_ENTER": 0.261,
+    "CLICK": 0.245,
+    "WAIT": 0.096,
+    "DONE": 0.05,
+    "TYPE_TEXT": 0.002
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "DONE": "The page shows every requirement of the task met.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds."
+   },
+   "screenshot_ms": 760,
+   "text": null
+  },
+  {
+   "tick": 22,
+   "probe_ms": 765,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1007,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Munich",
+   "confidence": 0.631,
+   "elements": 21,
+   "elapsed_ms": 98542,
+   "probabilities": {
+    "14": 0.424,
+    "1": 0.213,
+    "21": 0.094,
+    "6": 0.072,
+    "10": 0.041,
+    "2": 0.035
+   },
+   "candidates": {
+    "14": "Munich",
+    "1": "Main menu",
+    "21": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "6": "Flights",
+    "10": "Google apps",
+    "2": "Google"
+   },
+   "screenshot_ms": 803,
+   "text": null
+  },
+  {
+   "tick": 23,
+   "probe_ms": 3800,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 3,
+   "action_settle_ms": 1000,
+   "decision_ms": 981,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Main menu",
+   "confidence": 0.624,
+   "elements": 21,
+   "elapsed_ms": 104838,
+   "probabilities": {
+    "1": 0.25,
+    "21": 0.17,
+    "6": 0.154,
+    "15": 0.112,
+    "2": 0.073,
+    "16": 0.067
+   },
+   "candidates": {
+    "1": "Main menu",
+    "21": "Find the cheapest days to fly The Date grid and Price graph make it easy to find the best flight deals",
+    "6": "Flights",
+    "15": "Berlin",
+    "2": "Google",
+    "16": "Düsseldorf"
+   },
+   "screenshot_ms": 824,
+   "text": null
+  },
+  {
+   "tick": 24,
+   "probe_ms": 745,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1304,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change location",
+   "confidence": 0.748,
+   "elements": 33,
+   "elapsed_ms": 108403,
+   "probabilities": {
+    "20": 0.24,
+    "6": 0.132,
+    "1": 0.103,
+    "13": 0.075,
+    "5": 0.072,
+    "28": 0.066
+   },
+   "candidates": {
+    "20": "Change location",
+    "6": "Flights",
+    "1": "Main menu",
+    "13": "Selected Tab: Flights",
+    "5": "Explore",
+    "28": "Düsseldorf"
+   },
+   "screenshot_ms": 815,
+   "text": null
+  },
+  {
+   "tick": 25,
+   "probe_ms": 802,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 473,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "OK",
+   "confidence": 0.902,
+   "elements": 2,
+   "elapsed_ms": 111882,
+   "probabilities": {
+    "2": 0.96,
+    "1": 0.04
+   },
+   "candidates": {
+    "2": "OK",
+    "1": "Cancel"
+   },
+   "screenshot_ms": 875,
+   "text": null
+  }
+ ],
+ "final": null,
+ "usage": {
+  "decisions": 25,
+  "chat_calls": 9,
+  "chat_input_tokens": 27121,
+  "chat_output_tokens": 121,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.008439
+ }
+}

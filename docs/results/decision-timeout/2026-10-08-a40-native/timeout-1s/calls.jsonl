@@ -1,0 +1,2 @@
+{"n": 1, "tool": "browser_navigate", "request_ms": 1759, "response_ms": 3563, "frame_ms": 3744}
+{"n": 2, "tool": "browser_run_code_unsafe", "request_ms": 3573, "response_ms": 4289, "frame_ms": 4444}

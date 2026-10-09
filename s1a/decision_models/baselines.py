@@ -16,6 +16,7 @@ class RandomModel(DecisionModel):
     """Uniform over the offered keys: the loop-overhead arm. Answers choice questions only."""
 
     name = "random"
+    bills_input_tokens = False
     question_types = frozenset({"choice"})
 
     def __init__(self, seed: int) -> None:
@@ -43,6 +44,7 @@ class RuleModel(DecisionModel):
     decision failure.
     """
 
+    bills_input_tokens = False
     question_types = frozenset({"choice"})
     deterministic = True
 

@@ -1,0 +1,194 @@
+{
+ "report": {
+  "elapsed_ms": 21347,
+  "decisions": 4,
+  "interactions": 3,
+  "waits": 1,
+  "median_decision_ms": 1221,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 724,
+  "settle_probes": 3,
+  "settle_ms": 2546,
+  "values": {
+   "cache": 0,
+   "prefetch": 2,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "wait",
+    "kind": "wait",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 698,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 3104,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where from?",
+   "confidence": 0.907,
+   "elements": 20,
+   "elapsed_ms": 6327,
+   "probabilities": {
+    "15": 1.0,
+    "16": 0.0,
+    "17": 0.0,
+    "18": 0.0
+   },
+   "candidates": {
+    "15": "Where from?",
+    "16": "Where to?",
+    "17": "Departure",
+    "18": "Return"
+   },
+   "screenshot_ms": 1201,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 2,
+   "probe_ms": 674,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 701,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Zürich, Switzerland",
+   "confidence": 0.982,
+   "elements": 10,
+   "elapsed_ms": 9108,
+   "probabilities": {
+    "3": 0.929,
+    "5": 0.059,
+    "2": 0.008,
+    "4": 0.002,
+    "6": 0.002,
+    "7": 0.0
+   },
+   "candidates": {
+    "3": "Zürich, Switzerland",
+    "5": "Zurich Airport (ZRH)",
+    "2": "Origin, Select multiple airports",
+    "4": "Toggle nearby airports for Zürich, Switzerland",
+    "6": "Zürich HB",
+    "7": "Lake Zurich, Illinois, USA"
+   },
+   "screenshot_ms": 1283,
+   "text": null
+  },
+  {
+   "tick": 3,
+   "probe_ms": 750,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1742,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where to?",
+   "confidence": 0.576,
+   "elements": 20,
+   "elapsed_ms": 12345,
+   "probabilities": {
+    "16": 0.993,
+    "18": 0.003,
+    "15": 0.002,
+    "17": 0.002
+   },
+   "candidates": {
+    "16": "Where to?",
+    "18": "Return",
+    "15": "Where from?",
+    "17": "Departure"
+   },
+   "screenshot_ms": 719,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "London"
+  },
+  {
+   "tick": 4,
+   "probe_ms": 2230,
+   "settle_probes": 3,
+   "settle_ms": 2546,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 444,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "WAIT",
+   "target": null,
+   "confidence": 0.659,
+   "elements": 0,
+   "elapsed_ms": 15919,
+   "probabilities": {
+    "WAIT": 0.744,
+    "SCROLL_DOWN": 0.191,
+    "BLOCKED": 0.063,
+    "DONE": 0.002
+   },
+   "candidates": {
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 748
+  }
+ ],
+ "final": {
+  "status": "BLOCKED",
+  "reason": "waited without progress",
+  "url": "https://www.google.com/travel/flights?tfs=CBwQARoOagwIAxIIL20vMDg5NjYaDnIMCAMSCC9tLzA4OTY2QAFIAXABggELCP___________wGYAQE&tfu=KgIIAw&hl=en",
+  "title": "Find Cheap Flights Worldwide & Book Your Ticket - Google Flights",
+  "steps": 3,
+  "elapsed_ms": 20989,
+  "page_text": "",
+  "answer": "The page text is missing. I need the content of the webpage to find the flight information."
+ },
+ "usage": {
+  "decisions": 4,
+  "chat_calls": 8,
+  "chat_input_tokens": 2214,
+  "chat_output_tokens": 61,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.000817
+ }
+}

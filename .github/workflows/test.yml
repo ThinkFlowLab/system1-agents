@@ -14,15 +14,22 @@ concurrency:
 jobs:
   core:
     # The install the README promises: openjiuwen alone, no game or report extras, no keys.
+    # Keep these names in sync with main's required status checks.
+    name: ${{ matrix.check_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        python: ["3.11", "3.13"]
         include:
+          - os: ubuntu-latest
+            python: "3.11"
+            check_name: core (3.11)
+          - os: ubuntu-latest
+            python: "3.13"
+            check_name: core (3.13)
           - os: windows-latest
             python: "3.11"
+            check_name: core (windows, 3.11)
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0

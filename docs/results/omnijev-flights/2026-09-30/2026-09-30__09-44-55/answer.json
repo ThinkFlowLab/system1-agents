@@ -1,0 +1,186 @@
+{
+ "ok": false,
+ "final": "{\"browser_result\":{\"status\":\"partial\",\"task_id\":\"0538807d19be0b84\",\"current_phase\":\"form\",\"missing_fields\":[\"result_count:0/1\"],\"unverified_fields\":[],\"missing_slots\":[],\"unavailable_slots\":[],\"requested_slots\":[],\"blockers\":[\"form_phase_budget_exhausted\"],\"field_coverage\":[],\"evidence\":[],\"observations\":[],\"current_page\":{\"url\":\"https://www.google.com/travel/flights?tfs=CBwQARooEgoyMDI2LTExLTAxagwIAxIIL20vMDg5NjZyDAgDEggvbS8wNGpwbEABSAFwAYIBCwj___________8BmAEC&tfu=KgIIAw&hl=en\",\"title\":\"Find Cheap Flights Worldwide & Book Your Ticket - Google Flights\"},\"requested_result_count\":1,\"observed_result_count\":0,\"terminal_reason\":null,\"retryable\":false,\"recommended_recovery\":\"collect_missing_evidence_from_current_page\",\"resume_count\":0,\"deadline\":{\"budget_s\":240.0,\"elapsed_s\":113.776,\"remaining_s\":126.224,\"invocation_remaining_s\":127.961},\"summary\":\"The form phase budget has been exhausted. I have successfully entered the origin (Zurich), destination (London), and selected a one-way trip for November 1, 2026. However, I was unable to confirm the number of adults or the economy class.\"}}",
+ "screenshot": null,
+ "error": "result_type='error': {\"browser_result\":{\"status\":\"partial\",\"task_id\":\"0538807d19be0b84\",\"current_phase\":\"form\",\"missing_fields\":[\"result_count:0/1\"],\"unverified_fields\":[],\"missing_slots\":[],\"unavailable_slots\":[],\"reques",
+ "elapsed_ms": 114801,
+ "usage": {
+  "decisions": 25,
+  "chat_calls": 9,
+  "chat_input_tokens": 29013,
+  "chat_output_tokens": 103,
+  "chat_cache_tokens": 26439,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.001823
+ },
+ "report": {
+  "elapsed_ms": 114120,
+  "decisions": 25,
+  "interactions": 25,
+  "waits": 0,
+  "median_decision_ms": 1055,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 784,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 2,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "One way",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Next",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Sunday, November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Done. Search for one-way flights, departing on November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Frankfurt am Main",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Frankfurt am Main",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Munich",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Munich",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "SCROLL_UP",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Munich",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Main menu",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change location",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "OK",
+    "kind": "click",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "agent": "flights",
+ "model": "omnijev"
+}

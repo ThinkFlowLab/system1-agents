@@ -15,6 +15,7 @@ model_name alike.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import re
 import statistics
@@ -41,7 +42,7 @@ from s1a.browser.action_space import (
     top_probabilities,
 )
 from s1a.browser.probe_js import POLICY_PROBE_JS, STAMP_ATTRIBUTE
-from s1a.decision_models import DecisionModel
+from s1a.decision_models import DecisionModel, Image, Observation
 from s1a.spec import BrowserAgentSpec
 
 BROWSER_TURN_TOOL = "browser_click"
@@ -82,6 +83,15 @@ ACTION_SETTLE_BUDGET_MS = 1000  # total in-page wait one action gets before the 
 MAX_PROBE_SETTLE_MS = 1500  # keeps load(3s)+settle+1s JS lastResort >=1s under the 30s transport request timeout
 WAIT_SETTLE_BUDGET_MS = 3000  # total in-page settle time one WAIT streak may spend before the step gives up
 URL_RE = re.compile(r"https?://[^\s'\"<>]+")
+# The viewport as PNG, for a decision model that reads images; one run-code call through the probe's own executor.
+# A background tab renders no frames, so the page is brought to the front first; the capture waits 15 s at most.
+SCREENSHOT_JS = (
+    "async (page) => { await page.bringToFront(); "
+    'const png = await page.screenshot({type: "png", timeout: 15000}); '
+    "return JSON.stringify({png: png.toString('base64')}); }"
+)
+SCREENSHOT_ATTEMPTS = 2  # a failed capture is tried once more before the step goes on without a picture
+_SCREENSHOT_RE = re.compile(r'png\\*"\s*:\s*\\*"([A-Za-z0-9+/=]+)')
 
 
 @dataclass(frozen=True)
@@ -258,6 +268,11 @@ class BrowserDecisionModel(Model):
                     run.values = []
                 values = run.values
             observation = build_observation(space, snapshot, run.history)
+            screenshot_ms = None
+            if self._decision_model.supports_images:
+                screenshot, screenshot_ms = await self._screenshot()
+                if screenshot is not None:
+                    observation = Observation(observation.state, images=(screenshot,))
             questions = build_questions(
                 space, goal=run.goal, values=values, rules=self._spec.rules, language=self._language
             )
@@ -287,13 +302,17 @@ class BrowserDecisionModel(Model):
                 "probabilities": probabilities,  # the replay's bars: the settled head's top keys
                 "candidates": candidates,
             }
+            if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
+                record["screenshot_ms"] = screenshot_ms
             run.ticks.append(record)
             if move.operation == "WAIT":
                 run.consecutive_waits += 1
-                run.history.append({"action": "wait", "kind": "wait", "text": None, "page_changed": None})
+                wait_entry = {"action": "wait", "kind": "wait", "text": None, "page_changed": None}
+                run.history.append(wait_entry)
                 if run.consecutive_waits > MAX_CONSECUTIVE_WAITS:
                     return await self._final(run, "BLOCKED", snapshot, "waited without progress")
                 snapshot, settle_probes, settle_ms, progressed = await self._settle_wait(run, snapshot)
+                wait_entry["page_changed"] = progressed  # the next state shows whether the wait moved the page
                 if not progressed:
                     record["settle_probes"] += settle_probes
                     record["settle_ms"] += settle_ms
@@ -396,6 +415,30 @@ class BrowserDecisionModel(Model):
                 snapshot["revisiting"] = True
         self._prefetch_values(run, snapshot)
         return snapshot, round((time.perf_counter() - started) * 1000)
+
+    async def _screenshot(self) -> tuple[Image | None, int]:
+        """The viewport as PNG and the milliseconds the capture took, both attempts included. A failed capture is
+        tried once more, since one flaky capture would otherwise end an image-only model's episode. ``None`` when
+        both fail: the step goes on without the picture and the decision model says whether it can decide without one."""
+        started = time.perf_counter()
+        executor = getattr(self._runtime, "code_executor", None)
+        found = None
+        for _attempt in range(SCREENSHOT_ATTEMPTS):
+            if not callable(executor):
+                break
+            raw: Any = None
+            try:
+                raw = await executor(SCREENSHOT_JS)
+            except Exception:  # noqa: BLE001 - a failed capture degrades to a text-only observation
+                logger.warning("[BrowserDecisionModel] screenshot failed", exc_info=True)
+            found = _SCREENSHOT_RE.search(json.dumps(raw, default=str)) if raw is not None else None
+            if found is not None:
+                break
+        ms = round((time.perf_counter() - started) * 1000)
+        if found is None:
+            logger.warning("[BrowserDecisionModel] no screenshot in the run-code result")
+            return None, ms
+        return Image(base64.b64decode(found.group(1))), ms
 
     async def _raw_probe(self, *, settle_ms: int, quiet_ms: int, after: dict[str, Any] | None) -> dict[str, Any]:
         params = {
@@ -773,9 +816,10 @@ class BrowserDecisionModel(Model):
             "interactions": len([h for h in run.history if h["kind"] != "wait"]),
             "waits": len([h for h in run.history if h["kind"] == "wait"]),
             "median_decision_ms": int(statistics.median(jev)) if jev else 0,
-            # Laya and Cua run in process: their tokens are free and unpriced (s1a/tool/loop.py does the same).
             "jev_input_tokens": (
-                sum(int(t.get("input_tokens") or 0) for t in run.ticks) if self._decision_model.name == "jev" else 0
+                sum(int(t.get("input_tokens") or 0) for t in run.ticks)
+                if self._decision_model.bills_input_tokens
+                else 0
             ),
             "median_probe_ms": int(statistics.median(t["probe_ms"] for t in run.ticks)) if run.ticks else 0,
             "settle_probes": sum(t.get("settle_probes", 0) for t in run.ticks),

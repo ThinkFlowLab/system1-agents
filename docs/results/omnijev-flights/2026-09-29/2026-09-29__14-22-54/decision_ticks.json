@@ -1,0 +1,592 @@
+{
+ "report": {
+  "elapsed_ms": 67712,
+  "decisions": 14,
+  "interactions": 13,
+  "waits": 1,
+  "median_decision_ms": 1128,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 1195,
+  "settle_probes": 3,
+  "settle_ms": 2441,
+  "values": {
+   "cache": 0,
+   "prefetch": 2,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "One way",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Sunday, November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Done. Search for one-way flights, departing on November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Search",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "wait",
+    "kind": "wait",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 4990,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 3017,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where from?",
+   "confidence": 0.891,
+   "elements": 20,
+   "elapsed_ms": 10232,
+   "probabilities": {
+    "15": 1.0,
+    "16": 0.0,
+    "17": 0.0,
+    "18": 0.0
+   },
+   "candidates": {
+    "15": "Where from?",
+    "16": "Where to?",
+    "17": "Departure",
+    "18": "Return"
+   },
+   "screenshot_ms": 654,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 2,
+   "probe_ms": 1402,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 701,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Zürich, Switzerland",
+   "confidence": 0.979,
+   "elements": 10,
+   "elapsed_ms": 13105,
+   "probabilities": {
+    "3": 0.95,
+    "5": 0.04,
+    "2": 0.007,
+    "4": 0.002,
+    "6": 0.001,
+    "7": 0.0
+   },
+   "candidates": {
+    "3": "Zürich, Switzerland",
+    "5": "Zurich Airport (ZRH)",
+    "2": "Origin, Select multiple airports",
+    "4": "Toggle nearby airports for Zürich, Switzerland",
+    "6": "Zürich HB",
+    "7": "Lake Zurich, Illinois, USA"
+   },
+   "screenshot_ms": 667,
+   "text": null
+  },
+  {
+   "tick": 3,
+   "probe_ms": 721,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 938,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where to?",
+   "confidence": 0.576,
+   "elements": 20,
+   "elapsed_ms": 16694,
+   "probabilities": {
+    "16": 0.993,
+    "18": 0.003,
+    "15": 0.002,
+    "17": 0.002
+   },
+   "candidates": {
+    "16": "Where to?",
+    "18": "Return",
+    "15": "Where from?",
+    "17": "Departure"
+   },
+   "screenshot_ms": 722,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "London"
+  },
+  {
+   "tick": 4,
+   "probe_ms": 1279,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 736,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "London, United Kingdom",
+   "confidence": 0.957,
+   "elements": 9,
+   "elapsed_ms": 19615,
+   "probabilities": {
+    "3": 0.664,
+    "5": 0.286,
+    "7": 0.02,
+    "2": 0.02,
+    "4": 0.005,
+    "9": 0.003
+   },
+   "candidates": {
+    "3": "London, United Kingdom",
+    "5": "Heathrow Airport (LHR)",
+    "7": "London Gatwick Airport (LGW)",
+    "2": "Destination, Select multiple airports",
+    "4": "Toggle nearby airports for London, United Kingdom",
+    "9": "London City Airport (LCY)"
+   },
+   "screenshot_ms": 750,
+   "text": null
+  },
+  {
+   "tick": 5,
+   "probe_ms": 721,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1085,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change ticket type. Round trip",
+   "confidence": 0.477,
+   "elements": 21,
+   "elapsed_ms": 23375,
+   "probabilities": {
+    "12": 0.914,
+    "18": 0.068,
+    "19": 0.009,
+    "16": 0.004,
+    "6": 0.001,
+    "20": 0.001
+   },
+   "candidates": {
+    "12": "Change ticket type. Round trip",
+    "18": "Departure",
+    "19": "Return",
+    "16": "Swap origin and destination.",
+    "6": "Flights",
+    "20": "Search"
+   },
+   "screenshot_ms": 737,
+   "text": null
+  },
+  {
+   "tick": 6,
+   "probe_ms": 712,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 489,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "One way",
+   "confidence": 0.998,
+   "elements": 3,
+   "elapsed_ms": 26503,
+   "probabilities": {
+    "2": 0.987,
+    "1": 0.012,
+    "3": 0.0
+   },
+   "candidates": {
+    "2": "One way",
+    "1": "Round trip",
+    "3": "Multi-city"
+   },
+   "screenshot_ms": 730,
+   "text": null
+  },
+  {
+   "tick": 7,
+   "probe_ms": 722,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 943,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Departure",
+   "confidence": 0.512,
+   "elements": 20,
+   "elapsed_ms": 30079,
+   "probabilities": {
+    "18": 0.999,
+    "19": 0.001,
+    "6": 0.0,
+    "12": 0.0,
+    "14": 0.0,
+    "15": 0.0
+   },
+   "candidates": {
+    "18": "Departure",
+    "19": "Search",
+    "6": "Flights",
+    "12": "Change ticket type. One way",
+    "14": "Change seating class. Economy",
+    "15": "Where from?"
+   },
+   "screenshot_ms": 716,
+   "text": null
+  },
+  {
+   "tick": 8,
+   "probe_ms": 1654,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1789,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.789,
+   "elements": 50,
+   "elapsed_ms": 35141,
+   "probabilities": {
+    "SCROLL_DOWN": 0.824,
+    "CLICK": 0.144,
+    "WAIT": 0.027,
+    "BLOCKED": 0.005,
+    "TYPE_TEXT": 0.0,
+    "DONE": 0.0
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 784,
+   "text": null
+  },
+  {
+   "tick": 9,
+   "probe_ms": 1130,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1924,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.47,
+   "elements": 51,
+   "elapsed_ms": 39676,
+   "probabilities": {
+    "SCROLL_DOWN": 0.546,
+    "CLICK": 0.406,
+    "WAIT": 0.032,
+    "BLOCKED": 0.011,
+    "TYPE_TEXT": 0.005,
+    "PRESS_ENTER": 0.0
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search."
+   },
+   "screenshot_ms": 1268,
+   "text": null
+  },
+  {
+   "tick": 10,
+   "probe_ms": 1133,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1922,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.442,
+   "elements": 51,
+   "elapsed_ms": 43790,
+   "probabilities": {
+    "SCROLL_DOWN": 0.522,
+    "CLICK": 0.405,
+    "WAIT": 0.053,
+    "BLOCKED": 0.015,
+    "TYPE_TEXT": 0.005,
+    "PRESS_ENTER": 0.0
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search."
+   },
+   "screenshot_ms": 812,
+   "text": null
+  },
+  {
+   "tick": 11,
+   "probe_ms": 1590,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2939,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Sunday, November 1, 2026",
+   "confidence": 0.98,
+   "elements": 110,
+   "elapsed_ms": 49343,
+   "probabilities": {
+    "35": 0.651,
+    "1": 0.04,
+    "16": 0.031,
+    "65": 0.029,
+    "108": 0.021,
+    "8": 0.014
+   },
+   "candidates": {
+    "35": "Sunday, November 1, 2026",
+    "1": "Departure",
+    "16": "Tuesday, October 13, 2026 , 55 euros",
+    "65": "Tuesday, December 1, 2026",
+    "108": "Previous",
+    "8": "Monday, October 5, 2026 , 113 euros"
+   },
+   "screenshot_ms": 795,
+   "text": null
+  },
+  {
+   "tick": 12,
+   "probe_ms": 1498,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2983,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Done. Search for one-way flights, departing on November 1, 2026",
+   "confidence": 0.74,
+   "elements": 110,
+   "elapsed_ms": 55882,
+   "probabilities": {
+    "110": 0.847,
+    "35": 0.04,
+    "1": 0.037,
+    "65": 0.01,
+    "95": 0.007,
+    "3": 0.005
+   },
+   "candidates": {
+    "110": "Done. Search for one-way flights, departing on November 1, 2026",
+    "35": "Sunday, November 1, 2026, departure date. , 72 euros",
+    "1": "Departure",
+    "65": "Tuesday, December 1, 2026 , 22 euros, Cheapest price",
+    "95": "Thursday, December 31, 2026 , 36 euros",
+    "3": "Reset"
+   },
+   "screenshot_ms": 781,
+   "text": null
+  },
+  {
+   "tick": 13,
+   "probe_ms": 1240,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 994,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Search",
+   "confidence": 0.355,
+   "elements": 20,
+   "elapsed_ms": 59535,
+   "probabilities": {
+    "19": 0.997,
+    "18": 0.001,
+    "20": 0.001,
+    "2": 0.0,
+    "11": 0.0,
+    "6": 0.0
+   },
+   "candidates": {
+    "19": "Search",
+    "18": "Departure",
+    "20": "Explore deals with AI",
+    "2": "Google",
+    "11": "Sign in",
+    "6": "Flights"
+   },
+   "screenshot_ms": 729,
+   "text": null
+  },
+  {
+   "tick": 14,
+   "probe_ms": 1150,
+   "settle_probes": 3,
+   "settle_ms": 2441,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1171,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "WAIT",
+   "target": null,
+   "confidence": 0.792,
+   "elements": 28,
+   "elapsed_ms": 63659,
+   "probabilities": {
+    "WAIT": 0.821,
+    "SCROLL_DOWN": 0.082,
+    "CLICK": 0.057,
+    "PRESS_ENTER": 0.018,
+    "BLOCKED": 0.018,
+    "TYPE_TEXT": 0.003
+   },
+   "candidates": {
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds."
+   },
+   "screenshot_ms": 636
+  }
+ ],
+ "final": {
+  "status": "BLOCKED",
+  "reason": "waited without progress",
+  "url": "https://www.google.com/travel/flights/search?tfs=CBwQAhooEgoyMDI2LTExLTAxagwIAxIIL20vMDg5NjZyDAgDEggvbS8wNGpwbEABSAFwAYIBCwj___________8BmAEC&hl=en",
+  "title": "Zürich to London | Google Flights",
+  "steps": 13,
+  "elapsed_ms": 67385,
+  "page_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nSign in\nFlight search\n1\nFilters\nAll filters\nStops\nAirlines\nBags\nPrice\nTimes\nEmissions\nConnecting airports\nDuration\nSearch results\nNo results returned.\nOops, something went wrong.\nReload",
+  "answer": "The page shows \"No results returned.\" for the specified flight search. Therefore, the flight options are not visible."
+ },
+ "usage": {
+  "decisions": 14,
+  "chat_calls": 12,
+  "chat_input_tokens": 4065,
+  "chat_output_tokens": 94,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.001454
+ }
+}
