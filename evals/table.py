@@ -55,13 +55,22 @@ class Trial:
     cost_usd: float | None
 
 
-def window_s(result: dict[str, Any]) -> float | None:
-    """Seconds between a trial's recorded start and finish."""
+def recorded_window_s(result: dict[str, Any]) -> float | None:
+    """Seconds between a trial's recorded start and finish, or None if either is missing."""
     window = result.get("agent_execution") or {}
     started, finished = window.get("started_at"), window.get("finished_at")
     if not started or not finished:
         return None
     return (datetime.fromisoformat(finished) - datetime.fromisoformat(started)).total_seconds()
+
+
+def window_s(result: dict[str, Any]) -> float:
+    """Seconds between a trial's recorded start and finish (zero if either timestamp is missing).
+
+    Keep the historic float return contract for replay consumers; reporting code that needs to distinguish
+    missing timing data should use ``recorded_window_s``.
+    """
+    return recorded_window_s(result) or 0.0
 
 
 def model_label(result: dict[str, Any]) -> str:
@@ -82,7 +91,7 @@ def read_trial(trial_dir: Path, *, eval_name: str) -> Trial | None:
     reward = ((result.get("verifier_result") or {}).get("rewards") or {}).get("reward")
     elapsed = metadata.get("elapsed_s")
     if elapsed is None:
-        elapsed = window_s(result)
+        elapsed = recorded_window_s(result)
     return Trial(
         eval_name=eval_name,
         model=model_label(result),
