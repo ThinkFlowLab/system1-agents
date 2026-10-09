@@ -7,10 +7,8 @@
 from __future__ import annotations
 
 import asyncio
-import importlib
 import os
 import time
-from contextlib import AbstractContextManager, nullcontext
 from importlib import metadata
 from typing import Any, TypeGuard
 
@@ -38,6 +36,7 @@ _HEAD_ASKS = {
     "operation": "Which operation comes next?",
     "text_value": "Which value should be typed into the field?",
 }
+LAYA_MPS_FP32_ROWS = 10**9  # no request has this many questions, so Laya never switches to fp16 on MPS
 
 
 def laya_question(question: Question) -> Json:
@@ -64,19 +63,6 @@ def check_window(usage: Usage, questions: int, max_len: int, hint: str) -> None:
                 f"the state or the options were cut; {hint}"
             ),
         )
-
-
-def without_weight_init() -> AbstractContextManager[Any]:
-    """transformers' ``no_init_weights``. ``laya.load`` builds the encoder from its config, which draws every weight
-    at random (about 30 s of the load on CPU), then loads the checkpoint over all of them with ``strict=True``, so
-    the draw is thrown away. The helper sits in ``transformers.initialization`` from 5.0 and in
-    ``transformers.modeling_utils`` before; without either the load runs as it is."""
-    for module in ("transformers.initialization", "transformers.modeling_utils"):
-        try:
-            return importlib.import_module(module).no_init_weights()
-        except (ImportError, AttributeError):
-            continue
-    return nullcontext()
 
 
 def _laya_browser_option(option: Any) -> Any:
@@ -232,7 +218,9 @@ class LayaModel(DecisionModel):
     def from_env(cls) -> "LayaModel":
         """``LAYA_MODEL`` (a hub id or a path), ``LAYA_SUBFOLDER``, ``LAYA_DEVICE``; ``LAYA_MAX_LEN`` and
         ``LAYA_HEAD_MAX_LEN`` override the checkpoint's window. ``LAYA_COMPACT_BROWSER_STATE`` (default on;
-        ``0``/``false``/``no`` turns it off) folds a browser-shaped state through ``laya_state`` before every call."""
+        ``0``/``false``/``no`` turns it off) folds a browser-shaped state through ``laya_state`` before every call.
+        On MPS the model answers in fp32 whatever the number of questions, unless ``LAYA_MPS_AMP_MIN_ROWS``
+        (Laya's own variable) is set."""
         try:
             import laya
         except ImportError as exc:
@@ -240,10 +228,21 @@ class LayaModel(DecisionModel):
                 StatusCode.MODEL_SERVICE_CONFIG_ERROR,
                 error_msg="--model laya needs the laya extra: uv sync --extra laya",
             ) from exc
+        mps_rows = os.getenv("LAYA_MPS_AMP_MIN_ROWS")
+        if mps_rows:
+            try:
+                rows = int(mps_rows)
+            except ValueError:
+                rows = 0  # Laya would fall back to its default of 5 and run those requests in fp16
+            if rows < 1:  # and Laya raises anything below 1 to 1: fp16 from a single question
+                raise build_error(
+                    StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+                    error_msg=f"LAYA_MPS_AMP_MIN_ROWS must be a whole number of at least 1, not {mps_rows!r}; "
+                    "unset it to keep fp32",
+                )
         model = os.getenv("LAYA_MODEL") or LAYA_DEFAULT_MODEL
         subfolder = os.getenv("LAYA_SUBFOLDER") or None
-        with without_weight_init():
-            agent = laya.load(model, device=os.getenv("LAYA_DEVICE") or None, subfolder=subfolder)
+        agent = laya.load(model, device=os.getenv("LAYA_DEVICE") or None, subfolder=subfolder)
         if not callable(getattr(agent, "system_one", None)):
             try:
                 version = metadata.version("laya")
@@ -256,6 +255,10 @@ class LayaModel(DecisionModel):
                     "the s1a laya model needs that method"
                 ),
             )
+        # From 0.3.10 Laya runs a request of five or more questions in fp16 on MPS. That moves the answers, enough
+        # to flip a close decision, so one browser episode would mix both precisions.
+        if not mps_rows and hasattr(agent, "mps_amp_min_rows"):
+            agent.mps_amp_min_rows = LAYA_MPS_FP32_ROWS
         for key, variable in (("max_len", "LAYA_MAX_LEN"), ("head_max_len", "LAYA_HEAD_MAX_LEN")):
             value = os.getenv(variable)
             if value:

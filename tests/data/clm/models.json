@@ -1,0 +1,18 @@
+{
+  "body": {
+    "models": [
+      {
+        "description": "Contrastive language model: Qwen3-8B encoder + trained projection heads",
+        "name": "clm-latest",
+        "release_date": "2026-09-19"
+      },
+      {
+        "description": "Ablation: cosine in the raw encoder embedding space, no projection head",
+        "name": "clm-raw",
+        "release_date": "2026-09-19"
+      }
+    ]
+  },
+  "content_type": "application/json",
+  "status": 200
+}

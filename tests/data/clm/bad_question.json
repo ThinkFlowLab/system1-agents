@@ -1,0 +1,7 @@
+{
+  "body": {
+    "detail": "invalid request: choice question needs a non-empty 'criteria' object"
+  },
+  "content_type": "application/json",
+  "status": 422
+}

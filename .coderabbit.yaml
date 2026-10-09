@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit reviews each non-draft pull request when it opens and again on every push. The criteria come from
+# .claude/skills/review-pr/SKILL.md, which the knowledge base below reads as a guideline file.
+language: en-US
+tone_instructions: "Short and plain. Evidence first: cite the file, the line and the scenario that breaks."
+
+reviews:
+  profile: chill
+  poem: false
+  sequence_diagrams: false
+  assess_linked_issues: true
+  suggested_reviewers: false
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    autofix:
+      enabled: false
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_pause_after_reviewed_commits: 0
+    ignore_usernames:
+      - dependabot[bot]
+  path_filters:
+    - "!uv.lock"
+    - "!evals/results/**"
+    - "!evals/showcase/**"
+  path_instructions:
+    - path: "s1a/**/*.py"
+      instructions: |
+        The System 1 decision path: Jev and local model invocation, model selection, fallback behavior and
+        deterministic replay. Check asyncio cancellation, timeouts and resource cleanup, and that a public
+        signature, a flag or a documented behavior does not change without the docs and CHANGELOG saying so.
+    - path: "evals/**"
+      instructions: |
+        Benchmark fairness: the same seeds, inputs and budget on every arm, no caching that favors one model,
+        and result aggregation that cannot drop a failed run. A number in a doc must match the record it cites.
+    - path: "docs/**"
+      instructions: |
+        A number in a doc must match the record it cites (the archives under docs/results/ and the files under
+        evals/), and a flag, an environment variable or a command in a doc must match what the code does now.
+    - path: "tests/**"
+      instructions: |
+        Edge cases, error paths and model-unavailable scenarios. A test that cannot fail, or that needs a key
+        or the network, is a finding: nothing in the suite may need either.
+    - path: ".github/workflows/**"
+      instructions: |
+        Security first. Flag pull_request_target or issue_comment jobs that check out or run pull request code,
+        any ${{ }} expression of untrusted text (titles, bodies, branch names, model output) inside a run
+        script, secrets handed to steps that do not need them, and permissions wider than the job uses.
+    - path: "pyproject.toml"
+      instructions: |
+        A new or changed extra must agree with the extras table in CONTRIBUTING.md, and a new agent's extra is also
+        listed in EXTRAS in s1a/run.py (the other extras, such as laya, cua, report and dev, are not agents and
+        are not listed there). CI checks uv.lock and the review does not see it, so do not comment on the lock.
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - .claude/skills/review-pr/SKILL.md
+      - CONTRIBUTING.md

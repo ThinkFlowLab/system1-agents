@@ -1,0 +1,5 @@
+system1-omni 99865743d27316fbe81362dc0f0e6de6fda86284
+torch 2.14.1+cpu transformers 5.10.2 peft 0.19.1
+60M	weights/Open-Jev-27B-v1.1
+52G	weights/Qwen3.8-27B
+48G	weights/open-jev-27b-merged

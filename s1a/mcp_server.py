@@ -25,7 +25,7 @@ INSTRUCTIONS = (
     "constraint puzzles or free-text generation. list_agents gives every agent's flags: a browser agent takes "
     "--model jev --goal '...' and needs a chat-model key (OPENAI_API_KEY or LLM_API_KEY plus MODEL_NAME), a Jev key "
     "(TYPESAFE_API_KEY or OPENROUTER_API_KEY) and Node for @playwright/mcp; a tool agent takes --model, --rethink and "
-    "--episodes; a rail takes --labelled-set. decide accepts model jev (default), laya, cua or laya-served; local models "
+    "--episodes; a rail takes --labelled-set. decide accepts model jev (default), clm, laya, cua or laya-served; local models "
     "need their optional extra and no Jev key, laya-served needs LAYA_SERVED_URL. Runs and decisions go one at a time per server."
 )
 
@@ -94,7 +94,7 @@ async def decide(
     state: dict[str, Any],
     options: dict[str, str],
     rules: str,
-    model: Literal["jev", "laya", "laya-served", "cua"] = "jev",
+    model: Literal["jev", "clm", "laya", "laya-served", "cua"] = "jev",
 ) -> dict[str, Any]:
     """One choice question: the chosen key, probabilities, confidence and decision latency in ms.
 

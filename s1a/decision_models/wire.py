@@ -100,6 +100,12 @@ class JevDecisionsClient:
                 StatusCode.MODEL_SERVICE_CONFIG_ERROR,
                 error_msg="no Jev key: set TYPESAFE_API_KEY or OPENROUTER_API_KEY in .env or the environment",
             )
+        # the same guard as S1A_DECISION_TIMEOUT_S, for a deadline passed in code (JevModel.from_env(timeout_s=...))
+        if not math.isfinite(timeout_s) or timeout_s <= 0:
+            raise build_error(
+                StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+                error_msg=f"timeout_s must be a finite, positive number of seconds, not {timeout_s!r}",
+            )
         self.url = url
         self.model = model
         self._timeout_s = timeout_s  # the deadline for one decision, retries included

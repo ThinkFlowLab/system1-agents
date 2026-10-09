@@ -1,0 +1,23 @@
+{
+  "body": {
+    "answers": {
+      "pick": {
+        "choice": "billing",
+        "confidence": 0.9854527827058892,
+        "probabilities": {
+          "billing": 0.9927263913529446,
+          "technical": 0.007273608647055358
+        },
+        "type": "choice"
+      }
+    },
+    "model": "clm-latest",
+    "usage": {
+      "billing_units": 1,
+      "input_tokens": 17,
+      "output_tokens": 0
+    }
+  },
+  "content_type": "application/json",
+  "status": 200
+}

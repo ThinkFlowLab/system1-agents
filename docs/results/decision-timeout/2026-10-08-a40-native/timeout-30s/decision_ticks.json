@@ -1,0 +1,112 @@
+{
+ "report": {
+  "elapsed_ms": 21250,
+  "decisions": 2,
+  "interactions": 1,
+  "waits": 0,
+  "median_decision_ms": 7778,
+  "jev_input_tokens": 97408,
+  "median_probe_ms": 947,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 0,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 698,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 8731,
+   "input_tokens": 55067,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.258,
+   "elements": 25,
+   "elapsed_ms": 11223,
+   "probabilities": {
+    "SCROLL_DOWN": 0.381,
+    "TYPE_TEXT": 0.291,
+    "CLICK": 0.254,
+    "WAIT": 0.035,
+    "BLOCKED": 0.029,
+    "DONE": 0.009
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "text": null
+  },
+  {
+   "tick": 2,
+   "probe_ms": 1196,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 6826,
+   "input_tokens": 42341,
+   "output_tokens": 0,
+   "operation": "BLOCKED",
+   "target": null,
+   "confidence": 0.4,
+   "elements": 21,
+   "elapsed_ms": 19304,
+   "probabilities": {
+    "BLOCKED": 0.5,
+    "SCROLL_UP": 0.235,
+    "SCROLL_DOWN": 0.152,
+    "CLICK": 0.059,
+    "WAIT": 0.048,
+    "DONE": 0.006
+   },
+   "candidates": {
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "SCROLL_UP": "Move the viewport up the page.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "DONE": "The page shows every requirement of the task met."
+   }
+  }
+ ],
+ "final": {
+  "status": "BLOCKED",
+  "reason": "",
+  "url": "https://www.google.com/travel/flights?hl=en",
+  "title": "Find Cheap Flights Worldwide & Book Your Ticket - Google Flights",
+  "steps": 1,
+  "elapsed_ms": 20953,
+  "page_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nSign in\nFind and book cheap flights worldwide and track prices\nFind cheap flights from Germany to anywhere\nFrankfurt am Main\nMunich\nBerlin\nDüsseldorf\nFrankfurt am Main\nNew York\nJan 7 — Jan 13\n1 stop\nfrom\n€437\nFrankfurt am Main\nSan Francisco\nNov 19 — Nov 25\n1 stop\nfrom\n€592\nFrankfurt am Main\nLondon\nNov 13 — Nov 21\nNonstop\nfrom\n€119\nUseful tools to help you find the best airline tickets\nFind the cheapest days to fly\nThe Date grid and Price graph make it easy to find the best flight deals\nKnow when to book with price insights\nPrice history and trend data show you the best time to book your airline ticket to get the cheapest price for your flight\nInsightful tools help you choose your trip dates\nIf your travel plans are flexible, use the form above to start searching for a specific trip. Then, play around with the\nDate grid\nand\nPrice graph\noptions on the\nSearch\npage to find the cheapest days to fly and book your tickets.",
+  "answer": "The page does not show the answer. The page is a landing page for Google Flights and does not display specific flight options for the requested route and dates."
+ },
+ "usage": {
+  "decisions": 2,
+  "chat_calls": 6,
+  "chat_input_tokens": 2362,
+  "chat_output_tokens": 57,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 97408,
+  "cost_usd": 0.004942
+ }
+}

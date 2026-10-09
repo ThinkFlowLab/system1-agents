@@ -1,14 +1,12 @@
 # coding: utf-8
 """``LayaModel`` over a fake ``laya.Agent`` (no torch): the contract, the question mapping, the error wrap,
-the filled-window error, and ``from_env`` with and without the extra and with the weight init off."""
+the filled-window error, and ``from_env`` with and without the extra."""
 
 from __future__ import annotations
 
 import os
 import sys
 import time
-from collections.abc import Iterator
-from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase
@@ -337,14 +335,6 @@ class TestFailures(IsolatedAsyncioTestCase):
 
 
 class TestFromEnv(TestCase):
-    def setUp(self) -> None:
-        # A stand-in for transformers' helper, so no test imports torch: patch.dict drops a torch imported inside it
-        # from sys.modules, and importing torch a second time in one process crashes it.
-        helper = {"transformers.initialization": SimpleNamespace(no_init_weights=nullcontext)}
-        stub = patch.dict(sys.modules, helper)
-        stub.start()
-        self.addCleanup(stub.stop)
-
     def test_without_the_extra_it_is_a_config_error_naming_the_extra(self) -> None:
         with patch.dict(sys.modules, {"laya": None}):
             with self.assertRaises(BaseError) as caught:
@@ -354,12 +344,61 @@ class TestFromEnv(TestCase):
 
     def test_an_agent_without_system_one_is_a_config_error_naming_the_method(self) -> None:
         fake_laya = SimpleNamespace(load=lambda *a, **k: SimpleNamespace(cfg={}))
-        with patch.dict(sys.modules, {"laya": fake_laya}), patch.dict(os.environ, {"LAYA_SUBFOLDER": ""}):
+        # The installed version is pinned so the message reads the same with and without the extra.
+        with (
+            patch.dict(sys.modules, {"laya": fake_laya}),
+            patch.dict(os.environ, {"LAYA_SUBFOLDER": ""}),
+            patch.object(laya_module.metadata, "version", return_value="0.3.0"),
+        ):
             with self.assertRaises(BaseError) as caught:
                 LayaModel.from_env()
         self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
         self.assertIn("system_one", str(caught.exception))
+        self.assertIn("laya 0.3.0", str(caught.exception))
+
+    def test_a_laya_without_package_metadata_is_named_unknown(self) -> None:
+        fake_laya = SimpleNamespace(load=lambda *a, **k: SimpleNamespace(cfg={}))
+        with (
+            patch.dict(sys.modules, {"laya": fake_laya}),
+            patch.dict(os.environ, {"LAYA_SUBFOLDER": ""}),
+            patch.object(laya_module.metadata, "version", side_effect=laya_module.metadata.PackageNotFoundError),
+        ):
+            with self.assertRaises(BaseError) as caught:
+                LayaModel.from_env()
         self.assertIn("laya unknown", str(caught.exception))
+
+    def test_mps_stays_in_fp32_unless_the_laya_variable_is_set(self) -> None:
+        def from_env(env: dict[str, str]) -> Any:
+            agent = FakeLayaAgent()
+            agent.mps_amp_min_rows = 5  # what laya sets from 0.3.10: fp16 from five questions on MPS
+            fake_laya = SimpleNamespace(load=lambda *a, **k: agent)
+            env = {"LAYA_SUBFOLDER": "", "LAYA_MPS_AMP_MIN_ROWS": "", **env}
+            with patch.dict(sys.modules, {"laya": fake_laya}), patch.dict(os.environ, env):
+                return LayaModel.from_env()._agent
+
+        self.assertEqual(from_env({}).mps_amp_min_rows, laya_module.LAYA_MPS_FP32_ROWS)
+        self.assertEqual(from_env({"LAYA_MPS_AMP_MIN_ROWS": "5"}).mps_amp_min_rows, 5)
+
+    def test_a_laya_variable_below_one_or_not_a_number_is_a_config_error(self) -> None:
+        # laya reads "off" as its default of 5 and raises "0" and "-3" to 1: each would switch fp16 on
+        for value in ("off", "0", "-3"):
+            with self.subTest(value=value):
+                loads: list[int] = []
+                fake_laya = SimpleNamespace(load=lambda *a, **k: loads.append(1))
+                env = {"LAYA_SUBFOLDER": "", "LAYA_MPS_AMP_MIN_ROWS": value}
+                with patch.dict(sys.modules, {"laya": fake_laya}), patch.dict(os.environ, env):
+                    with self.assertRaises(BaseError) as caught:
+                        LayaModel.from_env()
+                self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
+                self.assertIn("at least 1", str(caught.exception))
+                self.assertEqual(loads, [])  # before the checkpoint loads
+
+    def test_a_laya_before_the_mps_gate_gets_no_such_attribute(self) -> None:
+        agent = FakeLayaAgent()  # laya 0.3.9 has no mps_amp_min_rows
+        with patch.dict(sys.modules, {"laya": SimpleNamespace(load=lambda *a, **k: agent)}):
+            with patch.dict(os.environ, {"LAYA_SUBFOLDER": "", "LAYA_MPS_AMP_MIN_ROWS": ""}):
+                LayaModel.from_env()
+        self.assertFalse(hasattr(agent, "mps_amp_min_rows"))
 
     def test_the_env_names_the_checkpoint_and_overrides_the_window(self) -> None:
         loads: list[tuple[Any, ...]] = []
@@ -380,49 +419,6 @@ class TestFromEnv(TestCase):
         self.assertEqual(loads, [("convaiinnovations/laya", "cpu", "multilingual")])
         self.assertEqual(decision_model.model, "convaiinnovations/laya/multilingual")
         self.assertEqual(decision_model._agent.cfg, {"max_len": 1024, "head_max_len": 512})
-
-    def test_the_checkpoint_loads_with_the_weight_init_off(self) -> None:
-        events: list[str] = []
-
-        @contextmanager
-        def no_init_weights() -> Iterator[None]:
-            events.append("off")
-            yield
-            events.append("on")
-
-        def load(*args: Any, **kwargs: Any) -> FakeLayaAgent:
-            events.append("load")
-            return FakeLayaAgent()
-
-        modules = {
-            "laya": SimpleNamespace(load=load),
-            "transformers.initialization": SimpleNamespace(no_init_weights=no_init_weights),
-        }
-        with patch.dict(sys.modules, modules), patch.dict(os.environ, {"LAYA_SUBFOLDER": ""}):
-            LayaModel.from_env()
-        self.assertEqual(events, ["off", "load", "on"])
-
-    def test_the_4x_location_of_the_helper_is_used_when_the_5x_one_is_missing(self) -> None:
-        @contextmanager
-        def no_init_weights() -> Iterator[str]:
-            yield "4.x"
-
-        modules = {
-            "transformers.initialization": None,
-            "transformers.modeling_utils": SimpleNamespace(no_init_weights=no_init_weights),
-        }
-        with patch.dict(sys.modules, modules), laya_module.without_weight_init() as entered:
-            self.assertEqual(entered, "4.x")
-
-    def test_without_the_helper_the_checkpoint_still_loads(self) -> None:
-        modules = {
-            "laya": SimpleNamespace(load=lambda *a, **k: FakeLayaAgent()),
-            "transformers.initialization": None,
-            "transformers.modeling_utils": SimpleNamespace(),
-        }
-        with patch.dict(sys.modules, modules), patch.dict(os.environ, {"LAYA_SUBFOLDER": ""}):
-            decision_model = LayaModel.from_env()
-        self.assertIsInstance(decision_model._agent, FakeLayaAgent)
 
     def test_the_defaults_when_the_env_is_empty(self) -> None:
         env = {"LAYA_MODEL": "", "LAYA_SUBFOLDER": "", "LAYA_DEVICE": "", "LAYA_MAX_LEN": "", "LAYA_HEAD_MAX_LEN": ""}
