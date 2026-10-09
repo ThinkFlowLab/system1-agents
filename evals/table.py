@@ -153,7 +153,7 @@ def rows(trials: list[Trial]) -> list[dict[str, Any]]:
                 "mean_chat_calls": round(statistics.mean(member.chat_calls for member in members), 1)
                 if members
                 else None,
-                "mean_cost_usd": round(statistics.mean(scored_costs), 4)
+                "mean_cost_usd": round(statistics.mean([cost for cost in scored_costs if cost is not None]), 4)
                 if scored_costs and None not in scored_costs
                 else None,
                 "cost_n": len(costs),
@@ -187,8 +187,18 @@ def markdown(table: list[dict[str, Any]]) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, help="the results root, e.g. evals/results")
+    parser.add_argument(
+        "--attempt-plan",
+        type=Path,
+        help="optional version-1 JSON attempt manifest; append a coverage report without changing score rows",
+    )
     args = parser.parse_args()
     print(markdown(rows(read_results(args.root))))
+    if args.attempt_plan is not None:
+        from evals.reconcile import load_plan, markdown as reconciliation_markdown, read_artifacts, reconcile
+
+        print("\n## Attempt coverage\n")
+        print(reconciliation_markdown(reconcile(load_plan(args.attempt_plan), read_artifacts(args.root))))
 
 
 if __name__ == "__main__":

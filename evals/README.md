@@ -78,6 +78,33 @@ subset; `score (n)` states its count over all attempts, and `score unknown` coun
 reward. ALFWorld's game files sort by task type; `--stride 11` from offset 0 takes twelve games across
 the six types. Every model plays the same tile draws because 2048 seeds the page's `Math.random`.
 
+### Planned-attempt coverage
+
+The table above can count only trials with a saved `result.json`. To include attempts that have not produced a
+result, create a version-1 JSON manifest and pass it with `--attempt-plan`:
+
+```json
+{
+  "schema_version": 1,
+  "attempts": [
+    {"id": "2048-jev-seed-0", "eval": "game2048", "model": "jev", "task_name": "game2048/0", "status": "planned"},
+    {"id": "2048-jev-seed-1", "eval": "game2048", "model": "jev", "task_name": "game2048/1", "status": "interrupted", "reason": "worker exited before result.json was written"},
+    {"id": "desktop-cua-1", "eval": "desktop", "model": "cua", "task_name": "desktop/1", "status": "unsupported", "reason": "display backend unavailable"}
+  ]
+}
+```
+
+`planned` with no artifact is reported as `missing`; explicitly declared `interrupted` and `unsupported` attempts
+remain separate. A saved exception result is an `error` and remains a recorded attempt. The report also flags
+results absent from the manifest and results that contradict an `unsupported` declaration. It matches using the
+existing result fields `(eval folder, model label, task_name)`, so that tuple must be unique in a plan; use distinct
+task names (normally including the seed) for repeated tasks. Missing artifacts alone do not prove that a run was
+interrupted. This additive report does not modify the score, error, timing, cost, or attempt semantics of the table.
+
+```sh
+uv run python -m evals.table evals/results --attempt-plan evals/attempt-plan.json
+```
+
 ## Showcase runs and replays
 
 The matrix runs headless and records nothing visual. Every episode still writes ``views`` into ``agent/episode.json``:
