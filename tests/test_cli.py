@@ -202,6 +202,21 @@ class TestDecide(TestCase):
                     if argv[0] == "decide" and argv[2] != "{}":  # the three malformed --state values
                         self.assertTrue(err.startswith("--state"), err)
 
+    def test_duplicate_option_keys_fail_before_building_any_model(self) -> None:
+        for model in cli.DECIDE_MODEL_NAMES:
+            for description in ("keep", "sensitive replacement description"):
+                with self.subTest(model=model, description=description), patch.object(cli, "build_model") as build:
+                    code, out, err = _main([*DECIDE, "--model", model, "--option", f"stand={description}"])
+                    self.assertEqual((code, out), (2, ""))
+                    self.assertEqual(err, "--option repeats key 'stand'; use a unique key for each choice\n")
+                    build.assert_not_called()
+
+    def test_valid_options_preserve_order_case_and_description(self) -> None:
+        options = cli.parse_options(["b=one=two", "A= leading and trailing ", "a=", "路线=支持"])
+        self.assertEqual(
+            list(options.items()), [("b", "one=two"), ("A", " leading and trailing "), ("a", ""), ("路线", "支持")]
+        )
+
     def test_state_from_a_file_and_bad_options(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "state.json"

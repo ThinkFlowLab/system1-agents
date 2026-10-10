@@ -19,6 +19,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- `decide` rejects repeated `--option` keys before model setup instead of silently replacing an earlier choice
+  description. The usage error names the duplicate key without printing either description.
+
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
 - Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.
