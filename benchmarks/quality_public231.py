@@ -23,12 +23,13 @@ RAW_CLOCK = "post_to_body_json_and_schema_validation"
 
 def load_collector(path):
     # Only this reviewed interface is executable; never import a file selected by raw metadata.
-    if digest(path.read_bytes()) != COLLECTOR_SHA256:
+    source_hash = digest(path.read_bytes())
+    if source_hash != COLLECTOR_SHA256:
         raise ValueError("Frozen Omni collector hash mismatch")
     spec = importlib.util.spec_from_file_location("public231_omni_raw", path)
     collector = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(collector)
-    collector.SOURCE_SHA256 = COLLECTOR_SHA256
+    collector.SOURCE_SHA256 = source_hash
     return collector
 
 
@@ -109,7 +110,7 @@ def aggregate(runs, input_manifest, collector, model_config_id):
             if (run / "requests.jsonl").read_bytes() != frozen:
                 raise ValueError("Omni requests differ from the complete frozen 231 plan")
             config = decode((run / "config.json").read_text(encoding="utf-8"))
-            if config["runner_sha256"] != COLLECTOR_SHA256 or config["latency_basis"] != RAW_CLOCK:
+            if config["runner_sha256"] != collector.SOURCE_SHA256 or config["latency_basis"] != RAW_CLOCK:
                 raise ValueError("Omni runner or clock differs from the frozen interface")
             identity = {key: value for key, value in config.items() if key not in ("python", "httpx")}
             metadata = dict(config.get("metadata", {}))

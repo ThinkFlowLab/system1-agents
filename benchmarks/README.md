@@ -7,6 +7,10 @@ command re-scores them with the pinned upstream scorer.
 [H800 results](results/public231-h800.md) compare five open checkpoints. This is the
 public231 set, not the article's 248-question or 23-model leaderboard.
 
+The [accuracy leaderboard](accuracy-leaderboard.md) ranks that frozen run and
+defines how to add comparable results. Request latency has a separate
+[System1-Omni leaderboard](https://github.com/ThinkFlowLab/system1-omni/pull/131).
+
 ## Run
 
 Use the repository's development environment and a running service. Clone
@@ -84,8 +88,8 @@ check collection and scoring behavior; model quality and latency come from the l
 
 ## Offline quality from shared raw
 
-These consumers re-score saved Omni requests and original ticket episodes without
-another model run. The existing `predict` and `aggregate` commands and their
+This consumer re-scores saved Omni requests without another model run.
+The existing `predict` and `aggregate` commands and their
 default timing basis are unchanged.
 
 For public231, provide the frozen input manifest, the independently frozen Omni
@@ -123,56 +127,18 @@ pointers and hashes. Quality output uses null timestamps/latencies; it does not
 report speed. The raw clock is POST through body decoding, JSON and schema validation,
 and the saved response is decoded HTTPX text, not compressed wire bytes.
 
-Ticket quality needs the existing System1-Agents environment, including openJiuwen.
-Public231 does not need that framework. Use the frozen ticket producer r3 preparation
-and the **whole** measurement root, including unsuccessful or missing cells:
+Use a fresh output directory outside the repository. The tool checks archive
+consistency; it does not authenticate a coordinated rewrite of unsigned evidence.
+CPU fixtures exercise the reader and scorer, not model quality or GPU execution.
+
+The required benchmark CI job fetches the pinned JevBench reference and Omni
+collector, generates the public231 fixture, and rejects skipped tests. To run the
+same suite locally, set `JEVBENCH_ROOT` and `OMNI_BENCH_SOURCE` to those checkouts:
 
 ```bash
-python -m benchmarks.quality_ticket \
-  --preparation /absolute/path/to/ticket-gpu-prepare/r3 \
-  --run /absolute/path/to/measurement-root \
-  --out /absolute/path/to/new-ticket-quality-output
+python -m pytest tests/benchmarks -q --confcutdir=tests/benchmarks
 ```
 
-This version accepts the frozen `open-9b`, `open-27b` and `laya-english` cells,
-seed0, one episode, batch30, maxsteps30, timeout300 and decision deadline120.
-It reuses the original fixture/environment and choice validator, checks every
-POST/retry against the current public ticket and queues, and follows original
-validated slot → accepted act → committed environment step → returned job.
-Decisions and actions must occur inside the original `Runner.run_agent` call;
-cleanup/release, episode return, annotate/close, write_job and stop must follow
-the original caller's order. Laya-served response provenance is checked with the
-original model's response augmentation or captured health/routing fallback;
-other wire fields remain exact comparisons.
-Labels come only from the fixed fixture. Requests, probabilities/confidence,
-before/after observations, original job ticks/views, loaded source and cell/asset
-identity are checked; archived report scores are diagnostic comparisons. Non-decision
-HTTP bodies are also checked for exact saved bytes, hash and viewing text. Captured
-worker/frontend executables must match launch paths and recorded asset hashes, and
-the ready/after process IDs and maps must remain consistent.
-Remote artifact paths are relocated only inside that cell's recorded arm prefix.
-
-Each cell reports fixture-derived `route_correct / 30`, `accepted_processed / 30`,
-`complete_episode`, and `strict_batch_success` (normal complete episode and all
-30 routes correct). Timeout/error/missing evidence retain verified prefixes and
-the full 30 denominator. `MODEL_NAME` must be empty, rethink off, and original
-episode `rethink` must be boolean `false`, with `chat_calls` zero. Route counts
-describe individually verified calls under the recorded cell identity. Damaged
-cleanup, process/asset cross-checks or framework copies block complete/strict
-results without removing those closed routes; a broken ticket association blocks
-that ticket. `process_identity_state` reports that separate process/asset check.
-`answer` is an explicitly **provisional** normal-type gate;
-missing, empty or incomplete framework source captures cannot be complete/strict.
-all results require independent review of the actual captured framework source.
-Other/unknown result types cannot be complete or strict successes. Exact recorded
-asset/source consistency does not establish historical binary build ancestry.
-
-Both tools require fresh output outside the repository. They detect inconsistent
-unsigned archives, not coordinated rewriting of all evidence. No real model quality,
-GPU execution or framework normal-type acceptance is established by their CPU mocks.
-
-The new tests additionally use `OMNI_BENCH_SOURCE`, `PUBLIC231_INPUT_MANIFEST`, and
-`TICKET_PREPARATION_ROOT` pointing to those frozen external inputs. When the CPU
-environment lacks openJiuwen, ticket tests stub only framework imports and execute
-the repository's actual environment/validator; that is separate from real framework
-integration. Run the benchmark tests with the same pytest command above.
+The reader accepts the original collector (`5aa20a2c…`). Each archive must match
+the exact collector supplied with `--collector`; the probability rules, input
+bytes and timing basis are unchanged.

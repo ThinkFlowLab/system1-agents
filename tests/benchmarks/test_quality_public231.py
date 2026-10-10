@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from benchmarks.evidence import digest, dump, load_reference
+from benchmarks.evidence import body_for, digest, dump, load_reference
 from benchmarks.quality_public231 import adapt_record, aggregate, load_collector
 
 
@@ -24,6 +24,38 @@ def collector():
     if not source:
         pytest.skip("Set OMNI_BENCH_SOURCE to the frozen raw collector")
     return load_collector(Path(source))
+
+
+@pytest.fixture
+def input_manifest(tmp_path, reference):
+    _, items, dataset = reference
+    rows = [
+        dict(
+            id=task.id,
+            request=body_for(task, None),
+            expected={"decision": task.expected == "yes" if task.question["type"] == "noul" else task.expected},
+            source={**identity, "jevbench_pin": dataset["jevbench_pin"]},
+            labels=task.labels,
+            provenance=task.provenance,
+            group=task.group,
+            reference_expected=task.expected,
+        )
+        for identity, task in items
+    ]
+    data = "".join(dump(row) + "\n" for row in rows).encode("utf-8")
+    assert digest(data) == "00d1f10ca1142499a598b5f1c6602d329cce1cef04c961c46fc0318daa2c67d3"
+    (tmp_path / "public231.jsonl").write_bytes(data)
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        dump(
+            dict(
+                output={"path": "public231.jsonl", "sha256": digest(data)},
+                sources={"jevbench_pin": dataset["jevbench_pin"], "reference_dataset_hash": dataset["dataset_hash"]},
+            )
+        ),
+        encoding="utf-8",
+    )
+    return manifest
 
 
 def response_record(answer, *, kind="invalid_response", status=200):
@@ -147,11 +179,8 @@ def saved_run(tmp_path, collector, input_path, *, count=231):
     return run
 
 
-def test_full_plan_missing_round_and_raw_integrity(tmp_path, collector, reference):
-    manifest = os.environ.get("PUBLIC231_INPUT_MANIFEST")
-    if not manifest:
-        pytest.skip("Set PUBLIC231_INPUT_MANIFEST to the frozen input manifest")
-    manifest = Path(manifest)
+def test_full_plan_missing_round_and_raw_integrity(tmp_path, collector, input_manifest):
+    manifest = input_manifest
     inputs = manifest.with_name("public231.jsonl")
     run = saved_run(tmp_path, collector, inputs, count=230)
     result, records = aggregate(
@@ -173,13 +202,10 @@ def test_source_hash_is_required(tmp_path):
         load_collector(source)
 
 
-def test_recorded_round_identity_is_separate_from_stable_model_config(tmp_path, collector, reference):
+def test_recorded_round_identity_is_separate_from_stable_model_config(tmp_path, collector, input_manifest):
     import shutil
 
-    manifest = os.environ.get("PUBLIC231_INPUT_MANIFEST")
-    if not manifest:
-        pytest.skip("Set PUBLIC231_INPUT_MANIFEST to the frozen input manifest")
-    manifest = Path(manifest)
+    manifest = input_manifest
     first = saved_run(tmp_path, collector, manifest.with_name("public231.jsonl"))
     runs = [first, tmp_path / "round-2", tmp_path / "round-3"]
     for path in runs[1:]:
@@ -209,11 +235,8 @@ def test_recorded_round_identity_is_separate_from_stable_model_config(tmp_path, 
         aggregate(runs, manifest, collector, "fixture-config")
 
 
-def test_started_without_terminal_keeps_attempt_and_full_denominator(tmp_path, collector, reference):
-    manifest = os.environ.get("PUBLIC231_INPUT_MANIFEST")
-    if not manifest:
-        pytest.skip("Set PUBLIC231_INPUT_MANIFEST to the frozen input manifest")
-    manifest = Path(manifest)
+def test_started_without_terminal_keeps_attempt_and_full_denominator(tmp_path, collector, reference, input_manifest):
+    manifest = input_manifest
     run = saved_run(tmp_path, collector, manifest.with_name("public231.jsonl"), count=0)
     _, items, _ = reference
     state = json.loads((run / "completion.json").read_text())
