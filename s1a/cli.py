@@ -44,7 +44,11 @@ def parser() -> argparse.ArgumentParser:
     )
     decide.add_argument("--state", required=True, help="a JSON object, or @path to a file holding one")
     decide.add_argument(
-        "--option", action="append", required=True, metavar="KEY=DESCRIPTION", help="one candidate; repeat per option"
+        "--option",
+        action="append",
+        required=True,
+        metavar="KEY=DESCRIPTION",
+        help="one candidate; repeat per option with a unique key",
     )
     decide.add_argument("--rules", required=True, help="the facts the model applies when it picks")
     decide.add_argument(
@@ -85,6 +89,8 @@ def parse_options(items: list[str]) -> dict[str, str]:
         key, sep, description = item.partition("=")
         if not sep or not key:
             raise ValueError(f"--option needs KEY=DESCRIPTION, got {item!r}")
+        if key in options:
+            raise ValueError(f"--option repeats key {key!r}; use a unique key for each choice")
         options[key] = description
     return options
 
