@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from s1a.agents import sokoban
 from s1a.agents._sokoban import parse_ascii
-from s1a.decision_models import RuleModel, ScriptedModel
+from s1a.decision_models import RandomModel, RuleModel, ScriptedModel
 from s1a.run import started_runner
 from s1a.tool import loop, series
 
@@ -27,6 +27,13 @@ def level(text, max_steps=200, **fields):
 
 
 SIMPLE = "#####\n#@$.#\n#####"
+
+
+class TextOnlyModel(ScriptedModel):
+    """The stand-in for every text-only backend — jev, clm, laya, laya-served, Cua Nano, Cua 4B in text modality —
+    whose `supports_images` is False; the real classes need their extras, and the guard reads only the attribute."""
+
+    supports_images = False
 
 
 def png_size(data):
@@ -145,6 +152,7 @@ class TestSokobanVisual(IsolatedAsyncioTestCase):
         self.assertEqual(state["language"], "zh")
         self.assertEqual(await env.candidates(), {"up": "向上", "down": "向下", "left": "向左", "right": "向右"})
         self.assertEqual(env.rules(), sokoban.VISUAL_RULES["zh"])
+        self.assertTrue(env.requires_images())
         (image,) = await env.images()
         self.assertEqual(image.media_type, "image/png")
         self.assertEqual(png_size(image.data), (5 * 24, 3 * 24))
@@ -162,6 +170,7 @@ class TestSokobanVisual(IsolatedAsyncioTestCase):
         env = sokoban.SokobanEnv(level(SIMPLE, language="zh"))
         await env.reset()
         self.assertEqual(env.rules(), sokoban.RULES)
+        self.assertFalse(env.requires_images())
         self.assertEqual(
             await env.candidates(), {action: f"Move {action}" for action in ("up", "down", "left", "right")}
         )
@@ -193,6 +202,46 @@ class TestSokobanVisual(IsolatedAsyncioTestCase):
         self.assertEqual(observation.images[0].media_type, "image/png")
         self.assertNotIn("board", observation.state)
         self.assertEqual(questions["pick"].rules, (sokoban.VISUAL_RULES["en"],))
+
+    async def test_a_text_only_backend_is_refused_before_any_decision(self):
+        env = sokoban.SokobanEnv(level(SIMPLE), visual=True)
+        model = TextOnlyModel(choose="right")  # jev, clm, laya, laya-served, Cua Nano, Cua 4B in text modality
+        with self.assertRaisesRegex(ValueError, "reads text only"):
+            async with started_runner():
+                await loop.run_episode(
+                    sokoban.SPEC,
+                    env,
+                    model_name="jev",
+                    seed=0,
+                    chat=None,
+                    decision_model=model,
+                    rethink_on=False,
+                    max_acts=3,
+                    timeout_s=30,
+                    prices=None,
+                    log=False,
+                )
+        self.assertEqual(model.calls, [])  # refused before the backend was ever asked
+
+    async def test_random_stays_the_offline_smoke_exception(self):
+        env = sokoban.SokobanEnv(level(SIMPLE, max_steps=3), visual=True)
+        async with started_runner():
+            episode = await loop.run_episode(
+                sokoban.SPEC,
+                env,
+                model_name="random",
+                seed=0,
+                chat=None,
+                decision_model=RandomModel(seed=0),
+                rethink_on=False,
+                max_acts=3,
+                timeout_s=30,
+                prices=None,
+                log=False,
+            )
+        self.assertIsNone(episode.error)
+        sokoban.annotate(env, episode)
+        self.assertEqual(episode.extra["sokoban"]["observation_mode"], "visual")
 
     async def test_the_reference_solutions_replay_over_rendered_boards(self):
         path = Path(__file__).parent / "fixtures/sokoban_reference.jsonl"
