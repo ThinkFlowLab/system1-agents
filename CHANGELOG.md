@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Offline quality consumers for shared Omni public231 raw and original ticket-router
+  evidence, retaining planned denominators, original scoring and provisional completion gates.
+
 - Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
   complete-denominator quality metrics and per-round service latency.
 
