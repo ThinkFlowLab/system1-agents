@@ -18,7 +18,7 @@ from openjiuwen.core.common.exception.errors import BaseError
 from openjiuwen.core.foundation.llm import AssistantMessage, AssistantMessageChunk, Model, ToolCall, init_model
 
 from s1a.decision_models import DecisionModel, ChoiceQuestion, Observation
-from s1a.env import Env, VisualEnv
+from s1a.env import Env, RulesEnv, VisualEnv
 
 ACT_TOOL = "act"
 OBSERVE_TOOL = "observe"
@@ -139,9 +139,10 @@ class ToolDecisionModel(Model):
             request_state["harness_notices"] = list(state.notices)
         started = time.perf_counter()
         images = await env.images() if isinstance(env, VisualEnv) else ()
+        rules = env.rules() if isinstance(env, RulesEnv) else self._rules
         try:
             decision = await self._decision_model.decide_many(
-                Observation(request_state, images), {"pick": ChoiceQuestion(offered, rules=self._rules)}
+                Observation(request_state, images), {"pick": ChoiceQuestion(offered, rules=rules)}
             )
         except BaseError as exc:  # any decisions failure ends the episode as BLOCKED, recorded
             state.error = f"decision failed: {exc}"

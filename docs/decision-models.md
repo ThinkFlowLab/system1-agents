@@ -35,12 +35,13 @@ decision.choice("pick").key, decision.latency_ms, decision.usage.input_tokens
 ```
 
 `decide_many` is the one place validation happens. It refuses, with `MODEL_SERVICE_CONFIG_ERROR`, an empty
-question set, an image on a text-only model and a question type the backend lacks. It checks every answer:
-a choice must name an offered key, its probabilities must cover exactly the offered keys, lie in [0, 1], sum to 1
-within 0.02 and peak at the key; a noul probability lies in [0, 1] and its confidence defaults to `max(p, 1 - p)`.
-An unusable answer is re-asked with the same request up to `attempts` times (never on a deterministic backend, never
-after a transport error) and then raises `MODEL_CALL_FAILED`. `decide`, `choose` and `ask` are one-question
-shorthands; `warm()` and `close()` open and release the backend.
+question set and a question type the backend lacks; a text-only backend instead reads the observation without its
+images and warns once per instance. It checks every answer: a choice must name an offered key, its probabilities
+must cover exactly the offered keys, lie in [0, 1], sum to 1 within 0.02 and peak at the key; a noul probability
+lies in [0, 1] and its confidence defaults to `max(p, 1 - p)`. An unusable answer is re-asked with the same request
+up to `attempts` times (never on a deterministic backend, never after a transport error) and then raises
+`MODEL_CALL_FAILED`. `decide`, `choose` and `ask` are one-question shorthands; `warm()` and `close()` open
+and release the backend.
 
 ## Backends
 

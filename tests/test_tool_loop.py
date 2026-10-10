@@ -253,6 +253,37 @@ def _refusing() -> JevModel:
     return JevModel(ScriptedTransport(error=error))
 
 
+class RulesCountingEnv(CountingEnv):
+    """CountingEnv plus ``rules()``: the per-episode text a RulesEnv swaps into the question."""
+
+    def __init__(self, text: str) -> None:
+        super().__init__()
+        self._text = text
+
+    def rules(self) -> str:
+        return self._text
+
+
+class TestRulesEnv(IsolatedAsyncioTestCase):
+    async def test_an_env_with_rules_swaps_the_question_text_and_plain_envs_keep_the_spec_rules(self) -> None:
+        swapping = ScriptedModel(choose="inc")
+        plain = ScriptedModel(choose="inc")
+        bilingual = ToolDecisionModel(
+            RulesCountingEnv("count to three, in Chinese"),
+            EvalState(),
+            rules="count to three",
+            decision_model=swapping,
+            fallback=None,
+        )
+        unilingual = ToolDecisionModel(
+            CountingEnv(), EvalState(), rules="count to three", decision_model=plain, fallback=None
+        )
+        await bilingual._decide()
+        await unilingual._decide()
+        self.assertEqual(swapping.calls[0][1]["pick"].rules, ("count to three, in Chinese",))
+        self.assertEqual(plain.calls[0][1]["pick"].rules, ("count to three",))
+
+
 class TestEpisodeThroughTheAgent(IsolatedAsyncioTestCase):
     """Episodes through ``create_deep_agent`` and the Runner, offline: a rule in the slot, no chat model."""
 

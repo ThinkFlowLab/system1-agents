@@ -14,6 +14,7 @@ hook of a running agent. The injection guard rail fails closed: a decision error
 | `game2048` | tool | score and largest tile at a move cap | `s1a run game2048 --model jev --rethink on --episodes 10` |
 | `millionaire` | tool | winnings on a 15-question quiz ladder | `s1a run millionaire --model jev --rethink off --episodes 5` |
 | `blackjack` | tool | payoff per hand (RLCard) | `s1a run blackjack --model jev --rethink off --episodes 100` |
+| `sokoban` | tool | solved fraction on 100 selected Valen levels: text boards over `jev`; `--visual` renders for an image-reading model | `s1a run sokoban --model jev --rethink off --episodes 100` |
 | `injection_guard` | rail | precision and recall on a labelled injection set | `s1a run injection_guard` |
 
 Every tool agent takes `--model jev|clm|laya|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
@@ -69,3 +70,19 @@ shipped set is 30 tickets in `s1a/agents/_data/ticket_router_eval.jsonl`, each w
 order status; the label is read by the scorer alone. `--dataset` points the agent at a
 JSONL of your own with the same fields, and `--batch-size` caps the tickets per episode. The rules text the model
 reads is `RULES` in `s1a/agents/ticket_router.py`.
+
+## Sokoban
+
+`uv run s1a run sokoban --model jev --rethink off --episodes 100` plays the bundled 100 Valen levels as text
+boards. No extra is needed. `--seed` is the zero-based level offset; the selected range must fit within 100
+levels. The score is 1 for solved and 0 otherwise. Use `--model random` for an offline smoke run; there is no
+rule baseline. Rethink must be off. See [protocol and provenance](../evals/sokoban/README.md).
+
+`--visual` plays the same levels over Valen's own rendering — one PNG per decision, theme and tile size from
+the level, rules and direction labels in the level's language — with the ASCII board left out. Text-only
+backends (`jev`, `clm`, `laya`, `laya-served`, text-modality `cua`, `llm`) are refused before the first
+decision instead of running blind. `cua`'s multimodal 4B takes the picture, but admission is capability,
+not a result: no visual Sokoban run is recorded for it, so the `jev` command above stays the reference
+text-mode run. (`omnijev` is image-capable too, but it is a browser-front choice; `s1a run` cannot
+select it.) `--model random --visual` smokes the rendering offline (`uv run --extra visual`);
+the served Valen backend this observation was made for ships as its own change.
