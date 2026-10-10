@@ -43,8 +43,9 @@ Valen's own instruction texts, verbatim.
 A text-only backend — `jev`, `clm`, `laya`, `laya-served`, `cua` in its text modalities, and `llm` (the chat
 model reads tool text only) — is refused before the first decision rather than run blind over a board it
 cannot see; **the jev command at the top of this page is the text-mode run**. The guard admits what can
-actually see the board — `cua`'s multimodal 4B, `omnijev` — but admission is capability, not a Sokoban
-result: no visual run is recorded for either. `--model random` is the other exception, the offline smoke for
+actually see the board — `cua`'s multimodal 4B — but admission is capability, not a Sokoban
+result: no visual run is recorded. (`omnijev` is image-capable too, but it is a browser-front choice;
+`s1a run` cannot select it.) `--model random` is the other exception, the offline smoke for
 the rendering; the served Valen worker behind `/v1/systemone` is the backend this observation was made for
 and ships as its own change. Its
 protocol takes one PNG/JPEG data URL as `state.image`, capped at an 8 MiB body, a 4 MiB image

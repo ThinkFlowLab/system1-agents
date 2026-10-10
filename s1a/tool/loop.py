@@ -231,7 +231,7 @@ async def run_episode(
     ``max_acts`` bounds the acts for every model; ``timeout_s`` bounds the wall clock, and a timed-out episode
     keeps its score so far with ``result_type: timeout``."""
     if isinstance(env, RequiresImages) and env.requires_images() and model_name != "random":
-        # A ``RequiresImages`` environment refuses a text-only backend up front — deciding 
+        # A ``RequiresImages`` environment refuses a text-only backend up front — deciding
         # over an observation whose images were stripped would measure a blind run (``random``
         # never reads the observation and stays the offline smoke)
         if decision_model is None or not decision_model.supports_images:

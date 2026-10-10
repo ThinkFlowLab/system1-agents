@@ -81,7 +81,8 @@ rule baseline. Rethink must be off. See [protocol and provenance](../evals/sokob
 `--visual` plays the same levels over Valen's own rendering — one PNG per decision, theme and tile size from
 the level, rules and direction labels in the level's language — with the ASCII board left out. Text-only
 backends (`jev`, `clm`, `laya`, `laya-served`, text-modality `cua`, `llm`) are refused before the first
-decision instead of running blind. `cua`'s multimodal 4B and `omnijev` do take the picture, but admission is
-capability, not a result: no visual Sokoban run is recorded for them, so the `jev` command above stays the
-reference text-mode run. `--model random --visual` smokes the rendering offline (`uv run --extra visual`);
+decision instead of running blind. `cua`'s multimodal 4B takes the picture, but admission is capability,
+not a result: no visual Sokoban run is recorded for it, so the `jev` command above stays the reference
+text-mode run. (`omnijev` is image-capable too, but it is a browser-front choice; `s1a run` cannot
+select it.) `--model random --visual` smokes the rendering offline (`uv run --extra visual`);
 the served Valen backend this observation was made for ships as its own change.
