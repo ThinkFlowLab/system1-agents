@@ -19,6 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Fit-probe cases with no options, no accepted answer, or an accepted key outside the offered options now fail
   input validation instead of skewing the fit verdict.
 - Windows development checks: the smoke script accepts CRLF output, shell scripts and Git hooks retain LF
