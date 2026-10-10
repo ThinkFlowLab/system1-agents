@@ -33,6 +33,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - Browser front: a WAIT whose in-page settle moved the page now records `page_changed: true` in the history, so
   the next state no longer shows that wait as unmeasured.
 
+### Changed
+
+- Core Windows CI (`core (windows, 3.11)`) runs on pushes to `main` and the weekly schedule, not on every
+  pull request. Linux `core` and `full` still run on PRs.
+
 ### Added
 
 - `--model clm`: CLM's `clm-serve` behind the decision-model interface, over its `/v1/systemone`. The engine owns
@@ -63,6 +68,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   server behind `TYPESAFE_API_URL` can be slower than Jev: on Google Flights, OneJev-27B on an A100 takes about 3.7 s
   a decision and more on the calendar page, so the 5 s deadline stopped every run at the eighth step; with 30 s it
   completed the task. `docs/configuration.md`.
+- Every browser run saves the page the task ended on as `final.png` in `--logs-dir` before the browser is released,
+  however the task ends, a timeout included. The answer and `answer.json` name the file in `screenshot`. A judge
+  that grades the end state can read it, as Harbor's WebVoyager judge does at `/logs/agent/final.png`. A failed
+  screenshot leaves `screenshot` null, records the exception type in `screenshot_error` and changes nothing else in
+  the answer. A `final.png` an earlier run left in a reused `--logs-dir` is removed when the task starts.
 - The MCP `decide` tool accepts `model="jev"|"laya"|"cua"`, defaulting to `jev`. Local backends use their
   optional extras and need no Jev API key.
 - `docs/benchmarks.md`: the Google Flights driver comparison rerun on 2026-09-23 from Poland, every arm three times on

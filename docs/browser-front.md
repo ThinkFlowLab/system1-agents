@@ -113,6 +113,22 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
     probe's occlusion check sees what covers a control now; a consent banner that returns after every
     navigation leaves the control looking clickable on each fresh probe. In the Allrecipes batch the run ended
     on the no-page-change guard after three such clicks.
+19. The final page is saved. However a task ends, a timeout included, `run_task` in `browse.py` takes one viewport
+    PNG of the live page before it releases the browser, saves it as `final.png` in `--logs-dir` and puts that path
+    in the answer's `screenshot`. A judge that grades the end state can read the file, as Harbor's WebVoyager judge
+    does at `/logs/agent/final.png`. The runtime is the one `create_browser_agent` gave the agent's
+    `BrowserRuntimeRail`, and the call is `browser_take_screenshot`. @playwright/mcp writes the PNG under its output
+    directory (`.playwright-mcp/` in its cwd, or `--output-dir`) and links it in its report, relative to its cwd. The
+    runtime's MCP client drops the inline image, so the file is copied from that link. The link's path is written
+    raw, so `SCREENSHOT_LINK` reads the whole `- [Screenshot of ...](...)` line and a directory such as `shots (1)`
+    keeps its parentheses. A `final.png` an earlier run left in a reused `--logs-dir` is removed when the task
+    starts, so a failed or skipped screenshot never leaves a judge the earlier page. Nothing is taken when the
+    runtime never observed a page, because the tool would launch a new browser to take one. The call is capped at
+    `SCREENSHOT_TIMEOUT_S` (5 s, @playwright/mcp's own screenshot timeout). A failure leaves `screenshot` null and
+    records only the exception type in `screenshot_error`, because the exception text can quote the page.
+    `elapsed_ms` stops before the screenshot, and neither the outcome nor the release of the browser and the
+    session depends on it. Tests: `tests/test_browse.py`, and `tests/system/test_final_screenshot.py` on a live
+    @playwright/mcp.
 
 ## Rejected
 
@@ -123,6 +139,12 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
 - An "Open <label>" prefix on the click head for editable fields, as jev-ultrafast does: tried, 5 of 6 runs
   still chose TYPE_TEXT on the date box; withdrawn.
 - Re-asking the model on an unchanged page after a WAIT: decision 10.
+- `browser_run_code_unsafe` with `page.screenshot({path})` for the final page, the way `s1a/tool/hands.py` takes
+  frames: @playwright/mcp waits 500 ms after the code, and longer when the page made requests meanwhile.
+- `browser_take_screenshot` with `filename` set to the final page's path: @playwright/mcp refuses a file outside its
+  cwd and its output directory, and `--logs-dir` can be anywhere (Harbor's is `/logs/agent`).
+- The process-wide `_ACTIVE_BROWSER_RUNTIMES` set as the final page's runtime: `s1a-mcp` runs one task after another
+  in one process, and the set can still hold an earlier task's runtime.
 
 ## Open issues
 
@@ -135,4 +157,6 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
 4. Budget exhaustion is treated as terminal on the assumption that the model answers the same WAIT
    for an unchanged snapshot; if a live run shows otherwise, re-ask once before BLOCKED.
 5. The runtime's `navigate`, `evaluate` and `press_key` are private; `s1a/tool/hands.py` reaches them
-   through `_call_playwright_tool` and `_execute_probe_json` (upstream ask in `docs/roadmap.md`).
+   through `_call_playwright_tool` and `_execute_probe_json` (upstream ask in `docs/roadmap.md`). `browse.py` takes
+   the final screenshot through `_call_playwright_tool` too and reads the runtime off `BrowserRuntimeRail._runtime`;
+   the agent has no public handle to it.
