@@ -6,7 +6,7 @@ folder per episode). `uv run python -m evals.table evals/results` aggregates the
 
 | eval | measures | run |
 |---|---|---|
-| Sokoban (selected Valen levels) | solved fraction; the command below is the text board — `--visual` is the upstream image observation and needs an image-reading model, not yet on the tool front | `s1a run sokoban --model jev --rethink off --episodes 100` |
+| Sokoban (selected Valen levels) | solved fraction; the command below is the text board — `--visual` is the upstream image observation and takes an image-capable backend (multimodal `cua`, `omnijev`); no visual run recorded for either | `s1a run sokoban --model jev --rethink off --episodes 100` |
 | Blackjack (RLCard) | payoff per hand | `s1a run blackjack --model jev --rethink off --episodes 100` |
 | 2048 (the MIT game, self-hosted) | score and largest tile at a move cap | `s1a run game2048 --model jev --rethink on --episodes 10` |
 | Millionaire (self-hosted quiz, Open Trivia DB) | winnings; the 50:50 lifeline is a candidate the model may pick; six ladders: `--seed` plus `--episodes` stays at or below 6 | `s1a run millionaire --model jev --rethink off --episodes 5` |

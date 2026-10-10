@@ -40,11 +40,13 @@ and the pictures stay out of the episode records (`observation_mode: visual` mar
 The rules and the four direction labels follow each level's `language` (`en`/`zh`) and are
 Valen's own instruction texts, verbatim.
 
-No `--model` on the tool front reads images yet, so a text-only backend — `jev`, `clm`, `laya`, `laya-served`,
-`cua` in its text modalities, and `llm` (the chat model reads tool text only) — is refused before the first
-decision rather than run blind over a board it cannot see; **the jev command at the top of this page is the
-text-mode run**. `--model random` is the one exception, the offline smoke for the rendering; the served
-Valen worker behind `/v1/systemone` is the intended backend and ships as its own change. Its
+A text-only backend — `jev`, `clm`, `laya`, `laya-served`, `cua` in its text modalities, and `llm` (the chat
+model reads tool text only) — is refused before the first decision rather than run blind over a board it
+cannot see; **the jev command at the top of this page is the text-mode run**. The guard admits what can
+actually see the board — `cua`'s multimodal 4B, `omnijev` — but admission is capability, not a Sokoban
+result: no visual run is recorded for either. `--model random` is the other exception, the offline smoke for
+the rendering; the served Valen worker behind `/v1/systemone` is the backend this observation was made for
+and ships as its own change. Its
 protocol takes one PNG/JPEG data URL as `state.image`, capped at an 8 MiB body, a 4 MiB image
 and 2048 pixels per side — a bundled level at tile 44 renders far below all of these.
 
