@@ -240,7 +240,7 @@ async def run_episode(
     if limits is not None and rethink_on and spec.budget.stall_after > 0 and refresh_method is None:
         raise RuntimeError("bounded rethink needs an Env with a refresh callback")
     if isinstance(env, RequiresImages) and env.requires_images() and model_name != "random":
-        # A ``RequiresImages`` environment refuses a text-only backend up front — deciding 
+        # A ``RequiresImages`` environment refuses a text-only backend up front — deciding
         # over an observation whose images were stripped would measure a blind run (``random``
         # never reads the observation and stays the offline smoke)
         if decision_model is None or not decision_model.supports_images:
