@@ -101,6 +101,39 @@ class TestRun(TestCase):
         self.assertEqual(len(err.strip().splitlines()), 1)
         self.assertIn("TYPESAFE_API_KEY or OPENROUTER_API_KEY", err)
 
+    def test_invalid_ticket_json_names_the_file_and_line_and_exits_2(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "工单.jsonl"
+            dataset.write_text('\n \t\n{"description":"PRIVATE_TICKET_BODY",}\n', encoding="utf-8")
+            done = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "s1a",
+                    "run",
+                    "ticket_router",
+                    "--model",
+                    "rule",
+                    "--rethink",
+                    "off",
+                    "--episodes",
+                    "1",
+                    "--dataset",
+                    str(dataset),
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=120,
+                env={**os.environ, **NO_KEYS, "MODEL_NAME": "", "S1A_HOME": str(Path(tmp) / "home")},
+            )
+        self.assertEqual((done.returncode, done.stdout), (2, ""))
+        self.assertEqual(len(done.stderr.strip().splitlines()), 1, done.stderr)
+        self.assertIn(f"ticket dataset {dataset}: line 3, column 38:", done.stderr)
+        self.assertIn("Expecting property name enclosed in double quotes", done.stderr)
+        self.assertNotIn("PRIVATE_TICKET_BODY", done.stderr)
+        self.assertNotIn("Traceback", done.stderr)
+
 
 STALLING = replace(COUNTER, budget=Budget(max_steps=5, timeout_s=30, stall_after=3))
 

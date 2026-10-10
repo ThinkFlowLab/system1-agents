@@ -30,7 +30,15 @@ PUBLIC_FIELDS = ("id", "title", "description", "order_status")
 
 def load_tickets(path: Path) -> list[dict[str, Any]]:
     """Read local JSONL; the environment validates records and copies only supported fields."""
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    tickets = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            tickets.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"ticket dataset {path}: line {line_number}, column {exc.colno}: {exc.msg}") from exc
+    return tickets
 
 
 class TicketRouterEnv:
