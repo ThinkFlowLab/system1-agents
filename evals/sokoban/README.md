@@ -40,10 +40,10 @@ and the pictures stay out of the episode records (`observation_mode: visual` mar
 The rules and the four direction labels follow each level's `language` (`en`/`zh`) and are
 Valen's own instruction texts, verbatim.
 
-No `--model` on the tool front reads images yet: `jev` and the other text backends drop the
-picture with their usual warning and decide on the leftover text, `--model llm` is rejected
-(the chat model reads tool text only), so **the jev command at the top of this page is the
-text-mode run**. Today `--model random` is the offline smoke for the rendering; the served
+No `--model` on the tool front reads images yet, so a text-only backend — `jev`, `clm`, `laya`, `laya-served`,
+`cua` in its text modalities, and `llm` (the chat model reads tool text only) — is refused before the first
+decision rather than run blind over a board it cannot see; **the jev command at the top of this page is the
+text-mode run**. `--model random` is the one exception, the offline smoke for the rendering; the served
 Valen worker behind `/v1/systemone` is the intended backend and ships as its own change. Its
 protocol takes one PNG/JPEG data URL as `state.image`, capped at an 8 MiB body, a 4 MiB image
 and 2048 pixels per side — a bundled level at tile 44 renders far below all of these.

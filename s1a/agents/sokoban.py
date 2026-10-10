@@ -96,6 +96,9 @@ class SokobanEnv:
     def rules(self) -> str:
         return VISUAL_RULES[self.language] if self.visual else RULES
 
+    def requires_images(self) -> bool:
+        return self.visual
+
     async def images(self) -> tuple[Image, ...]:
         if self._render is None:
             return ()

@@ -80,6 +80,7 @@ rule baseline. Rethink must be off. See [protocol and provenance](../evals/sokob
 
 `--visual` plays the same levels over Valen's own rendering — one PNG per decision, theme and tile size from
 the level, rules and direction labels in the level's language — with the ASCII board left out. No tool-front
-`--model` reads images yet, so the `jev` command above stays the text-mode run: `jev` and the other text
-backends drop the picture, and `--model llm` is rejected. `--model random --visual` smokes the rendering
-offline (`uv run --extra visual`); the served Valen backend ships as its own change.
+`--model` reads images yet, so the `jev` command above stays the text-mode run: text-only backends (`jev`,
+`clm`, `laya`, `laya-served`, text-modality `cua`, `llm`) are refused before the first decision instead of
+running blind. `--model random --visual` smokes the rendering offline (`uv run --extra visual`); the served
+Valen backend ships as its own change.

@@ -17,7 +17,7 @@ from openjiuwen.harness.deep_agent import DeepAgent
 from openjiuwen.harness.factory import create_deep_agent
 
 from s1a.decision_models import DecisionModel
-from s1a.env import Env
+from s1a.env import Env, RequiresImages
 from s1a.jobs import Episode, now_iso
 from s1a.config import HOME
 from s1a.counting_model import CountingModel
@@ -229,7 +229,14 @@ async def run_episode(
     """One episode through the agent: reset, one conversation, the ticks, rethinks, tokens and dollars into the Episode.
 
     ``max_acts`` bounds the acts for every model; ``timeout_s`` bounds the wall clock, and a timed-out episode
-    keeps its score so far with ``result_type: timeout``."""
+    keeps its score so far with ``result_type: timeout``. A ``RequiresImages`` environment refuses a text-only
+    backend up front — deciding over an observation whose images were stripped would measure a blind run (``random``
+    never reads the observation and stays the offline smoke)."""
+    if isinstance(env, RequiresImages) and env.requires_images() and model_name != "random":
+        if decision_model is None or not decision_model.supports_images:
+            raise ValueError(
+                f"{spec.name}: this environment decides over its images; --model {model_name} reads text only"
+            )
     state = EvalState(max_acts=max_acts)
     await env.reset()
     first_view = await view_of(env, state)
