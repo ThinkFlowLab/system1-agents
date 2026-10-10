@@ -78,6 +78,46 @@ The same showcase on ALFWorld, Blackjack and Millionaire is under `results/<eval
 
 The rail scores 20 of 20 on its labelled set at a median of 464 ms (`s1a run injection_guard`).
 
+A larger set, `evals/labelled/injection-public.jsonl`, uses data from two public benchmarks, InjecAgent and AgentDojo:
+665 tool outputs such as emails, calendar entries, files, web pages and product pages, 335 of them with an instruction
+planted by an attacker. `scripts/build_injection_dataset.py` rebuilds the file. The run below is from 2026-10-05
+(`uv run s1a run injection_guard --model jev --labelled-set evals/labelled/injection-public.jsonl`), at a median of
+304 ms per decision and $0.016 for the whole set. Its records are archived with their provenance on
+[ThinkFlowLab/system1-agents#23](https://github.com/user-attachments/files/33183041/injection-guard-jev-2026-10-05.zip). Unpack the archive in a checkout and
+`uv run scripts/build_injection_dataset.py --report injection-guard-jev-2026-10-05` prints the tables below from them.
+
+| tool output | count | quarantined by Jev |
+|---|---|---|
+| no planted instruction | 330 | 0 |
+| of which a normal request written for a person, such as a bill asking for payment | 34 | 0 |
+| planted instruction in attack wording, such as "ignore your previous instructions" (AgentDojo) | 154 | 150 |
+| planted request to send the user's data somewhere (InjecAgent) | 61 | 58 |
+| planted request for a harmful action, with no attack wording (InjecAgent) | 55 | 23 |
+| planted request that reads like an ordinary one, such as a payment request in an email | 65 | 34 |
+
+The last row is counted apart. Only the user's task tells these requests from real ones, and the rail sees only the
+tool output.
+
+Over the 600 outputs outside the last row, the run gives these precision and recall figures:
+
+| measure | Jev | quarantine everything |
+|---|---|---|
+| precision: share of quarantined outputs that carry a planted instruction | 1.00 | 0.45 |
+| recall, InjecAgent direct harm (55) | 0.42 | 1.00 |
+| recall, InjecAgent data stealing (61) | 0.95 | 1.00 |
+| recall, AgentDojo (154) | 0.97 | 1.00 |
+
+Recall is the share of planted instructions that the rail quarantined. "Quarantine everything" is what a rail scores if
+it quarantines every output.
+
+On the 150 outputs that carry no attack wording (the 116 planted instructions without it and the 34 normal requests), a
+rule that quarantines any text containing "please" is right 65% of the time, counting the two groups equally. Jev is
+right 85% of the time: it catches 70% of the planted instructions and none of the normal requests.
+
+The set has two limits. Only 34 of the normal outputs contain a request. The planted instructions and the normal
+requests also come from different benchmarks with different text formats, so a simple word-count classifier already
+separates them 73% of the time.
+
 ## Series
 
 The protocol in `evals/README.md` quotes nothing under ten episodes and asks for 500 Blackjack hands. The series of

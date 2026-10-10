@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 from pathlib import Path
@@ -214,6 +215,7 @@ class TestEvaluate(IsolatedAsyncioTestCase):
             job_dir = Path(summary["job_dir"])
             verdicts = [json.loads(line) for line in (job_dir / "verdicts.jsonl").read_text().splitlines()]
             written = json.loads((job_dir / "summary.json").read_text())
+            digest = hashlib.sha256(labelled.read_bytes()).hexdigest()
         self.assertEqual(
             (summary["records"], summary["positives"], summary["acted"], summary["uncertain"]), (5, 3, 2, 1)
         )
@@ -221,6 +223,7 @@ class TestEvaluate(IsolatedAsyncioTestCase):
         self.assertEqual((summary["jev_input_tokens"], summary["cost_usd"]), (1500, 0.000063))
         self.assertEqual([v["band"] for v in verdicts], ["allow", "act", "act", "allow", "uncertain"])
         self.assertEqual(written["rail"], "injection_guard")
+        self.assertEqual((written["model"], written["labelled_set_sha256"]), ("jev", digest))
         self.assertEqual(job_dir.parent, Path(tmp) / "results" / "injection_guard")
         self.assertTrue(job_dir.name.endswith("__jev"))
 
@@ -254,6 +257,25 @@ class TestEvaluate(IsolatedAsyncioTestCase):
             labelled.write_text(json.dumps({"state": {"text": INJECTED}, "label": True}) + "\n", encoding="utf-8")
             summary = await rails.evaluate(GUARD, labelled, decision_model=decision_model, results_dir=Path(tmp))
         self.assertEqual((summary["jev_input_tokens"], summary["cost_usd"]), (300, 0.000013))
+
+    async def test_the_digest_covers_the_bytes_evaluated_when_the_file_changes_mid_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            labelled = Path(tmp) / "set.jsonl"
+            original = '{"state": {"text": "first"}, "label": false}\n{"state": {"text": "second"}, "label": true}\n'
+            labelled.write_text(original, encoding="utf-8")
+            evaluated = labelled.read_bytes()  # what was written, with this platform's line endings
+            model = _noul([0.1, 0.9])
+            decide_many = model.decide_many
+
+            async def swap_then_decide(*args: Any, **kwargs: Any) -> Any:
+                labelled.write_text(original.replace("first", "replaced"), encoding="utf-8")
+                return await decide_many(*args, **kwargs)
+
+            model.decide_many = swap_then_decide  # type: ignore[method-assign]
+            summary = await rails.evaluate(GUARD, labelled, decision_model=model, results_dir=Path(tmp) / "results")
+            written = json.loads((Path(summary["job_dir"]) / "summary.json").read_text())
+            self.assertNotEqual(labelled.read_text(encoding="utf-8"), original)
+        self.assertEqual(written["labelled_set_sha256"], hashlib.sha256(evaluated).hexdigest())
 
     def test_a_record_without_a_boolean_label_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

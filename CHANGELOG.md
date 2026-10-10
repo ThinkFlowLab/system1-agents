@@ -111,6 +111,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   element name. `text_value` gets its own ask; options that shorten alike keep their key; a blocked row keeps its
   overlay's name. Browser runs want `LAYA_MAX_LEN=1536` and `LAYA_HEAD_MAX_LEN=1024`: a calendar page's target
   head measures about 900 tokens.
+- `evals/labelled/injection-public.jsonl`: 665 labelled tool outputs for the `injection_guard` rail from InjecAgent
+  and AgentDojo at pinned versions, 335 with an injected instruction. 65 of those read as an ordinary request that only
+  the user's task tells apart; their notes carry a `-u` source and they are reported on their own row. Negatives
+  include requests written for a human (`R2` in the note), which with the unmarked positives form a hard subset.
+  `uv run scripts/build_injection_dataset.py` rebuilds the file byte for byte; `--report <job>` prints precision and
+  recall per source without the `-u` positives, their own recall, and balanced accuracy on the hard subset against
+  fixed keyword baselines. The Jev run of 2026-10-05 behind `docs/benchmarks.md` is archived on #23
+  ([records](https://github.com/user-attachments/files/33183041/injection-guard-jev-2026-10-05.zip)).
 
 ### Changed
 
