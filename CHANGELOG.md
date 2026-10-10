@@ -22,6 +22,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - `decide` rejects repeated `--option` keys before model setup instead of silently replacing an earlier choice
   description. The usage error names the duplicate key without printing either description.
 
+- Laya browser-state compaction preserves the recovery plan for the next decision.
+- Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
+- Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.
+- Recovery errors omit provider exception bodies, and tool episodes retain the full structured terminal and
+  permission-flow next step separately from shortened display output.
+- Recovery evaluation preserves timeouts after verified submissions, escapes submitted result text, and keeps
+  missing decision usage distinct from reported zero tokens. Paired reports share call-count conventions.
+- Custom recovery tasks now reach each trial's fixture with their requested routes, page behavior and submission
+  validation.
+- Bounded recovery treats an empty, whitespace-only or otherwise blank planner answer (browser and desktop) as a
+  planner failure: the run stops with the existing reason and next action, the one attempt and its active seconds
+  stay charged and the fresh observation is kept, instead of recording a `planned` event with an empty plan.
 - Fit-probe cases with no options, no accepted answer, or an accepted key outside the offered options now fail
   input validation instead of skewing the fit verdict.
 - Windows development checks: the smoke script accepts CRLF output, shell scripts and Git hooks retain LF
@@ -32,12 +44,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - Browser front: a WAIT whose in-page settle moved the page now records `page_changed: true` in the history, so
   the next state no longer shows that wait as unmeasured.
 
+### Changed
+
+- Core Windows CI (`core (windows, 3.11)`) runs on pushes to `main` and the weekly schedule, not on every
+  pull request. Linux `core` and `full` still run on PRs.
+
 ### Added
 
 - `--model clm`: CLM's `clm-serve` behind the decision-model interface, over its `/v1/systemone`. The engine owns
   everything after a frozen Qwen3-8B encoder, so no torch and no cloud key are needed on this side. Offered
   everywhere the other HTTP models are: `run`, `decide`, `probe`, rails, the browser front and the MCP server.
   See [docs/clm.md](docs/clm.md) and the [ticket-router evidence](evals/ticket_router/CLM.md).
+- Bounded recovery on the browser front: `--rethink on|off` (default off), `--rethink-attempts` (3) and
+  `--rethink-timeout` (15 s). A stall (no page change, an A-B-A-B loop, a repeated URL, a WAIT that moved nothing)
+  re-probes the page read-only through the same runtime permission and asks the chat model for a plan under a
+  per-task `RecoveryLimits` budget; the next normal decision still picks the action, the plan never executes and
+  cannot widen the offered tools or add `unsafe_dev`. Only the detection windows reset after an attempt; attempts,
+  seconds, history and ticks stay. `report()` and `decision_ticks.json` keep the recovery events, counts and
+  termination, and a timed-out, failed or exhausted recovery is a clear `BLOCKED` even when a summary carries text.
+  `--model llm` with `--rethink on` is rejected before the agent or browser is built.
+- The desktop agent's bounded recovery takes the same `--rethink-attempts` and `--rethink-timeout` names and stalls
+  after 3 actions without progress. Recovery failures include an operator next action; failed or cancelled chat
+  calls remain counted, and incomplete token usage is reported as unknown cost.
+- Small repeatable browser and native Windows recovery on/off fixtures, with independent completion checks,
+  bounded failure cases and paired reports. These use scripted models to verify mechanisms, not model accuracy.
 - `.coderabbit.yaml` and the `review-pr` skill: CodeRabbit reviews every non-draft pull request except Dependabot's, forks
   included, once an owner installs the CodeRabbit GitHub App, against `.claude/skills/review-pr/SKILL.md` and the linked issues.
   Maintainers can run the same skill by hand.

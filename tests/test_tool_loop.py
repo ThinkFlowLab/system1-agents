@@ -26,6 +26,7 @@ from s1a.decision_models import (
     ScriptedTransport,
     Usage,
 )
+from s1a.recovery import RecoveryLimits
 from s1a.spec import Budget, ToolAgentSpec
 from s1a.tool import loop as agent
 from s1a.tool.loop import (
@@ -79,6 +80,37 @@ class DyingEnv(CountingEnv):
         raise RuntimeError("playwright died")
 
 
+class TrackingEnv(CountingEnv):
+    def __init__(self) -> None:
+        super().__init__()
+        self.resets = 0
+
+    async def reset(self) -> None:
+        self.resets += 1
+        await super().reset()
+
+
+class RefreshingEnv(CountingEnv):
+    """A desktop-shaped env: two keys that never move the window, and refresh re-reads it."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.refreshes = 0
+
+    async def candidates(self) -> dict[str, str]:
+        return {} if self.done else {"left": "no-op", "right": "no-op"}
+
+    async def step(self, key: str) -> None:
+        return None
+
+    @property
+    def score(self) -> float:
+        return 0.0
+
+    async def refresh(self) -> None:
+        self.refreshes += 1
+
+
 class ScriptedChatModel(Model):
     """The chat model offline: one act call per decision turn from a script of keys, then a final line."""
 
@@ -106,6 +138,21 @@ class ScriptedChatModel(Model):
         )
 
 
+class FailingChatModel(Model):
+    """A chat model whose replan call fails: the bounded recovery's planner error path, with no usage reported."""
+
+    def __init__(self) -> None:
+        source = placeholder_model()
+        super().__init__(source.model_client_config, source.model_config)
+
+    async def invoke(self, messages: Any, *, tools: Any = None, **kwargs: Any) -> AssistantMessage:
+        raise RuntimeError("planner down")
+
+    async def stream(self, messages: Any, *, tools: Any = None, **kwargs: Any) -> AsyncIterator[AssistantMessageChunk]:
+        raise RuntimeError("planner down")
+        yield AssistantMessageChunk(content="")  # pragma: no cover - a generator raising before its first yield
+
+
 SPEC = ToolAgentSpec(
     name="counter",
     description="Count to three.",
@@ -113,6 +160,14 @@ SPEC = ToolAgentSpec(
     budget=Budget(max_steps=10, timeout_s=60, stall_after=0),
     flags=lambda parser: None,
     series=lambda flags: None,  # run_episode never builds a series
+)
+SPEC_STALL = ToolAgentSpec(
+    name="counter",
+    description="Count to three.",
+    rules=RULES,
+    budget=Budget(max_steps=10, timeout_s=60, stall_after=2),
+    flags=lambda parser: None,
+    series=lambda flags: None,
 )
 
 
@@ -359,3 +414,226 @@ class TestEpisodeThroughTheAgent(IsolatedAsyncioTestCase):
         self.assertEqual(episode.extra["result_type"], "timeout")
         self.assertLess(episode.score, 3.0)
         self.assertIn(len(episode.decisions) - episode.steps, (0, 1), "the decision in flight at the cut has no act")
+
+
+class TestBoundedRecoveryWiring(IsolatedAsyncioTestCase):
+    """``run_episode``'s optional ``limits``: rejected for plain llm and for an env without refresh, before reset."""
+
+    async def test_bounded_recovery_rejects_plain_llm_before_reset(self) -> None:
+        env = TrackingEnv()
+        with self.assertRaises(RuntimeError) as caught:
+            await run_episode(
+                SPEC,
+                env,
+                model_name="llm",
+                seed=0,
+                chat=ScriptedChatModel([]),
+                decision_model=None,
+                rethink_on=True,
+                max_acts=10,
+                timeout_s=60.0,
+                prices=None,
+                log=False,
+                limits=RecoveryLimits(),
+            )
+        self.assertIn("decision model", str(caught.exception))
+        self.assertEqual(env.resets, 0)
+
+    async def test_bounded_recovery_needs_an_env_with_refresh(self) -> None:
+        env = TrackingEnv()
+        with self.assertRaises(RuntimeError) as caught:
+            await run_episode(
+                SPEC_STALL,
+                env,
+                model_name="rule",
+                seed=0,
+                chat=None,
+                decision_model=ALWAYS_INC,
+                rethink_on=True,
+                max_acts=10,
+                timeout_s=60.0,
+                prices=None,
+                log=False,
+                limits=RecoveryLimits(),
+            )
+        self.assertIn("refresh", str(caught.exception))
+        self.assertEqual(env.resets, 0)
+
+    async def test_a_stalling_episode_refreshes_plans_then_gives_up_on_the_budget(self) -> None:
+        env, chat = RefreshingEnv(), ScriptedChatModel([])
+        picks = {"n": 0}
+
+        def ping_pong(observation: dict[str, Any], offered: dict[str, str]) -> str:
+            picks["n"] += 1
+            return "left" if picks["n"] % 2 else "right"
+
+        noop = RuleModel("ping-pong", ping_pong)
+        with tempfile.TemporaryDirectory() as tmp, patch.object(agent, "WORKSPACE", Path(tmp)):
+            await Runner.start()
+            try:
+                episode = await run_episode(
+                    SPEC_STALL,
+                    env,
+                    model_name="rule",
+                    seed=0,
+                    chat=chat,
+                    decision_model=noop,
+                    rethink_on=True,
+                    max_acts=10,
+                    timeout_s=60.0,
+                    prices=None,
+                    log=False,
+                    limits=RecoveryLimits(max_attempts=2, timeout_s=5.0),
+                )
+            finally:
+                await Runner.stop()
+        events = episode.extra["rethinks"]
+        self.assertEqual(env.refreshes, 2)  # one refresh per started attempt
+        self.assertEqual([event["termination"] for event in events], ["planned", "planned", "give_up"])
+        self.assertEqual([event["attempt"] for event in events], [1, 2, 2])
+        self.assertIsInstance(events[0]["fresh_obs"], dict)
+        # Each plan resets the window, so a stall needs two fresh acts: three stalls over six acts, not four.
+        self.assertEqual(episode.steps, 6)
+        self.assertIn("BLOCKED", episode.extra["output"])  # a spent budget is not a success
+
+    async def test_a_bounded_give_up_carries_a_specific_reason_and_next_action_in_the_terminal(self) -> None:
+        env, chat = RefreshingEnv(), ScriptedChatModel([])
+        picks = {"n": 0}
+
+        def ping_pong(observation: dict[str, Any], offered: dict[str, str]) -> str:
+            picks["n"] += 1
+            return "left" if picks["n"] % 2 else "right"
+
+        with tempfile.TemporaryDirectory() as tmp, patch.object(agent, "WORKSPACE", Path(tmp)):
+            await Runner.start()
+            try:
+                episode = await run_episode(
+                    SPEC_STALL,
+                    env,
+                    model_name="rule",
+                    seed=0,
+                    chat=chat,
+                    decision_model=RuleModel("ping-pong", ping_pong),
+                    rethink_on=True,
+                    max_acts=10,
+                    timeout_s=60.0,
+                    prices=None,
+                    log=False,
+                    limits=RecoveryLimits(max_attempts=1, timeout_s=5.0),
+                )
+            finally:
+                await Runner.stop()
+        self.assertIn("BLOCKED", episode.extra["output"])
+        event = episode.extra["rethinks"][-1]
+        self.assertEqual(event["termination"], "give_up")
+        self.assertIn("recovery attempts spent", event["error"])
+        self.assertIn("start a new task", event["next_action"])
+        # The plan is one call for the one attempt; the escalation adds no further model call.
+        self.assertEqual(episode.chat_calls, 1)
+
+    async def test_the_structured_terminal_is_kept_alongside_the_short_output(self) -> None:
+        env, chat = RefreshingEnv(), ScriptedChatModel([])
+        picks = {"n": 0}
+
+        def ping_pong(observation: dict[str, Any], offered: dict[str, str]) -> str:
+            picks["n"] += 1
+            return "left" if picks["n"] % 2 else "right"
+
+        with tempfile.TemporaryDirectory() as tmp, patch.object(agent, "WORKSPACE", Path(tmp)):
+            await Runner.start()
+            try:
+                episode = await run_episode(
+                    SPEC_STALL,
+                    env,
+                    model_name="rule",
+                    seed=0,
+                    chat=chat,
+                    decision_model=RuleModel("ping-pong", ping_pong),
+                    rethink_on=True,
+                    max_acts=10,
+                    timeout_s=60.0,
+                    prices=None,
+                    log=False,
+                    limits=RecoveryLimits(max_attempts=1, timeout_s=5.0),
+                )
+            finally:
+                await Runner.stop()
+        terminal = episode.extra["terminal"]
+        self.assertIsInstance(terminal, dict)
+        self.assertEqual(terminal["status"], "BLOCKED")
+        self.assertIn("start a new task", terminal["next_action"])
+        self.assertEqual(terminal["recovery"]["next_action"], terminal["next_action"])
+        self.assertLessEqual(len(episode.extra["output"]), 300)
+
+    async def test_the_structured_terminal_carries_the_planner_failure_next_action(self) -> None:
+        env, chat = RefreshingEnv(), FailingChatModel()
+
+        with tempfile.TemporaryDirectory() as tmp, patch.object(agent, "WORKSPACE", Path(tmp)):
+            await Runner.start()
+            try:
+                episode = await run_episode(
+                    SPEC_STALL,
+                    env,
+                    model_name="rule",
+                    seed=0,
+                    chat=chat,
+                    decision_model=RuleModel("always-left", lambda observation, offered: "left"),
+                    rethink_on=True,
+                    max_acts=10,
+                    timeout_s=60.0,
+                    prices=None,
+                    log=False,
+                    limits=RecoveryLimits(max_attempts=1, timeout_s=5.0),
+                )
+            finally:
+                await Runner.stop()
+        terminal = episode.extra["terminal"]
+        self.assertIsInstance(terminal, dict)
+        self.assertEqual(terminal["status"], "BLOCKED")
+        self.assertEqual(terminal["recovery"]["termination"], "error")
+        self.assertIn("next_action", terminal)
+        self.assertNotIn("planner down", json.dumps(episode.extra), "the provider text is never persisted")
+
+    async def test_missing_decision_usage_leaves_the_cost_unknown_not_zero(self) -> None:
+        episode = await _play(
+            CountingEnv(),
+            max_acts=1,
+            timeout_s=60.0,
+            model_name="random",
+            decision_model=ScriptedModel(choose="inc", usage=Usage(known=False)),
+        )
+        self.assertFalse(episode.decisions[0]["usage_known"])
+        self.assertFalse(episode.usage_known)
+        self.assertIsNone(episode.cost_usd, "missing decision usage is unknown, never a confirmed zero")
+
+    async def test_a_failed_chat_call_leaves_the_cost_unknown_not_zero(self) -> None:
+        env, chat = RefreshingEnv(), FailingChatModel()
+
+        def ping_pong(observation: dict[str, Any], offered: dict[str, str]) -> str:
+            return "left"
+
+        with tempfile.TemporaryDirectory() as tmp, patch.object(agent, "WORKSPACE", Path(tmp)):
+            await Runner.start()
+            try:
+                episode = await run_episode(
+                    SPEC_STALL,
+                    env,
+                    model_name="rule",
+                    seed=0,
+                    chat=chat,
+                    decision_model=RuleModel("ping-pong", ping_pong),
+                    rethink_on=True,
+                    max_acts=10,
+                    timeout_s=60.0,
+                    prices=None,
+                    log=False,
+                    limits=RecoveryLimits(max_attempts=1, timeout_s=5.0),
+                )
+            finally:
+                await Runner.stop()
+        self.assertFalse(episode.usage_known)
+        self.assertIsNone(episode.cost_usd, "a failed planner call is an unknown cost, never zero")
+        self.assertEqual(episode.chat_calls, 1, "the failed call is still counted")
+        self.assertTrue(episode.extra["failed_chat_calls"])
+        self.assertEqual(episode.extra["failed_chat_calls"][0]["status"], "error")
+        self.assertEqual(episode.extra["failed_chat_calls"][0]["error"], "RuntimeError")

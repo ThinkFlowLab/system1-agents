@@ -17,6 +17,7 @@ from s1a.desktop.driver import Capture, DriverError, Element, Snapshot, Window
 from s1a.desktop.env import WindowEnv
 from s1a.run import started_runner
 from s1a.tool import loop, series
+from test_desktop_visual import _png
 
 
 class FakeDocument:
@@ -52,7 +53,7 @@ class FakeDocument:
                 Element(3, "AXStaticText", "Status", self.status, None, ()),
             ),
             {},
-            capture=Capture(f"capture-{n}", Image(b"png"), 800, 600) if screenshot else None,
+            capture=Capture(f"capture-{n}", Image(_png((1, 2, 3), stamp=str(n))), 800, 600) if screenshot else None,
         )
 
     async def click(self, window: Window, token: str) -> dict[str, Any]:

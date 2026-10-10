@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections import Counter
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from openjiuwen.core.common.exception.errors import BaseError
@@ -12,6 +14,13 @@ from openjiuwen.core.foundation.llm import Model
 from openjiuwen.core.single_agent.rail.base import AgentCallbackContext
 from openjiuwen.harness.rails.base import DeepAgentRail
 
+from s1a.recovery import (
+    RecoveryBudget,
+    RecoveryExhausted,
+    RecoveryLimits,
+    recovery_failure_reason,
+    recovery_next_action,
+)
 from s1a.tool.models import ACT_TOOL, EvalState
 
 REPLAN_PROMPT = (
@@ -56,6 +65,35 @@ def parse_tool_args(raw: Any) -> dict[str, Any]:
     return {}
 
 
+async def draft_plan(
+    planner: Model,
+    *,
+    rules: str,
+    recent_steps: list[dict[str, Any]],
+    state: Any,
+    candidates: Any,
+) -> str:
+    """The replan request as a standalone function: rules, recent steps, a fresh state and its candidates to a plan.
+
+    RethinkRail and the bounded branch both call it; the browser front will call the same function later.
+    """
+    context = {
+        "rules": rules,
+        "recent_steps": recent_steps,
+        "state": state,
+        "candidates": candidates,
+    }
+    reply = await planner.invoke(
+        [
+            {"role": "system", "content": REPLAN_PROMPT},
+            {"role": "user", "content": json.dumps(context, ensure_ascii=False, default=str)},
+        ],
+        max_tokens=REPLAN_MAX_TOKENS,
+        temperature=0,
+    )
+    return str(reply.content or "").strip()
+
+
 class RethinkRail(DeepAgentRail):
     """Three signals, cheapest first: an exact repeat blocks a key, a semantic stall asks for a plan, too many stalls give up.
 
@@ -65,7 +103,11 @@ class RethinkRail(DeepAgentRail):
     (a fourth stall after three plans without a score change ends the episode).
     A plan the chat model fails to write is the episode's error. The plan and the block last one turn.
 
-    The harness registers the overridden ``after_tool_call`` hook by itself.
+    ``refresh`` plus ``limits`` turn on the bounded branch instead: a stall starts one attempt, re-reads the window
+    through ``refresh`` (a done window or delayed progress skips the plan), then writes the plan under the remaining
+    ``RecoveryLimits`` budget. A refresh or planner failure is the episode's error; the last stall past the attempts
+    gives up. The plan only rides into the next turn's observation, never clicks. Without both the game branch above
+    runs unchanged. The harness registers the overridden ``after_tool_call`` hook by itself.
     """
 
     def __init__(
@@ -78,6 +120,8 @@ class RethinkRail(DeepAgentRail):
         stall_after: int,
         repeat_after: int,
         give_up_after: int,
+        refresh: Callable[[], Awaitable[dict[str, Any]]] | None = None,
+        limits: RecoveryLimits | None = None,
     ) -> None:
         super().__init__()
         self._state = state
@@ -91,8 +135,17 @@ class RethinkRail(DeepAgentRail):
         self._digests: list[str] = []
         self._last_score = initial_score
         self._since_progress = 0
+        self._window_start = 0  # bounded detection reads the digests from here; a recovery attempt moves it
         self._stalls_without_progress = 0
         self._stall_digest = ""  # the state of the last stall; a stall elsewhere restarts the give-up count
+        # Both a refresh callback and limits turn the bounded branch on; one alone is a contract error, never a
+        # silent fall back to the unbounded game branch. Neither keeps the game branch exactly as before.
+        if (refresh is None) != (limits is None):
+            raise ValueError("bounded rethink needs refresh and limits together; neither turns on the game branch")
+        self._refresh = refresh
+        self._recovery = RecoveryBudget(limits) if limits is not None else None
+        if self._recovery is not None:
+            state.bounded_recovery = True
 
     async def after_tool_call(self, ctx: AgentCallbackContext) -> None:
         inputs = ctx.inputs
@@ -103,6 +156,11 @@ class RethinkRail(DeepAgentRail):
         if result is None or "score" not in result or self._state.error is not None:
             return
         key = str(parse_tool_args(getattr(inputs, "tool_args", None)).get("key", ""))
+        if self._recovery is not None:
+            if result.get("done") or self._state.budget_spent or self._state.give_up:
+                return  # the episode is over: never replan
+            await self._bounded_after(key, result)
+            return
         score = float(result["score"])
         progressed = score != self._last_score
         self._last_score = score
@@ -147,22 +205,191 @@ class RethinkRail(DeepAgentRail):
         state.notices.append(f"no score change for {since_progress} steps; {most_repeated} blocked this turn")
         state.rethinks.append({"kind": "stall", "step": step, "blocked": most_repeated, "plan": plan})
 
+    def _stalled(self) -> bool:
+        """Whether the actions since the last recovery attempt are a real no-op or a two-state cycle.
+
+        A no-op is ``stall_after`` consecutive actions whose observation digest never changed. A cycle is the last
+        four actions moving A, B, A, B: each action changed the window, so the no-op counter resets, but the task is
+        circling and must still recover. Reading both from the digest window keeps action histories and step counters
+        out of the decision, since ``progress_digest`` ignores them.
+        """
+        recent = self._digests[self._window_start :]
+        if self._since_progress >= self._stall_after > 0 and len(recent) >= self._stall_after:
+            window = recent[-self._stall_after :]
+            if len(set(window)) == 1:
+                return True
+        tail = recent[-4:]
+        return len(tail) == 4 and tail[0] == tail[2] and tail[1] == tail[3] and tail[0] != tail[1]
+
+    async def _bounded_after(self, key: str, result: dict[str, Any]) -> None:
+        """The bounded branch: a stall starts an attempt, a refresh, then a plan for the next turn or a stop.
+
+        Progress is a changed score or a changed observation digest: on desktop the score stays zero until the task
+        is finished, so a display that moves is progress even while the score does not. Progress clears the stall
+        window only; the attempts and active seconds are global and are never returned.
+        """
+        state = self._state
+        score = float(result["score"])
+        digest = progress_digest(result.get("state"))
+        score_changed = score != self._last_score
+        progressed = score_changed or (bool(self._digests) and digest != self._digests[-1])
+        self._last_score = score
+        self._keys.append(key)
+        self._scores.append(score)
+        self._digests.append(digest)
+        if score_changed:
+            self._window_start = len(self._digests)  # score progress also clears old cycle evidence
+        if progressed:
+            self._since_progress = 0  # progress clears the window; it never returns attempts or seconds
+        else:
+            self._since_progress += 1
+        step = len(self._keys)
+        # A bounded repeat is a real no-op: the same key and an unchanged window. The score never moves on desktop,
+        # so a click whose display changed is progress even when the key repeats, and must not be blocked.
+        tail = self._keys[-self._repeat_after :]
+        tail_digests = self._digests[-self._repeat_after :]
+        if (
+            self._repeat_after
+            and self._since_progress >= self._repeat_after
+            and len(set(tail)) == 1
+            and len(set(tail_digests)) == 1
+        ):
+            state.blocked.add(key)
+            state.notices.append(f"{key} repeated {self._repeat_after} times without a window change")
+            state.rethinks.append({"kind": "repeat", "step": step, "key": key})
+        if self._stall_after > 0 and self._stalled():
+            await self._recover(step, key)
+
+    async def _recover(self, step: int, key: str) -> None:
+        """One stall, one attempt: record the event first, then refresh and plan, updating it as each phase ends.
+
+        The event is appended before any await, so an external cancellation or timeout still leaves its trigger, its
+        recent actions and the phase it died in. ``spent_s`` is refreshed in one ``finally``; a cancellation is never
+        swallowed. An effective plan resets only the detection window, never the attempts or the active seconds.
+        """
+        state, budget, refresh = self._state, self._recovery, self._refresh
+        assert budget is not None and refresh is not None
+        recent = [
+            {"key": recent_key, "score": score}
+            for recent_key, score in zip(self._keys[-RECENT_STEPS:], self._scores[-RECENT_STEPS:])
+        ]
+        event: dict[str, Any] = {
+            "kind": "stall",
+            "step": step,
+            "trigger": key,
+            "trigger_reason": "stalled",
+            "recent_actions": recent,
+            "fresh_obs": None,
+            "plan": "",
+            "attempt": budget.attempts,
+            "phase": None,
+            "spent_s": round(budget.spent_s, 3),
+            "termination": None,
+        }
+        state.rethinks.append(event)  # before the awaits: an external cancel must not lose the stall
+        try:
+            budget.begin_attempt()  # a stall starts one attempt; a spent budget gives up, never a success
+        except RecoveryExhausted as exc:
+            state.give_up = True
+            event.update(
+                termination="give_up",
+                error=str(exc),
+                next_action=recovery_next_action(termination="give_up", error=str(exc)),
+            )
+            return
+        event["attempt"] = budget.attempts
+        try:
+            event["phase"] = "refresh"
+            fresh = await budget.call(refresh())
+            event["fresh_obs"] = fresh
+            if fresh.get("done"):
+                event["termination"] = "done"
+                return
+            fresh_digest = progress_digest(fresh.get("state"))
+            if fresh_digest != self._digests[-1]:
+                self._digests.append(fresh_digest)  # the window moved after all: delayed progress, no plan
+                self._restart_window()
+                event["termination"] = "delayed_progress"
+                return
+            if self._planner is None:
+                event["termination"] = "no_planner"
+                return
+            event["phase"] = "planner"
+            plan = await budget.call(self._draft(recent, fresh))
+            if not (plan or "").strip():
+                # A blank answer is a planner failure, not a plan: the next turn would get no guidance and the event
+                # would read as planned. ``draft_plan`` strips, so None/whitespace arrives here as "".
+                state.error = "rethink planner failed: planner returned an empty plan"
+                event.update(
+                    termination="error",
+                    error="planner returned an empty plan",
+                    next_action=recovery_next_action(
+                        termination="error", stage="planner", error="planner returned an empty plan"
+                    ),
+                )
+                return
+        except asyncio.CancelledError:
+            event["termination"] = "cancelled"
+            event["next_action"] = recovery_next_action(
+                termination="cancelled", stage=event["phase"], error="recovery cancelled"
+            )
+            raise  # the harness cancelled the episode: record it and keep unwinding
+        except asyncio.TimeoutError:
+            state.error = f"rethink {event['phase']} timed out"
+            event.update(
+                termination="error",
+                error=state.error,
+                next_action=recovery_next_action(termination="timeout", stage=event["phase"], error=state.error),
+            )
+            return
+        except BaseError as exc:  # the callback framework swallows a raise; the error field stops the episode
+            prefix = "plan failed" if event["phase"] == "planner" else f"rethink {event['phase']} failed"
+            reason = recovery_failure_reason(exc)  # the type only: a provider error can echo a response or a key
+            state.error = f"{prefix}: {reason}"
+            event.update(
+                termination="error",
+                error=reason,
+                next_action=recovery_next_action(termination="error", stage=event["phase"], error=reason),
+            )
+            return
+        except Exception as exc:
+            reason = recovery_failure_reason(exc)
+            state.error = f"rethink {event['phase']} failed: {reason}"
+            event.update(
+                termination="error",
+                error=reason,
+                next_action=recovery_next_action(termination="error", stage=event["phase"], error=reason),
+            )
+            return
+        finally:
+            event["spent_s"] = round(budget.spent_s, 3)
+        event.update(plan=plan, termination="planned")
+        state.plan = plan  # the next observation offers the candidates; the plan never executes a click itself
+        self._restart_window()  # a fresh plan gets stall_after new actions before the next stall is judged
+
+    def _restart_window(self) -> None:
+        """A recovery attempt, a plan or delayed progress starts a fresh detection window; the budget is untouched."""
+        self._since_progress = 0
+        self._window_start = len(self._digests)
+
+    def _draft(self, recent: list[dict[str, Any]], fresh: dict[str, Any]) -> Awaitable[str]:
+        assert self._planner is not None
+        return draft_plan(
+            self._planner,
+            rules=self._rules,
+            recent_steps=recent,
+            state=fresh.get("state"),
+            candidates=fresh.get("candidates"),
+        )
+
     async def _plan(self, planner: Model, result: dict[str, Any]) -> str:
-        context = {
-            "rules": self._rules,
-            "recent_steps": [
+        return await draft_plan(
+            planner,
+            rules=self._rules,
+            recent_steps=[
                 {"key": key, "score": score}
                 for key, score in zip(self._keys[-RECENT_STEPS:], self._scores[-RECENT_STEPS:])
             ],
-            "state": result.get("state"),
-            "candidates": result.get("candidates"),
-        }
-        reply = await planner.invoke(
-            [
-                {"role": "system", "content": REPLAN_PROMPT},
-                {"role": "user", "content": json.dumps(context, ensure_ascii=False, default=str)},
-            ],
-            max_tokens=REPLAN_MAX_TOKENS,
-            temperature=0,
+            state=result.get("state"),
+            candidates=result.get("candidates"),
         )
-        return str(reply.content or "").strip()

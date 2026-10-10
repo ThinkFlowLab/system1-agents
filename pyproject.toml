@@ -14,6 +14,7 @@ dependencies = [
     "httpx>=0.28",
     "python-dotenv>=1.0",
     "mcp>=1.26",
+    "pillow>=10",
 ]
 
 [project.urls]

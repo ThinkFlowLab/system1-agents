@@ -1,23 +1,67 @@
 """Screenshot bytes reach the decision model; pixel input remains capture-bound."""
 
 import base64
+import io
 import json
 import os
+from types import SimpleNamespace
+from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import AsyncMock, call, patch
 
 from mcp.types import CallToolResult, ImageContent
+from PIL import Image as PILImage
+from PIL import PngImagePlugin
 
 from s1a.agents import desktop
 from s1a.agents.desktop import parse_pixel_targets
 from s1a.decision_models import Image, ScriptedModel
-from s1a.desktop.driver import Capture, DriverError, Snapshot, Window
+from s1a.desktop.driver import Capture, DriverError, Element, Snapshot, Window
 from s1a.desktop.env import WindowEnv
-from s1a.tool.models import EvalState, ToolDecisionModel
+from s1a.recovery import RecoveryLimits
 from s1a.tool import series
+from s1a.tool.loop import view_of
+from s1a.tool.models import EvalState, ToolDecisionModel
+from s1a.tool.rethink import RethinkRail
 from test_desktop_driver import _driver, _result
+from test_rethink_rail import FakePlanner
 
 WINDOW = Window(42, 7, "Canvas", "Canvas task")
+
+
+def _png(colour: tuple[int, int, int], *, stamp: str = "") -> bytes:
+    """Valid PNG bytes for one colour; ``stamp`` only varies the file's metadata, never its pixels."""
+    info = PngImagePlugin.PngInfo()
+    if stamp:
+        info.add_text("stamp", stamp)
+    buffer = io.BytesIO()
+    PILImage.new("RGB", (8, 8), colour).save(buffer, format="PNG", pnginfo=info)
+    return buffer.getvalue()
+
+
+class PixelWindow:
+    """A static window whose screenshot pixels the test sets; every read gets a fresh capture id and metadata."""
+
+    def __init__(self, colour: tuple[int, int, int] = (255, 0, 0)) -> None:
+        self.colour = colour
+        self.reads = 0
+        self.pngs: list[bytes] = []
+
+    async def find_window(self, app_name: str, window_title: str = "") -> Window:
+        return WINDOW
+
+    async def window_state(self, window: Window, *, screenshot: bool = False) -> Snapshot:
+        self.reads += 1
+        capture = None
+        if screenshot:
+            png = _png(self.colour, stamp=f"read-{self.reads}")
+            self.pngs.append(png)
+            capture = Capture(f"capture-{self.reads}", Image(png), 8, 8)
+        elements = (Element(1, "AXStaticText", "", "0", None, ()),)
+        return Snapshot(window, f"snap-{self.reads}", elements, {}, capture)
+
+    async def click_at(self, window: Window, capture: Capture, x: float, y: float) -> dict[str, Any]:
+        return {"effect": "confirmed"}
 
 
 class TestVisualTargets(IsolatedAsyncioTestCase):
@@ -106,11 +150,11 @@ class TestVisualTargets(IsolatedAsyncioTestCase):
         driver = AsyncMock()
         driver.find_window.return_value = WINDOW
 
+        picture = Image(_png((10, 20, 30)))
+
         async def snapshot(window, *, screenshot=False):
             self.assertTrue(screenshot)
-            return Snapshot(
-                window, "s1", (), {}, capture=Capture(str(window.window_id), Image(window.title.encode()), 100, 100)
-            )
+            return Snapshot(window, "s1", (), {}, capture=Capture(str(window.window_id), picture, 100, 100))
 
         driver.window_state.side_effect = snapshot
         env = WindowEnv(
@@ -123,11 +167,11 @@ class TestVisualTargets(IsolatedAsyncioTestCase):
             screenshot=True,
         )
         await env.reset()
-        self.assertEqual(await env.images(), (Image(b"Canvas task"),))
+        self.assertEqual(await env.images(), (picture,))
         self.assertEqual(set(await env.candidates()), {"abstain"})
 
     async def test_screenshot_goes_to_model_and_selected_point_uses_its_capture(self) -> None:
-        picture = Image(b"png")
+        picture = Image(_png((40, 50, 60)))
         capture = Capture("capture-1", picture, 800, 600)
         snapshot = Snapshot(WINDOW, "s1", (), {}, capture=capture)
         driver = AsyncMock()
@@ -155,7 +199,9 @@ class TestVisualTargets(IsolatedAsyncioTestCase):
     async def test_dry_run_never_clicks_and_missing_capture_is_an_error(self) -> None:
         driver = AsyncMock()
         driver.find_window.return_value = WINDOW
-        driver.window_state.return_value = Snapshot(WINDOW, "s1", (), {}, capture=Capture("c", Image(b"p"), 100, 100))
+        driver.window_state.return_value = Snapshot(
+            WINDOW, "s1", (), {}, capture=Capture("c", Image(_png((70, 80, 90))), 100, 100)
+        )
         env = WindowEnv(
             driver,
             app_name="Canvas",
@@ -263,3 +309,63 @@ class TestPixelArguments(TestCase):
         for entries in (["bad"], ["x=nan,0.5"], ["x=1,0"], ["x=-0.1,0"], ["x=0,0", "x=0.5,0.5"]):
             with self.subTest(entries=entries), self.assertRaises(ValueError):
                 parse_pixel_targets(entries)
+
+
+class TestVisualProgress(IsolatedAsyncioTestCase):
+    """Drive pixel actions through the environment and recovery hook."""
+
+    async def _drive(self, colours: list[tuple[int, int, int]]):
+        driver = PixelWindow()
+        env = WindowEnv(
+            driver,
+            app_name="Canvas",
+            goal="paint the canvas",
+            done_when=lambda s: False,
+            execute=True,
+            clear_labels=(),
+            pixel_targets={"left": (0.5, 0.5)},
+        )
+        state, planner, views = EvalState(), FakePlanner(), []
+
+        async def refresh() -> dict[str, Any]:
+            await env.refresh()
+            return await view_of(env, state)
+
+        rail = RethinkRail(
+            state,
+            rules="paint",
+            initial_score=0.0,
+            planner=planner,
+            stall_after=3,
+            repeat_after=0,
+            give_up_after=3,
+            refresh=refresh,
+            limits=RecoveryLimits(max_attempts=1, timeout_s=5.0),
+        )
+        await env.reset()
+        for colour in colours:
+            driver.colour = colour
+            await env.step("pixel:left")
+            view = await view_of(env, state)
+            views.append(view["state"])
+            result = json.dumps(view)
+            await rail.after_tool_call(
+                SimpleNamespace(
+                    inputs=SimpleNamespace(tool_name="act", tool_args={"key": "pixel:left"}, tool_result=result)
+                )
+            )
+        return state, planner, driver, views
+
+    async def test_changed_pixels_are_progress_while_unchanged_pixels_stall_once(self) -> None:
+        changed = [(0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255), (255, 255, 255)]
+        state, planner, _driver, views = await self._drive(changed)
+        # Same AX tree and title on every step; only the canvas pixels move.
+        for view in views:
+            self.assertEqual(view["progress"]["title"], WINDOW.title)
+            self.assertEqual(view["progress"]["elements"], views[0]["progress"]["elements"])
+        self.assertEqual((state.rethinks, planner.calls, state.give_up), ([], [], False))
+        state, planner, driver, _views = await self._drive([(255, 0, 0)] * 6)
+        self.assertEqual(len(set(driver.pngs)), len(driver.pngs), "every read is a fresh capture with new metadata")
+        self.assertEqual([event["termination"] for event in state.rethinks], ["planned", "give_up"])
+        self.assertEqual([event["attempt"] for event in state.rethinks], [1, 1])
+        self.assertEqual((state.give_up, len(planner.calls)), (True, 1))

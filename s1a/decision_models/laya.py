@@ -137,8 +137,9 @@ def laya_state(state: Json | str) -> Json | str:
     """The browser front's per-tick state, folded to fit Laya's window: no ``page.text`` (the choice heads already
     carry each candidate's own text; the free-form page dump is for the chat model's DONE answer, which Laya never
     writes), the element table as one short line per row instead of a JSON object per row, and the last
-    ``LAYA_BROWSER_HISTORY_KEPT`` actions instead of ten. Anything that is not this shape (a plain string, the tool
-    front's state, a rail's) passes through: it already fits the window Laya was sized for.
+    ``LAYA_BROWSER_HISTORY_KEPT`` actions instead of ten. A recovery plan is kept for the next decision.
+    Anything that is not this shape (a plain string, the tool front's state, a rail's) passes through: it already
+    fits the window Laya was sized for.
 
     This is what made Laya's real-page window error mean anything other than "raise LAYA_MAX_LEN and hope": on a
     dozen-element page the JSON-shaped state alone ran well past a 512-token window before a single instruction
@@ -153,6 +154,8 @@ def laya_state(state: Json | str) -> Json | str:
         },
         "elements": [_laya_browser_row(row) for row in state["elements"]],
     }
+    if state.get("plan"):
+        compact["plan"] = state["plan"]
     recent = state.get("recent_actions")
     if recent:
         compact["recent_actions"] = [

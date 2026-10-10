@@ -2,7 +2,8 @@
 
 Code: `s1a/browser/` (`decision_model.py`,
 `action_space.py`, `probe_js.py`, `prompts.py`), the decision-model layer in `s1a/decision_models/`
-(`docs/decision-models.md`) and the HTTP transport in `s1a/decision_models/wire.py`. Tests: `tests/test_browser_policy.py`. The
+(`docs/decision-models.md`) and the HTTP transport in `s1a/decision_models/wire.py`. Tests: `tests/test_browser_policy.py`
+and `tests/test_browser_recovery.py`. The
 harness side (the `DecisionPolicyModel` Protocol, `probe_for_policy` and `activate_page` on the Playwright
 runtime, the policy path in `create_browser_agent`) is the decision-policy slot pinned in `pyproject.toml`.
 Measurements: `docs/benchmarks.md`.
@@ -38,7 +39,7 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
    on every page change and discards stale answers, 8 to 11 per run in measurement.
 4. Hidden tabs are activated. A hidden tab throttles timers to about 1 Hz and does not render dropdowns.
    When the probe reports `visibilityState == "hidden"`, the policy calls `activate_page(url)` once and
-   probes again.
+   probes again; a failed re-probe is refused like any other failed observation (item 8).
 5. The chat model generates typed values in the background before the field is reached. A `TYPE_TEXT`
    string is generated from the goal, the field, the page text and the history. With `--prefetch on`
    (`BrowserPolicy.prefetch_values`, the default) that call starts in the background for every editable field
@@ -55,10 +56,14 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
    live in a dataclass; a new goal or a finished run starts a fresh one and cancels the previous run's
    background tasks. The decision model is `self._decision_model`; `Model.__init__` builds `self._client` as a
    real telemetry-bearing model client and inherited methods touch it.
-8. Failures degrade to `BLOCKED`. A probe failure envelope (`{"ok": False, "error": ..., "elements": []}`)
-   folds into a control-only action space (WAIT, DONE, BLOCKED); a decisions transport error, HTTP error,
-   malformed 200 body or invalid distribution ends the turn with a `BLOCKED` summary that still holds URL,
-   title, steps and page text. Response bodies never enter error messages or logs.
+8. A failed observation is refused, not decided. The runtime reports a failed probe as `ok=False` or an
+   `error` field. The policy checks the snapshot at the observation boundary (`_require_observation`) and
+   raises `RuntimeError("browser observation failed: ...")` with a bounded one-line reason before the
+   decision model or the chat answer can read an empty page. This keeps a broken browser (a missing
+   library such as `libatk-1.0.so.0`, a closed page) from being answered DONE; the recovery refresh and
+   the in-page action-settle/WAIT probes keep their own bounded handling. A decisions transport error, HTTP
+   error, malformed 200 body or invalid distribution ends the turn with a `BLOCKED` summary that still holds
+   URL, title, steps and page text. Response bodies never enter error messages or logs.
 9. Answers are validated in the decision-model layer. `decide_many` accepts only a choice among the offered ids
    whose distribution covers exactly those ids, sums to 1 within 0.02, and peaks at the choice, for every
    head of the request, including the heads the choice did not select. An unusable answer is re-asked once
@@ -113,7 +118,31 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
     probe's occlusion check sees what covers a control now; a consent banner that returns after every
     navigation leaves the control looking clickable on each fresh probe. In the Allrecipes batch the run ended
     on the no-page-change guard after three such clicks.
-19. The final page is saved. However a task ends, a timeout included, `run_task` in `browse.py` takes one viewport
+19. Bounded recovery (`--rethink on`, off by default; `--rethink-attempts`, default 3; `--rethink-timeout`,
+    default 15 s). A stop signal -- `stall_after` actions without a page change, an A-B-A-B page loop, a fourth
+    arrival at one URL, an over-long WAIT streak or a WAIT settle that moved nothing -- spends one attempt instead
+    of ending the run. The attempt re-probes the page read-only through `_raw_probe` (never a navigation; a probe
+    error or a denied read stops immediately) and, when the `page_key` really did not move, asks the chat model for
+    a plan through the tool front's `draft_plan`; a changed `page_key` is delayed progress and skips the planner.
+    The plan rides into the next observation only and never executes a click; the offered tools and candidates are
+    filtered exactly as an ordinary turn filters them, so recovery cannot widen the tool set or add `unsafe_dev`.
+    `RecoveryLimits` bounds the attempts and the seconds spent inside the refresh and planner calls, counted from
+    `time.perf_counter` and cancelled by `asyncio.wait_for`, cumulatively and never reset by progress; the outer
+    `--max-steps` and `--timeout` still cap the task. Only the detection windows (the history boundary the stall and
+    oscillation guards read, the WAIT streak and the visit counts) reset after an attempt: history, ticks and the
+    budget stay, so a plan gets a few actions before the same stall can fire again. A refresh or planner timeout,
+    error, cancellation or an exhausted budget ends the run BLOCKED with no answer fetched; `finish_decision_model`
+    reports it as a failure even if the summary carries text. A policy that still answers BLOCKED after one or more
+    replans is a failure too: the partial answer is kept only as context, the summary carries the block reason and a
+    next action, and the record is not mislabelled as a failed or exhausted recovery or a failed planner call.
+    `--model llm` with `--rethink on` is rejected before
+    the agent or browser is built. `report()` and `decision_ticks.json` keep the recovery events, attempts, seconds
+    and termination. Failed recovery also includes a next action for the operator; refresh/planner errors record a
+    short failure category without the provider response body. Failed and cancelled planner calls
+    remain in the call count, with unknown token usage kept separate from zero cost. To compare, run the same goal twice, `--rethink off` against `on`, on the same backend; the
+    on/off difference is only worth quoting once the browser bench is rerun, because the scripted tests pin the loop,
+    not a task success rate.
+20. The final page is saved. However a task ends, a timeout included, `run_task` in `browse.py` takes one viewport
     PNG of the live page before it releases the browser, saves it as `final.png` in `--logs-dir` and puts that path
     in the answer's `screenshot`. A judge that grades the end state can read the file, as Harbor's WebVoyager judge
     does at `/logs/agent/final.png`. The runtime is the one `create_browser_agent` gave the agent's

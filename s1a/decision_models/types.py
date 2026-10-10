@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import base64
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, Union
@@ -124,21 +125,46 @@ Answer = Union[Choice, Noul]
 
 @dataclass(frozen=True)
 class Usage:
+    """Tokens a backend reported, and whether it reported them at all.
+
+    ``known`` distinguishes an explicit zero from missing or malformed usage: a direct ``Usage()`` is a known zero
+    for a local model or a test double, while ``from_payload`` marks a payload without a valid input count unknown,
+    so a consumer can tell "no tokens" from "we do not know how many tokens".
+    """
+
     input_tokens: int = 0
     output_tokens: int = 0
+    known: bool = True
 
     @classmethod
     def from_payload(cls, usage: Any) -> "Usage":
-        """Tolerant: a missing or malformed usage counts as zero tokens."""
-        fields = usage if isinstance(usage, dict) else {}
-        return cls(_count(fields.get("input_tokens")), _count(fields.get("output_tokens")))
+        """Tolerant read of a backend's usage: counts are kept, but ``known`` is False when they are not usable.
+
+        A present, valid input count is required; an absent output count is an implicit zero (the decision
+        backends report input only). A bool, negative, non-integral or otherwise invalid count leaves ``known``
+        False while the tolerant numeric value is still kept.
+        """
+        if not isinstance(usage, dict):
+            return cls(0, 0, known=False)
+        input_tokens, output_tokens = _count(usage.get("input_tokens")), _count(usage.get("output_tokens"))
+        known = "input_tokens" in usage and _valid_count(usage.get("input_tokens"))
+        if "output_tokens" in usage:
+            known = known and _valid_count(usage.get("output_tokens"))
+        return cls(input_tokens, output_tokens, known=known)
 
 
 def _count(value: Any) -> int:
     try:
         return max(0, int(value or 0))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return 0
+
+
+def _valid_count(value: Any) -> bool:
+    """A usable token count: a non-negative integer, never a bool; a float only when it is whole."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    return math.isfinite(value) and float(value).is_integer() and value >= 0
 
 
 @dataclass(frozen=True)

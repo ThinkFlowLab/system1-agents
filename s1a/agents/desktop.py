@@ -28,7 +28,7 @@ from typing import Any, AsyncIterator
 
 from s1a.desktop.driver import CuaDriver, DriverError, Snapshot, driver_from_env, opened
 from s1a.desktop.env import ABSTAIN, WindowEnv, clickable, observable
-from s1a.spec import Budget, Series, ToolAgentSpec
+from s1a.spec import Budget, Series, ToolAgentSpec, positive_float, positive_int
 
 RULES = (
     "A desktop app window. goal says what to do; elements lists current controls and values; presses lists past "
@@ -186,6 +186,18 @@ def flags(parser: argparse.ArgumentParser) -> None:
         "--plan", default="", help="the rule baseline: button labels or action keys in order, | between variants"
     )
     parser.add_argument("--clear", default="", help="button labels pressed on reset when the window has one")
+    parser.add_argument(
+        "--rethink-attempts",
+        type=positive_int,
+        default=3,
+        help="bounded rethink: stalls handled by a refresh and a plan before the episode gives up",
+    )
+    parser.add_argument(
+        "--rethink-timeout",
+        type=positive_float,
+        default=15.0,
+        help="bounded rethink: seconds across all refreshes and plans in one episode",
+    )
     parser.add_argument("--text", default="", help="task-supplied text to enter and verify in an editable element")
     parser.add_argument("--text-target", default="", help="restrict --text to this exact field label or identifier")
     parser.add_argument(
@@ -208,7 +220,7 @@ SPEC = ToolAgentSpec(
     name="desktop",
     description="A Windows or macOS app window through Cua Driver: choose grounded click and type actions.",
     rules=RULES,
-    budget=Budget(max_steps=12, timeout_s=90, stall_after=0),
+    budget=Budget(max_steps=12, timeout_s=90, stall_after=3),
     flags=flags,
     series=make_series,
 )

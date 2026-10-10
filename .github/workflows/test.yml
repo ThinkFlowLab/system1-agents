@@ -27,14 +27,35 @@ jobs:
           - os: ubuntu-latest
             python: "3.13"
             check_name: core (3.13)
-          - os: windows-latest
-            python: "3.11"
-            check_name: core (windows, 3.11)
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: ${{ matrix.python }}
+          enable-cache: true
+      - run: uv lock --check
+      - run: uv sync --extra dev
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run ty check
+      - run: uv build
+      - run: scripts/smoke.sh
+        shell: bash
+      - run: uv run pytest -q
+
+  core-windows:
+    # Same core install as `core`, on Windows. Skipped on pull requests to save billed
+    # Windows minutes; the Linux matrix still covers PRs. Runs on main and the weekly cron.
+    # Drop the `if` to gate pull requests too. Keep the check name in sync with required status checks.
+    if: github.event_name != 'pull_request'
+    name: core (windows, 3.11)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.11"
           enable-cache: true
       - run: uv lock --check
       - run: uv sync --extra dev
