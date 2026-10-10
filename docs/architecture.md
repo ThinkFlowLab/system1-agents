@@ -27,12 +27,7 @@ the description, the rules text the model reads, a budget, and the front-specifi
 
 - Tool front (`ToolAgentSpec`, `s1a/tool/`): a DeepAgent plays a game through two tools, `observe` and `act`,
   with `ToolDecisionModel` in the slot over a decision model; `random` and `rule` put the two baseline
-  models in the same slot model. An env may also carry optional protocols the loop consults: `VisualEnv`
-  (`images()` rides beside the state and stays out of the logs), `RulesEnv` (per-episode rules replace the
-  spec's static text) and `RequiresImages` (a backend without `supports_images` is refused before the first
-  decision instead of deciding over a stripped observation; `random` never reads the observation and stays
-  the smoke). Agents: `blackjack`, `game2048`, `millionaire`, `alfworld`, `desktop`, `ticket_router`, `sokoban`.
-  The loop: `evals/README.md`.
+  models in the same slot model. Agents: `blackjack`, `game2048`, `millionaire`, `alfworld`, `desktop`, `ticket_router`. The loop: `evals/README.md`.
 - Browser front (`BrowserAgentSpec`, `s1a/browser/`): `BrowserDecisionModel` fills the slot of openJiuwen's
   browser subagent. Each browser turn is one `decide_many` over the page's controls, one question per head; the chat
   model writes text only for typed values and the final answer. Agents: `flights`, `allrecipes`. Design:
