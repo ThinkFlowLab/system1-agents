@@ -79,8 +79,9 @@ levels. The score is 1 for solved and 0 otherwise. Use `--model random` for an o
 rule baseline. Rethink must be off. See [protocol and provenance](../evals/sokoban/README.md).
 
 `--visual` plays the same levels over Valen's own rendering — one PNG per decision, theme and tile size from
-the level, rules and direction labels in the level's language — with the ASCII board left out. No tool-front
-`--model` reads images yet, so the `jev` command above stays the text-mode run: text-only backends (`jev`,
-`clm`, `laya`, `laya-served`, text-modality `cua`, `llm`) are refused before the first decision instead of
-running blind. `--model random --visual` smokes the rendering offline (`uv run --extra visual`); the served
-Valen backend ships as its own change.
+the level, rules and direction labels in the level's language — with the ASCII board left out. Text-only
+backends (`jev`, `clm`, `laya`, `laya-served`, text-modality `cua`, `llm`) are refused before the first
+decision instead of running blind. `cua`'s multimodal 4B and `omnijev` do take the picture, but admission is
+capability, not a result: no visual Sokoban run is recorded for them, so the `jev` command above stays the
+reference text-mode run. `--model random --visual` smokes the rendering offline (`uv run --extra visual`);
+the served Valen backend this observation was made for ships as its own change.
