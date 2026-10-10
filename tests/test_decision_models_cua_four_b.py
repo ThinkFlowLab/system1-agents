@@ -95,3 +95,10 @@ class TestFourB(IsolatedAsyncioTestCase):
         await model.decide_many(Observation({"goal": "choose B"}), {"pick": ChoiceQuestion({"a": "A", "b": "B"})})
         self.assertIn("choose B", scorer.seen[0][1]["ax_tree"])
         self.assertIsNone(scorer.seen[0][2])
+
+    async def test_the_modality_declares_whether_the_model_reads_images(self) -> None:
+        # The attribute the tool loop's RequiresImages guard reads: text 4B and Nano are refused on a
+        # visual env, multimodal 4B is not (Nano's False is pinned in test_decision_models_cua.py).
+        scorer = FakeFourB()
+        self.assertFalse(CuaFourBModel(scorer, model="test/text", modality="text").supports_images)
+        self.assertTrue(CuaFourBModel(scorer, model="test/mm", modality="multimodal").supports_images)
