@@ -108,3 +108,40 @@ jobs:
       # The Chromium revision that playwright-core inside the runtime's pinned @playwright/mcp expects.
       - run: npx -y -p "$(uv run --no-sync python -c 'import s1a.entry; from s1a.config import DEFAULT_PLAYWRIGHT_MCP_ARGS as a; print(a.split()[-1])')" playwright-core install --with-deps chromium
       - run: S1A_BROWSER_TESTS=1 uv run pytest -q tests/system
+
+  benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      JEVBENCH_ROOT: ${{ github.workspace }}/_reference/jevbench
+      OMNI_BENCH_SOURCE: ${{ github.workspace }}/_reference/omni/benchmarks/bench.py
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: fstandhartinger/jevbench
+          ref: 7ce310c7262ed49cc85853339a8a42459298e3f3
+          path: _reference/jevbench
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: ThinkFlowLab/system1-omni
+          ref: 4b9cccbde841272ff5ace6aee3cf51610fe1324f
+          path: _reference/omni
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      - run: uv sync --extra dev
+      - name: Required benchmark tests
+        run: |
+          uv run pytest tests/benchmarks -q --junitxml="${RUNNER_TEMP}/benchmark-tests.xml"
+          uv run python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          report = Path(os.environ["RUNNER_TEMP"]) / "benchmark-tests.xml"
+          raise SystemExit(bool(ET.parse(report).findall(".//skipped")))
+          PY

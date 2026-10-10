@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Offline quality consumer for shared Omni public231 raw, retaining planned
+  denominators and original scoring.
+
+- Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
+  complete-denominator quality metrics and per-round service latency.
+
 - Optional local Cua-S1 4B inference through the `cua-four-b` extra and `CUA_S1_VARIANT=4b`, supporting text and
   multimodal input. Desktop `--pixel-target` offers named screenshot points; clicks remain bound to the observed
   window and capture.
