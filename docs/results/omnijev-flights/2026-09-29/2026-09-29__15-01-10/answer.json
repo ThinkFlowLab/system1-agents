@@ -1,0 +1,149 @@
+{
+ "ok": true,
+ "final": "The page text is empty, so I cannot find the requested flight information.",
+ "screenshot": null,
+ "error": null,
+ "elapsed_ms": 84953,
+ "usage": {
+  "decisions": 17,
+  "chat_calls": 10,
+  "chat_input_tokens": 3088,
+  "chat_output_tokens": 68,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.001096
+ },
+ "report": {
+  "elapsed_ms": 84289,
+  "decisions": 17,
+  "interactions": 16,
+  "waits": 1,
+  "median_decision_ms": 1104,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 1277,
+  "settle_probes": 3,
+  "settle_ms": 2345,
+  "values": {
+   "cache": 0,
+   "prefetch": 3,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "One way",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Sunday, November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Done. Search for one-way flights, departing on November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "submit",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "wait",
+    "kind": "wait",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "status": "BLOCKED",
+ "terminal": {
+  "status": "BLOCKED",
+  "reason": "waited without progress",
+  "url": "https://www.google.com/travel/flights?tfs=CBwQARoOagwIAxIIL20vMDg5NjYaDnIMCAMSCC9tLzA4OTY2QAFIAXABggELCP___________wGYAQE&tfu=KgIIAw&hl=en",
+  "title": "Find Cheap Flights Worldwide & Book Your Ticket - Google Flights",
+  "steps": 16,
+  "elapsed_ms": 83943,
+  "page_text": "",
+  "answer": "The page text is empty, so I cannot find the requested flight information."
+ },
+ "agent": "flights",
+ "model": "omnijev"
+}

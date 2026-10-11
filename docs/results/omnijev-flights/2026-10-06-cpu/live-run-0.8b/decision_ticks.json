@@ -1,0 +1,112 @@
+{
+ "report": {
+  "elapsed_ms": 303076,
+  "decisions": 2,
+  "interactions": 2,
+  "waits": 0,
+  "median_decision_ms": 131993,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 12241,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 0,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": false
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 5386,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 136209,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change ticket type. Round trip",
+   "confidence": 0.436,
+   "elements": 25,
+   "elapsed_ms": 145428,
+   "probabilities": {
+    "12": 0.256,
+    "15": 0.141,
+    "16": 0.102,
+    "17": 0.081,
+    "6": 0.053,
+    "23": 0.05
+   },
+   "candidates": {
+    "12": "Change ticket type. Round trip",
+    "15": "Where from?",
+    "16": "Where to?",
+    "17": "Departure",
+    "6": "Flights",
+    "23": "Frankfurt am Main"
+   },
+   "screenshot_ms": 2014,
+   "text": null
+  },
+  {
+   "tick": 2,
+   "probe_ms": 19097,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 3,
+   "action_settle_ms": 1000,
+   "decision_ms": 127778,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change ticket type. Round trip",
+   "confidence": 0.422,
+   "elements": 25,
+   "elapsed_ms": 299985,
+   "probabilities": {
+    "12": 0.2,
+    "15": 0.151,
+    "16": 0.1,
+    "17": 0.085,
+    "6": 0.061,
+    "19": 0.057
+   },
+   "candidates": {
+    "12": "Change ticket type. Round trip",
+    "15": "Where from?",
+    "16": "Where to?",
+    "17": "Departure",
+    "6": "Flights",
+    "19": "Explore destinations"
+   },
+   "screenshot_ms": 2035,
+   "text": null
+  }
+ ],
+ "final": null,
+ "usage": {
+  "decisions": 2,
+  "chat_calls": 5,
+  "chat_input_tokens": 1552,
+  "chat_output_tokens": 26,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.000531
+ }
+}

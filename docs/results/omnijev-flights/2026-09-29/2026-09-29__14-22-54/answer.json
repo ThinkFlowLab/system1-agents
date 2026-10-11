@@ -1,0 +1,131 @@
+{
+ "ok": true,
+ "final": "The page shows \"No results returned.\" for the specified flight search. Therefore, the flight options are not visible.",
+ "screenshot": null,
+ "error": null,
+ "elapsed_ms": 68380,
+ "usage": {
+  "decisions": 14,
+  "chat_calls": 12,
+  "chat_input_tokens": 4065,
+  "chat_output_tokens": 94,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.001454
+ },
+ "report": {
+  "elapsed_ms": 67712,
+  "decisions": 14,
+  "interactions": 13,
+  "waits": 1,
+  "median_decision_ms": 1128,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 1195,
+  "settle_probes": 3,
+  "settle_ms": 2441,
+  "values": {
+   "cache": 0,
+   "prefetch": 2,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "One way",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Sunday, November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Done. Search for one-way flights, departing on November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Search",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "wait",
+    "kind": "wait",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "status": "BLOCKED",
+ "terminal": {
+  "status": "BLOCKED",
+  "reason": "waited without progress",
+  "url": "https://www.google.com/travel/flights/search?tfs=CBwQAhooEgoyMDI2LTExLTAxagwIAxIIL20vMDg5NjZyDAgDEggvbS8wNGpwbEABSAFwAYIBCwj___________8BmAEC&hl=en",
+  "title": "Zürich to London | Google Flights",
+  "steps": 13,
+  "elapsed_ms": 67385,
+  "page_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nSign in\nFlight search\n1\nFilters\nAll filters\nStops\nAirlines\nBags\nPrice\nTimes\nEmissions\nConnecting airports\nDuration\nSearch results\nNo results returned.\nOops, something went wrong.\nReload",
+  "answer": "The page shows \"No results returned.\" for the specified flight search. Therefore, the flight options are not visible."
+ },
+ "agent": "flights",
+ "model": "omnijev"
+}

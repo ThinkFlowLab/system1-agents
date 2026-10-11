@@ -109,5 +109,7 @@ free-text negotiation decide the score).
 - openJiuwen-ai/agent-core: the decision-policy slot (`DecisionPolicyModel` Protocol, `probe_for_policy`
   and `activate_page` on the Playwright runtime, the policy path in `create_browser_agent`), today on
   [ThinkFlowLab/agent-core#1](https://github.com/ThinkFlowLab/agent-core/pull/1), merged into that fork's `jiuwen-jev` branch; plus public `navigate`, `evaluate` and
-  `press_key` on `BrowserAgentRuntime`, which `s1a/tool/hands.py` reaches through private methods today.
+  `press_key` on `BrowserAgentRuntime`, which `s1a/tool/hands.py` reaches through private methods today; and, for
+  the final page `s1a/browser/browse.py` saves, a public screenshot on the runtime and a public handle to the runtime
+  from the browser agent.
 - microsoft/playwright-mcp: a switch for the two 500 ms settle sleeps in `waitForCompletion`.

@@ -14,6 +14,7 @@ from s1a.decision_models.factory import DECISION_MODEL_NAMES, build_model
 from s1a.decision_models.fakes import ScriptedModel, ScriptedTransport
 from s1a.decision_models.jev import JevModel, jev_question
 from s1a.decision_models.laya import LayaModel
+from s1a.decision_models.omnijev import OmniJevModel
 from s1a.decision_models.types import (
     Answer,
     Choice,
@@ -47,6 +48,7 @@ __all__ = [
     "LayaModel",
     "Noul",
     "NoulQuestion",
+    "OmniJevModel",
     "Observation",
     "Question",
     "RandomModel",

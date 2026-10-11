@@ -12,6 +12,7 @@ from s1a.decision_models.cua import CuaS1Model
 from s1a.decision_models.cua_four_b import CuaFourBModel
 from s1a.decision_models.jev import JevModel
 from s1a.decision_models.laya import LayaModel
+from s1a.decision_models.omnijev import OmniJevModel
 from s1a.decision_models.served import ServedLayaModel
 
 DECISION_MODEL_NAMES = (
@@ -20,13 +21,14 @@ DECISION_MODEL_NAMES = (
     "laya",
     "laya-served",
     "cua",
+    "omnijev",
     "random",
     "rule",
 )  # the names that build a decision model; ``llm`` is not one
 
 
 def build_model(model_name: str, *, seed: int = 0, rule: tuple[str, Rule] | None = None) -> DecisionModel:
-    """``jev``, ``clm``, ``laya``, ``laya-served`` and ``cua`` from the environment, ``random`` from the seed, ``rule`` from the agent's baseline."""
+    """``jev``, ``clm``, ``laya``, ``laya-served``, ``cua`` and ``omnijev`` from the environment, ``random`` from the seed, ``rule`` from the agent's baseline."""
     match model_name:
         case "jev":
             return JevModel.from_env()
@@ -43,6 +45,8 @@ def build_model(model_name: str, *, seed: int = 0, rule: tuple[str, Rule] | None
             if variant != "nano":
                 raise ValueError("CUA_S1_VARIANT must be nano or 4b")
             return CuaS1Model.from_env()  # the cua_s1 import happens inside
+        case "omnijev":
+            return OmniJevModel.from_env()  # the OmniJev import happens inside; it decides over a screenshot
         case "random":
             return RandomModel(seed)
         case "rule":

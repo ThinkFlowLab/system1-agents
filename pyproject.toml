@@ -14,6 +14,7 @@ dependencies = [
     "httpx>=0.28",
     "python-dotenv>=1.0",
     "mcp>=1.26",
+    "pillow>=10",
 ]
 
 [project.urls]
@@ -43,6 +44,16 @@ report = ["pillow>=10", "playwright>=1.45"]  # evals.replay: pages, GIFs; never 
 laya = ["laya>=0.3.9"]  # the in-process decision model behind --model laya; pulls torch and transformers
 cua = [  # Cua-S1 Nano behind --model cua; pinned to the Cua PR that ships the checkpoints (trycua/cua#4023), pulls torch
     "cua-s1 @ git+https://github.com/trycua/cua.git@aea61b6eb97e2d8c0f6f71eb804e5769fe910af4#subdirectory=libs/cua-s1/python",
+    "huggingface-hub>=0.24",
+]
+omnijev = [  # OmniJev behind --model omnijev; the model code itself is a clone named by OMNIJEV_REPO (not a package)
+    "torch>=2.4",
+    "torchvision>=0.15",  # transformers' Qwen3-VL video processor imports it; OmniJev's requirements.txt omits it
+    "transformers>=5.0",
+    "peft>=0.15",
+    "accelerate",
+    "safetensors",
+    "pillow",
     "huggingface-hub>=0.24",
 ]
 cua-four-b = ["system1-agents[cua]", "transformers>=5.10.1,<6", "peft>=0.21,<1", "torchvision>=0.15", "pillow>=10"]
@@ -78,6 +89,7 @@ include = [
     "s1a/decision_models/cua.py",
     "s1a/decision_models/cua_four_b.py",
     "s1a/decision_models/laya.py",
+    "s1a/decision_models/omnijev.py",
 ]
 
 [tool.ty.overrides.rules]

@@ -47,6 +47,7 @@ class Episode:
     extra: dict[str, Any] = field(default_factory=dict)
     views: list[dict[str, Any]] = field(default_factory=list)  # views[i] is what act i chose from; the last is final
     frames_dir: Path | None = None  # PNGs taken during a --showcase run, moved into the trial folder by write_job
+    usage_known: bool = True  # appended last so earlier optional fields keep their meaning for external callers
 
 
 def bootstrap_interval(values: list[float], *, resamples: int, seed: int) -> tuple[float, float]:
@@ -140,6 +141,7 @@ def write_job(eval_name: str, episodes: list[Episode], *, results_dir: Path) -> 
                     "chat_calls": episode.chat_calls,
                     "jev_input_tokens": episode.jev_input_tokens,
                     "invalid_keys": episode.invalid_keys,
+                    "usage_known": episode.usage_known,
                 },
             },
             "verifier_result": {"rewards": {"reward": episode.score}},

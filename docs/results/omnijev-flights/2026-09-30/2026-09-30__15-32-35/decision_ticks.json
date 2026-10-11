@@ -1,0 +1,526 @@
+{
+ "report": {
+  "elapsed_ms": 38862,
+  "decisions": 13,
+  "interactions": 12,
+  "waits": 0,
+  "median_decision_ms": 299,
+  "jev_input_tokens": 95564,
+  "median_probe_ms": 941,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 3,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "One way",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Next",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Sunday, November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Done. Search for one-way flights, departing on November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Search",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 5320,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 304,
+   "input_tokens": 4802,
+   "output_tokens": 306,
+   "operation": "CLICK",
+   "target": "Change ticket type. Round trip",
+   "confidence": 0.88,
+   "elements": 25,
+   "elapsed_ms": 7394,
+   "probabilities": {
+    "12": 0.83,
+    "15": 0.17,
+    "1": 0.0,
+    "2": 0.0,
+    "5": 0.0,
+    "6": 0.0
+   },
+   "candidates": {
+    "12": "Change ticket type. Round trip",
+    "15": "Where from?",
+    "1": "Main menu",
+    "2": "Google",
+    "5": "Explore",
+    "6": "Flights"
+   },
+   "text": null
+  },
+  {
+   "tick": 2,
+   "probe_ms": 681,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 258,
+   "input_tokens": 2022,
+   "output_tokens": 92,
+   "operation": "CLICK",
+   "target": "One way",
+   "confidence": 0.77,
+   "elements": 3,
+   "elapsed_ms": 9511,
+   "probabilities": {
+    "2": 0.98,
+    "1": 0.02,
+    "3": 0.0
+   },
+   "candidates": {
+    "2": "One way",
+    "1": "Round trip",
+    "3": "Multi-city"
+   },
+   "text": null
+  },
+  {
+   "tick": 3,
+   "probe_ms": 764,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 271,
+   "input_tokens": 4756,
+   "output_tokens": 291,
+   "operation": "TYPE_TEXT",
+   "target": "Where from?",
+   "confidence": 0.92,
+   "elements": 24,
+   "elapsed_ms": 11780,
+   "probabilities": {
+    "15": 1.0,
+    "16": 0.0,
+    "17": 0.0
+   },
+   "candidates": {
+    "15": "Where from?",
+    "16": "Where to?",
+    "17": "Departure"
+   },
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 4,
+   "probe_ms": 1269,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 245,
+   "input_tokens": 4471,
+   "output_tokens": 197,
+   "operation": "CLICK",
+   "target": "Zürich, Switzerland",
+   "confidence": 0.92,
+   "elements": 10,
+   "elapsed_ms": 13481,
+   "probabilities": {
+    "3": 0.85,
+    "5": 0.1,
+    "2": 0.05,
+    "4": 0.0,
+    "6": 0.0,
+    "7": 0.0
+   },
+   "candidates": {
+    "3": "Zürich, Switzerland",
+    "5": "Zurich Airport (ZRH)",
+    "2": "Origin, Select multiple airports",
+    "4": "Toggle nearby airports for Zürich, Switzerland",
+    "6": "Zürich HB",
+    "7": "Lake Zurich, Illinois, USA"
+   },
+   "text": null
+  },
+  {
+   "tick": 5,
+   "probe_ms": 757,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 299,
+   "input_tokens": 5566,
+   "output_tokens": 324,
+   "operation": "TYPE_TEXT",
+   "target": "Where to?",
+   "confidence": 0.95,
+   "elements": 24,
+   "elapsed_ms": 15775,
+   "probabilities": {
+    "16": 1.0,
+    "15": 0.0,
+    "17": 0.0
+   },
+   "candidates": {
+    "16": "Where to?",
+    "15": "Where from?",
+    "17": "Departure"
+   },
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "London"
+  },
+  {
+   "tick": 6,
+   "probe_ms": 1267,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 325,
+   "input_tokens": 4451,
+   "output_tokens": 189,
+   "operation": "CLICK",
+   "target": "London, United Kingdom",
+   "confidence": 0.91,
+   "elements": 9,
+   "elapsed_ms": 17540,
+   "probabilities": {
+    "3": 0.88,
+    "2": 0.07,
+    "5": 0.05,
+    "4": 0.0,
+    "6": 0.0,
+    "7": 0.0
+   },
+   "candidates": {
+    "3": "London, United Kingdom",
+    "2": "Destination, Select multiple airports",
+    "5": "Heathrow Airport (LHR)",
+    "4": "Toggle nearby airports for London, United Kingdom",
+    "6": "London Stansted Airport (STN)",
+    "7": "London Gatwick Airport (LGW)"
+   },
+   "text": null
+  },
+  {
+   "tick": 7,
+   "probe_ms": 752,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 274,
+   "input_tokens": 5795,
+   "output_tokens": 340,
+   "operation": "TYPE_TEXT",
+   "target": "Departure",
+   "confidence": 0.41,
+   "elements": 25,
+   "elapsed_ms": 19786,
+   "probabilities": {
+    "18": 1.0,
+    "15": 0.0,
+    "17": 0.0
+   },
+   "candidates": {
+    "18": "Departure",
+    "15": "Where from?",
+    "17": "Where to?"
+   },
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 8,
+   "probe_ms": 752,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 275,
+   "input_tokens": 5890,
+   "output_tokens": 347,
+   "operation": "CLICK",
+   "target": "Departure",
+   "confidence": 0.58,
+   "elements": 25,
+   "elapsed_ms": 20982,
+   "probabilities": {
+    "18": 0.64,
+    "19": 0.3,
+    "12": 0.02,
+    "13": 0.02,
+    "15": 0.01,
+    "17": 0.01
+   },
+   "candidates": {
+    "18": "Departure",
+    "19": "Search",
+    "12": "Change ticket type. One way",
+    "13": "1 passenger",
+    "15": "Where from?",
+    "17": "Where to?"
+   },
+   "text": null
+  },
+  {
+   "tick": 9,
+   "probe_ms": 1661,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 303,
+   "input_tokens": 10302,
+   "output_tokens": 486,
+   "operation": "CLICK",
+   "target": "Next",
+   "confidence": 0.77,
+   "elements": 49,
+   "elapsed_ms": 23792,
+   "probabilities": {
+    "48": 0.37,
+    "35": 0.25,
+    "34": 0.15,
+    "1": 0.08,
+    "3": 0.07,
+    "49": 0.03
+   },
+   "candidates": {
+    "48": "Next",
+    "35": "Monday, November 2, 2026",
+    "34": "Saturday, October 31, 2026 ????",
+    "1": "Departure",
+    "3": "Wednesday, September 30, 2026 ????",
+    "49": "Done."
+   },
+   "text": null
+  },
+  {
+   "tick": 10,
+   "probe_ms": 2286,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 441,
+   "input_tokens": 15640,
+   "output_tokens": 742,
+   "operation": "CLICK",
+   "target": "Sunday, November 1, 2026",
+   "confidence": 0.97,
+   "elements": 81,
+   "elapsed_ms": 27267,
+   "probabilities": {
+    "35": 0.98,
+    "1": 0.01,
+    "81": 0.01,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 0.0
+   },
+   "candidates": {
+    "35": "Sunday, November 1, 2026",
+    "1": "Departure",
+    "81": "Done.",
+    "2": "Select your ticket type. One way",
+    "3": "Wednesday, September 30, 2026 , 279 euros",
+    "4": "Thursday, October 1, 2026 , 182 euros"
+   },
+   "text": null
+  },
+  {
+   "tick": 11,
+   "probe_ms": 1874,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1275,
+   "input_tokens": 17012,
+   "output_tokens": 781,
+   "operation": "CLICK",
+   "target": "Done. Search for one-way flights, departing on November 1, 2026",
+   "confidence": 0.9,
+   "elements": 82,
+   "elapsed_ms": 31728,
+   "probabilities": {
+    "82": 0.94,
+    "36": 0.05,
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 0.0
+   },
+   "candidates": {
+    "82": "Done. Search for one-way flights, departing on November 1, 2026",
+    "36": "Sunday, November 1, 2026, departure date. , 74 euros",
+    "1": "Departure",
+    "2": "Select your ticket type. One way",
+    "3": "Reset",
+    "4": "Wednesday, September 30, 2026 , 279 euros"
+   },
+   "text": null
+  },
+  {
+   "tick": 12,
+   "probe_ms": 752,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 289,
+   "input_tokens": 6026,
+   "output_tokens": 347,
+   "operation": "CLICK",
+   "target": "Search",
+   "confidence": 0.93,
+   "elements": 25,
+   "elapsed_ms": 33484,
+   "probabilities": {
+    "19": 0.96,
+    "6": 0.01,
+    "15": 0.01,
+    "17": 0.01,
+    "18": 0.01,
+    "1": 0.0
+   },
+   "candidates": {
+    "19": "Search",
+    "6": "Flights",
+    "15": "Where from?",
+    "17": "Where to?",
+    "18": "Departure",
+    "1": "Main menu"
+   },
+   "text": null
+  },
+  {
+   "tick": 13,
+   "probe_ms": 941,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 330,
+   "input_tokens": 8831,
+   "output_tokens": 498,
+   "operation": "DONE",
+   "target": null,
+   "confidence": 0.95,
+   "elements": 48,
+   "elapsed_ms": 36754,
+   "probabilities": {
+    "DONE": 0.96,
+    "TYPE_TEXT": 0.02,
+    "CLICK": 0.01,
+    "WAIT": 0.01,
+    "BLOCKED": 0.0,
+    "PRESS_ENTER": 0.0
+   },
+   "candidates": {
+    "DONE": "The page shows every requirement of the task met.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search."
+   }
+  }
+ ],
+ "final": {
+  "status": "DONE",
+  "reason": "",
+  "url": "https://www.google.com/travel/flights/search?tfs=CBwQAhooEgoyMDI2LTExLTAxagwIAxIIL20vMDg5NjZyDAgDEggvbS8wNGpwbEABSAFwAYIBCwj___________8BmAEC&hl=en",
+  "title": "Zürich to London | Google Flights",
+  "steps": 12,
+  "elapsed_ms": 38515,
+  "page_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nSign in\nFlight search\n1\nFilters\nAll filters\nStops\nAirlines\nBags\nPrice\nTimes\nEmissions\nConnecting airports\nDuration\nSearch results\n23 results returned.\nTravel update\nAir traffic disruptions may affect flights.\nBest\nCheapest\nfrom\n€74\nTop options\nRanked based on price and convenience\nPrices include required taxes + fees for 1 adult.\nOptional charges and\nbag fees\nmay apply.\nPassenger assistance\ninfo.\nSorted by top flights\n9:30 PM\n–\n10:10 PM\neasyJet\n1 hr 40 min\nNonstop\n€76\n9:10 PM\n–\n9:55 PM\nBritish Airways\n1 hr 45 min\nNonstop\n€79\n5:00 PM\n–\n5:50 PM\nSWISS\n1 hr 50 min\nNonstop\n€113\nTrains to consider\nTo arrive closer to your destination\n1:34 PM\n–\n8:00 PM\n7 hr 26 min\nSee more train options",
+  "answer": "The cheapest one-way flight from Zurich to London on November 1, 2026, for one adult in economy is €74 on easyJet, departing at 9:30 PM and arriving at 10:20 PM."
+ },
+ "usage": {
+  "decisions": 13,
+  "chat_calls": 13,
+  "chat_input_tokens": 6173,
+  "chat_output_tokens": 119,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 95564,
+  "cost_usd": 0.006163
+ }
+}

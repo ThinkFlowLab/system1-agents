@@ -98,8 +98,8 @@ async def browse_offline(
         seen.update(model=model, **kwargs)
         return object()
 
-    async def fake_run(agent: Any, goal: str, *, timeout_s: float) -> dict[str, Any]:
-        seen.update(goal=goal, timeout_s=timeout_s)
+    async def fake_run(agent: Any, goal: str, *, timeout_s: float, logs_dir: Path) -> dict[str, Any]:
+        seen.update(goal=goal, timeout_s=timeout_s, logs_dir=logs_dir)
         done = json.dumps({"status": "DONE", "reason": "", "url": "https://x", "answer": "Three flights."})
         final = browser_result("42", status="completed") if model_name == "llm" else done
         return {"ok": True, "final": final, "screenshot": None, "error": None}

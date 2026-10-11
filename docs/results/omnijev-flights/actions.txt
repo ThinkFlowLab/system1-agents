@@ -1,0 +1,609 @@
+== 2026-09-29__14-18-26  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.905  3133 ms, screenshot 666 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.968  724 ms, screenshot 664 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.733  1048 ms, screenshot 741 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.931  740 ms, screenshot 754 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.393  1102 ms, screenshot 728 ms
+    6 CLICK       One way                                                                conf 0.998  485 ms, screenshot 745 ms
+    7 CLICK       Departure                                                              conf 0.56  1065 ms, screenshot 731 ms
+    8 SCROLL_DOWN None                                                                   conf 0.789  1789 ms, screenshot 809 ms
+    9 SCROLL_DOWN None                                                                   conf 0.528  1915 ms, screenshot 795 ms
+   10 SCROLL_DOWN None                                                                   conf 0.403  1912 ms, screenshot 792 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.98  3071 ms, screenshot 799 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.602  2972 ms, screenshot 817 ms
+   13 PRESS_ENTER Departure                                                              conf 0.174  1109 ms, screenshot 736 ms
+   14 SCROLL_DOWN None                                                                   conf 0.264  1097 ms, screenshot 730 ms
+   15 CLICK       Frankfurt am Main                                                      conf 0.673  1034 ms, screenshot 782 ms
+   16 CLICK       Frankfurt am Main                                                      conf 0.612  1030 ms, screenshot 775 ms
+   17 CLICK       Main menu                                                              conf 0.502  1015 ms, screenshot 785 ms
+   18 SCROLL_UP   None                                                                   conf 0.39  1361 ms, screenshot 781 ms
+   19 SCROLL_DOWN None                                                                   conf 0.195  1333 ms, screenshot 743 ms
+   20 CLICK       Selected Tab: Flights                                                  conf 0.571  1360 ms, screenshot 803 ms
+   21 CLICK       Main menu                                                              conf 0.617  1019 ms, screenshot 797 ms
+   22 CLICK       Selected Tab: Flights                                                  conf 0.681  1355 ms, screenshot 778 ms
+   23 CLICK       Main menu                                                              conf 0.589  1012 ms, screenshot 784 ms
+   24 CLICK       Selected Tab: Flights                                                  conf 0.61  1352 ms, screenshot 797 ms
+   25 CLICK       Main menu                                                              conf 0.759  1013 ms, screenshot 794 ms
+
+== 2026-09-29__14-22-54  model=omnijev  decisions=14  end=BLOCKED
+   final page: results page, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.891  3017 ms, screenshot 654 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.979  701 ms, screenshot 667 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.576  938 ms, screenshot 722 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.957  736 ms, screenshot 750 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.477  1085 ms, screenshot 737 ms
+    6 CLICK       One way                                                                conf 0.998  489 ms, screenshot 730 ms
+    7 CLICK       Departure                                                              conf 0.512  943 ms, screenshot 716 ms
+    8 SCROLL_DOWN None                                                                   conf 0.789  1789 ms, screenshot 784 ms
+    9 SCROLL_DOWN None                                                                   conf 0.47  1924 ms, screenshot 1268 ms
+   10 SCROLL_DOWN None                                                                   conf 0.442  1922 ms, screenshot 812 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.98  2939 ms, screenshot 795 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.74  2983 ms, screenshot 781 ms
+   13 CLICK       Search                                                                 conf 0.355  994 ms, screenshot 729 ms
+   14 WAIT        None                                                                   conf 0.792  1171 ms, screenshot 636 ms
+
+== 2026-09-29__14-54-07  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.905  3111 ms, screenshot 672 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.968  715 ms, screenshot 676 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.733  1050 ms, screenshot 748 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.931  740 ms, screenshot 755 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.393  1096 ms, screenshot 756 ms
+    6 CLICK       One way                                                                conf 0.998  490 ms, screenshot 770 ms
+    7 CLICK       Departure                                                              conf 0.561  1067 ms, screenshot 747 ms
+    8 SCROLL_DOWN None                                                                   conf 0.789  1794 ms, screenshot 813 ms
+    9 SCROLL_DOWN None                                                                   conf 0.528  1915 ms, screenshot 812 ms
+   10 SCROLL_DOWN None                                                                   conf 0.403  1918 ms, screenshot 803 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.979  2930 ms, screenshot 809 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.602  2980 ms, screenshot 817 ms
+   13 PRESS_ENTER Departure                                                              conf 0.174  1101 ms, screenshot 750 ms
+   14 SCROLL_DOWN None                                                                   conf 0.264  1106 ms, screenshot 734 ms
+   15 CLICK       Frankfurt am Main                                                      conf 0.653  1035 ms, screenshot 839 ms
+   16 CLICK       Frankfurt am Main                                                      conf 0.59  1033 ms, screenshot 799 ms
+   17 CLICK       Main menu                                                              conf 0.526  1014 ms, screenshot 810 ms
+   18 SCROLL_UP   None                                                                   conf 0.406  1359 ms, screenshot 795 ms
+   19 SCROLL_DOWN None                                                                   conf 0.195  1329 ms, screenshot 741 ms
+   20 CLICK       Selected Tab: Flights                                                  conf 0.541  1359 ms, screenshot 788 ms
+   21 CLICK       Main menu                                                              conf 0.626  1014 ms, screenshot 788 ms
+   22 CLICK       Selected Tab: Flights                                                  conf 0.671  1358 ms, screenshot 786 ms
+   23 CLICK       Main menu                                                              conf 0.59  1011 ms, screenshot 802 ms
+   24 CLICK       Flights                                                                conf 0.624  1350 ms, screenshot 784 ms
+   25 CLICK       Main menu                                                              conf 0.758  1014 ms, screenshot 816 ms
+
+== 2026-09-29__14-56-33  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.905  3119 ms, screenshot 679 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.968  713 ms, screenshot 679 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.733  1054 ms, screenshot 744 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.931  742 ms, screenshot 769 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.393  1100 ms, screenshot 757 ms
+    6 CLICK       One way                                                                conf 0.998  493 ms, screenshot 752 ms
+    7 CLICK       Departure                                                              conf 0.56  1065 ms, screenshot 728 ms
+    8 SCROLL_DOWN None                                                                   conf 0.789  1790 ms, screenshot 823 ms
+    9 SCROLL_DOWN None                                                                   conf 0.528  1920 ms, screenshot 807 ms
+   10 SCROLL_DOWN None                                                                   conf 0.403  1915 ms, screenshot 798 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.986  2932 ms, screenshot 802 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.84  2973 ms, screenshot 797 ms
+   13 PRESS_ENTER Departure                                                              conf 0.174  1099 ms, screenshot 723 ms
+   14 SCROLL_DOWN None                                                                   conf 0.264  1100 ms, screenshot 756 ms
+   15 CLICK       Frankfurt am Main                                                      conf 0.653  1032 ms, screenshot 785 ms
+   16 CLICK       Frankfurt am Main                                                      conf 0.59  1031 ms, screenshot 784 ms
+   17 CLICK       Main menu                                                              conf 0.526  1014 ms, screenshot 779 ms
+   18 SCROLL_UP   None                                                                   conf 0.406  1359 ms, screenshot 785 ms
+   19 SCROLL_DOWN None                                                                   conf 0.195  1331 ms, screenshot 737 ms
+   20 CLICK       Selected Tab: Flights                                                  conf 0.541  1358 ms, screenshot 786 ms
+   21 CLICK       Main menu                                                              conf 0.626  1012 ms, screenshot 775 ms
+   22 CLICK       Selected Tab: Flights                                                  conf 0.671  1355 ms, screenshot 803 ms
+   23 CLICK       Main menu                                                              conf 0.59  1011 ms, screenshot 778 ms
+   24 CLICK       Flights                                                                conf 0.624  1345 ms, screenshot 782 ms
+   25 CLICK       Main menu                                                              conf 0.758  1012 ms, screenshot 789 ms
+
+== 2026-09-29__14-58-50  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.914  3114 ms, screenshot 672 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.964  715 ms, screenshot 672 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.71  1055 ms, screenshot 748 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.935  738 ms, screenshot 766 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.425  1105 ms, screenshot 736 ms
+    6 CLICK       One way                                                                conf 0.998  483 ms, screenshot 746 ms
+    7 CLICK       Departure                                                              conf 0.568  1069 ms, screenshot 736 ms
+    8 SCROLL_DOWN None                                                                   conf 0.773  1793 ms, screenshot 805 ms
+    9 SCROLL_DOWN None                                                                   conf 0.509  1922 ms, screenshot 808 ms
+   10 SCROLL_DOWN None                                                                   conf 0.432  1914 ms, screenshot 799 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.981  2938 ms, screenshot 792 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.599  2985 ms, screenshot 798 ms
+   13 PRESS_ENTER Departure                                                              conf 0.174  1103 ms, screenshot 761 ms
+   14 SCROLL_DOWN None                                                                   conf 0.231  1105 ms, screenshot 736 ms
+   15 CLICK       Frankfurt am Main                                                      conf 0.653  1036 ms, screenshot 808 ms
+   16 CLICK       Frankfurt am Main                                                      conf 0.59  1032 ms, screenshot 792 ms
+   17 CLICK       Main menu                                                              conf 0.526  1025 ms, screenshot 804 ms
+   18 SCROLL_UP   None                                                                   conf 0.406  1361 ms, screenshot 779 ms
+   19 SCROLL_DOWN None                                                                   conf 0.195  1335 ms, screenshot 759 ms
+   20 CLICK       Selected Tab: Flights                                                  conf 0.541  1362 ms, screenshot 784 ms
+   21 CLICK       Main menu                                                              conf 0.626  1016 ms, screenshot 778 ms
+   22 CLICK       Selected Tab: Flights                                                  conf 0.671  1363 ms, screenshot 780 ms
+   23 CLICK       Main menu                                                              conf 0.59  1016 ms, screenshot 787 ms
+   24 CLICK       Flights                                                                conf 0.624  1354 ms, screenshot 780 ms
+   25 CLICK       Main menu                                                              conf 0.758  1014 ms, screenshot 776 ms
+
+== 2026-09-29__15-01-10  model=omnijev  decisions=17  end=BLOCKED
+   final page: home page / form, search date -
+    1 TYPE_TEXT   Where from?                                                            conf 0.914  3115 ms, screenshot 682 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.964  721 ms, screenshot 672 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.71  1054 ms, screenshot 769 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.935  742 ms, screenshot 770 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.425  1104 ms, screenshot 750 ms
+    6 CLICK       One way                                                                conf 0.998  491 ms, screenshot 744 ms
+    7 CLICK       Departure                                                              conf 0.568  1071 ms, screenshot 734 ms
+    8 SCROLL_DOWN None                                                                   conf 0.773  1792 ms, screenshot 808 ms
+    9 SCROLL_DOWN None                                                                   conf 0.528  1917 ms, screenshot 837 ms
+   10 SCROLL_DOWN None                                                                   conf 0.419  1959 ms, screenshot 818 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.979  2940 ms, screenshot 815 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.602  2983 ms, screenshot 804 ms
+   13 PRESS_ENTER Departure                                                              conf 0.174  1139 ms, screenshot 777 ms
+   14 TYPE_TEXT   Where from?                                                            conf 0.641  951 ms, screenshot 701 ms
+   15 CLICK       Zürich, Switzerland                                                    conf 0.989  739 ms, screenshot 673 ms
+   16 CLICK       Change ticket type. Round trip                                         conf 0.428  1727 ms, screenshot 738 ms
+   17 WAIT        None                                                                   conf 0.685  571 ms, screenshot 746 ms
+
+== 2026-09-29__15-02-15  model=omnijev  decisions=4  end=BLOCKED
+   final page: home page / form, search date -
+    1 TYPE_TEXT   Where from?                                                            conf 0.907  3104 ms, screenshot 1201 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.982  701 ms, screenshot 1283 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.576  1742 ms, screenshot 719 ms
+    4 WAIT        None                                                                   conf 0.659  444 ms, screenshot 748 ms
+
+== 2026-09-29__15-03-06  model=omnijev  decisions=7  end=BLOCKED
+   final page: home page / form, search date -
+    1 TYPE_TEXT   Where from?                                                            conf 0.906  3151 ms, screenshot 1251 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.975  930 ms, screenshot 669 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.733  1304 ms, screenshot 865 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.931  1258 ms, screenshot 771 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.393  1441 ms, screenshot 783 ms
+    6 TYPE_TEXT   Departure                                                              conf 0.511  2050 ms, screenshot 719 ms
+    7 TYPE_TEXT   Return                                                                 conf 0.473  2136 ms, screenshot 723 ms
+
+== 2026-09-29__15-03-08  model=omnijev  decisions=7  end=BLOCKED
+   final page: home page / form, search date -
+    1 TYPE_TEXT   Where from?                                                            conf 0.906  3139 ms, screenshot 693 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.975  915 ms, screenshot 682 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.733  1318 ms, screenshot 772 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.931  1275 ms, screenshot 736 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.393  1430 ms, screenshot 851 ms
+    6 TYPE_TEXT   Departure                                                              conf 0.511  2007 ms, screenshot 750 ms
+    7 TYPE_TEXT   Return                                                                 conf 0.473  2095 ms, screenshot 752 ms
+
+== 2026-09-29__15-04-13  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.906  3125 ms, screenshot 685 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.975  719 ms, screenshot 683 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.733  1052 ms, screenshot 757 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.931  742 ms, screenshot 774 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.393  1102 ms, screenshot 758 ms
+    6 CLICK       One way                                                                conf 0.998  486 ms, screenshot 753 ms
+    7 CLICK       Departure                                                              conf 0.56  1068 ms, screenshot 747 ms
+    8 SCROLL_DOWN None                                                                   conf 0.789  1793 ms, screenshot 812 ms
+    9 SCROLL_DOWN None                                                                   conf 0.528  1918 ms, screenshot 813 ms
+   10 SCROLL_DOWN None                                                                   conf 0.403  1911 ms, screenshot 795 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.979  2934 ms, screenshot 815 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.602  2982 ms, screenshot 803 ms
+   13 PRESS_ENTER Departure                                                              conf 0.174  1105 ms, screenshot 748 ms
+   14 SCROLL_DOWN None                                                                   conf 0.264  1104 ms, screenshot 742 ms
+   15 CLICK       Frankfurt am Main                                                      conf 0.653  1034 ms, screenshot 811 ms
+   16 CLICK       Frankfurt am Main                                                      conf 0.59  1033 ms, screenshot 810 ms
+   17 CLICK       Main menu                                                              conf 0.526  1018 ms, screenshot 809 ms
+   18 SCROLL_UP   None                                                                   conf 0.406  1360 ms, screenshot 790 ms
+   19 SCROLL_DOWN None                                                                   conf 0.195  1333 ms, screenshot 758 ms
+   20 CLICK       Selected Tab: Flights                                                  conf 0.541  1359 ms, screenshot 787 ms
+   21 CLICK       Main menu                                                              conf 0.626  1017 ms, screenshot 830 ms
+   22 CLICK       Selected Tab: Flights                                                  conf 0.671  1359 ms, screenshot 807 ms
+   23 CLICK       Main menu                                                              conf 0.59  1015 ms, screenshot 793 ms
+   24 CLICK       Flights                                                                conf 0.624  1352 ms, screenshot 799 ms
+   25 CLICK       Main menu                                                              conf 0.758  1013 ms, screenshot 789 ms
+
+== 2026-09-29__15-06-35  model=omnijev  decisions=15  end=DONE
+   final page: results page, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.888  3045 ms, screenshot 680 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.978  715 ms, screenshot 671 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.566  937 ms, screenshot 743 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.947  738 ms, screenshot 758 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.466  993 ms, screenshot 743 ms
+    6 CLICK       One way                                                                conf 0.998  491 ms, screenshot 742 ms
+    7 CLICK       Departure                                                              conf 0.456  943 ms, screenshot 743 ms
+    8 SCROLL_DOWN None                                                                   conf 0.787  1799 ms, screenshot 798 ms
+    9 SCROLL_DOWN None                                                                   conf 0.466  1923 ms, screenshot 781 ms
+   10 SCROLL_DOWN None                                                                   conf 0.44  1926 ms, screenshot 809 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.976  2954 ms, screenshot 780 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.711  2995 ms, screenshot 805 ms
+   13 CLICK       Search                                                                 conf 0.331  992 ms, screenshot 754 ms
+   14 CLICK       Flight details. Leaves Zurich Airport at 9:30 PM on Sunday, November 1 conf 0.121  1842 ms, screenshot 1523 ms
+   15 DONE        None                                                                   conf 0.16  1742 ms, screenshot 991 ms
+
+== 2026-09-29__15-08-19  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.905  3143 ms, screenshot 684 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.968  723 ms, screenshot 687 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.733  1063 ms, screenshot 752 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.931  751 ms, screenshot 765 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.393  1107 ms, screenshot 757 ms
+    6 CLICK       One way                                                                conf 0.998  495 ms, screenshot 763 ms
+    7 CLICK       Departure                                                              conf 0.56  1080 ms, screenshot 772 ms
+    8 SCROLL_DOWN None                                                                   conf 0.789  1800 ms, screenshot 809 ms
+    9 SCROLL_DOWN None                                                                   conf 0.528  1930 ms, screenshot 818 ms
+   10 SCROLL_DOWN None                                                                   conf 0.403  1928 ms, screenshot 802 ms
+   11 CLICK       Sunday, November 1, 2026                                               conf 0.972  2957 ms, screenshot 820 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.602  2999 ms, screenshot 818 ms
+   13 PRESS_ENTER Departure                                                              conf 0.174  1115 ms, screenshot 792 ms
+   14 SCROLL_DOWN None                                                                   conf 0.264  1105 ms, screenshot 759 ms
+   15 CLICK       Frankfurt am Main                                                      conf 0.653  1040 ms, screenshot 788 ms
+   16 CLICK       Frankfurt am Main                                                      conf 0.59  1037 ms, screenshot 808 ms
+   17 CLICK       Main menu                                                              conf 0.526  1021 ms, screenshot 817 ms
+   18 SCROLL_UP   None                                                                   conf 0.406  1370 ms, screenshot 796 ms
+   19 SCROLL_DOWN None                                                                   conf 0.195  1346 ms, screenshot 770 ms
+   20 CLICK       Selected Tab: Flights                                                  conf 0.541  1366 ms, screenshot 1302 ms
+   21 CLICK       Main menu                                                              conf 0.626  1022 ms, screenshot 791 ms
+   22 CLICK       Selected Tab: Flights                                                  conf 0.671  1368 ms, screenshot 784 ms
+   23 CLICK       Main menu                                                              conf 0.59  1019 ms, screenshot 807 ms
+   24 CLICK       Flights                                                                conf 0.624  1357 ms, screenshot 806 ms
+   25 CLICK       Main menu                                                              conf 0.758  1020 ms, screenshot 790 ms
+
+== 2026-09-30__09-37-51  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.901  3115 ms, screenshot 689 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.982  722 ms, screenshot 686 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.753  1053 ms, screenshot 783 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.93  745 ms, screenshot 775 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.594  1101 ms, screenshot 751 ms
+    6 CLICK       One way                                                                conf 0.996  496 ms, screenshot 767 ms
+    7 CLICK       Departure                                                              conf 0.7  1072 ms, screenshot 749 ms
+    8 SCROLL_DOWN None                                                                   conf 0.545  1772 ms, screenshot 813 ms
+    9 CLICK       Next                                                                   conf 0.421  1902 ms, screenshot 839 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.991  2638 ms, screenshot 798 ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.45  2809 ms, screenshot 810 ms
+   12 SCROLL_DOWN None                                                                   conf 0.707  1105 ms, screenshot 763 ms
+   13 CLICK       Frankfurt am Main                                                      conf 0.38  1036 ms, screenshot 795 ms
+   14 CLICK       Frankfurt am Main                                                      conf 0.42  1037 ms, screenshot 1298 ms
+   15 CLICK       Main menu                                                              conf 0.611  1018 ms, screenshot 811 ms
+   16 CLICK       Main menu                                                              conf 0.717  1359 ms, screenshot 793 ms
+   17 CLICK       Main menu                                                              conf 0.546  1017 ms, screenshot 794 ms
+   18 CLICK       Munich                                                                 conf 0.697  1359 ms, screenshot 793 ms
+   19 CLICK       Munich                                                                 conf 0.198  1012 ms, screenshot 800 ms
+   20 SCROLL_UP   None                                                                   conf 0.43  1011 ms, screenshot 811 ms
+   21 SCROLL_DOWN None                                                                   conf 0.235  1093 ms, screenshot 760 ms
+   22 CLICK       Munich                                                                 conf 0.631  1007 ms, screenshot 803 ms
+   23 CLICK       Main menu                                                              conf 0.624  981 ms, screenshot 824 ms
+   24 CLICK       Change location                                                        conf 0.748  1304 ms, screenshot 815 ms
+   25 CLICK       OK                                                                     conf 0.902  473 ms, screenshot 875 ms
+
+== 2026-09-30__09-40-16  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date -
+    1 TYPE_TEXT   Where from?                                                            conf 0.915  3036 ms, screenshot 684 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.988  704 ms, screenshot 670 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.478  940 ms, screenshot 765 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.95  738 ms, screenshot 768 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.685  992 ms, screenshot 754 ms
+    6 CLICK       One way                                                                conf 0.996  491 ms, screenshot 752 ms
+    7 CLICK       Departure                                                              conf 0.704  954 ms, screenshot 742 ms
+    8 SCROLL_DOWN None                                                                   conf 0.501  1772 ms, screenshot 801 ms
+    9 CLICK       Next                                                                   conf 0.44  1911 ms, screenshot 798 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.993  2651 ms, screenshot 801 ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.413  2821 ms, screenshot 792 ms
+   12 SCROLL_DOWN None                                                                   conf 0.532  994 ms, screenshot 743 ms
+   13 SCROLL_DOWN None                                                                   conf 0.386  840 ms, screenshot 781 ms
+   14 SCROLL_DOWN None                                                                   conf 0.342  1173 ms, screenshot 740 ms
+   15 CLICK       Main menu                                                              conf 0.644  1336 ms, screenshot 740 ms
+   16 CLICK       Change location                                                        conf 0.388  1528 ms, screenshot 759 ms
+   17 CLICK       OK                                                                     conf 0.883  489 ms, screenshot 836 ms
+   18 CLICK       Location ​ Germany                                                     conf 0.481  1332 ms, screenshot 742 ms
+   19 CLICK       OK                                                                     conf 0.664  484 ms, screenshot 841 ms
+   20 CLICK       Main menu                                                              conf 0.28  1334 ms, screenshot 737 ms
+   21 CLICK       Flights from popular destinations                                      conf 0.351  1532 ms, screenshot 794 ms
+   22 CLICK       Main menu                                                              conf 0.564  1327 ms, screenshot 742 ms
+   23 CLICK       Flight Deals                                                           conf 0.465  1525 ms, screenshot 746 ms
+   24 CLICK       Got it                                                                 conf 0.627  459 ms, screenshot 660 ms
+   25 TYPE_TEXT   City or airport                                                        conf 0.507  1090 ms, screenshot 658 ms
+
+== 2026-09-30__09-42-30  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.901  3133 ms, screenshot 692 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.982  719 ms, screenshot 680 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.753  1059 ms, screenshot 771 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.93  741 ms, screenshot 802 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.594  1108 ms, screenshot 757 ms
+    6 CLICK       One way                                                                conf 0.996  490 ms, screenshot 752 ms
+    7 CLICK       Departure                                                              conf 0.7  1073 ms, screenshot 741 ms
+    8 SCROLL_DOWN None                                                                   conf 0.545  1778 ms, screenshot 823 ms
+    9 CLICK       Next                                                                   conf 0.421  1915 ms, screenshot 806 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.991  2649 ms, screenshot 806 ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.45  2819 ms, screenshot 821 ms
+   12 SCROLL_DOWN None                                                                   conf 0.707  1115 ms, screenshot 744 ms
+   13 CLICK       Frankfurt am Main                                                      conf 0.38  1036 ms, screenshot 785 ms
+   14 CLICK       Frankfurt am Main                                                      conf 0.42  1037 ms, screenshot 800 ms
+   15 CLICK       Main menu                                                              conf 0.611  1018 ms, screenshot 790 ms
+   16 CLICK       Main menu                                                              conf 0.717  1360 ms, screenshot 786 ms
+   17 CLICK       Main menu                                                              conf 0.546  1018 ms, screenshot 786 ms
+   18 CLICK       Munich                                                                 conf 0.697  1360 ms, screenshot 794 ms
+   19 CLICK       Munich                                                                 conf 0.198  1012 ms, screenshot 800 ms
+   20 SCROLL_UP   None                                                                   conf 0.43  1011 ms, screenshot 805 ms
+   21 SCROLL_DOWN None                                                                   conf 0.235  1096 ms, screenshot 739 ms
+   22 CLICK       Munich                                                                 conf 0.631  1011 ms, screenshot 793 ms
+   23 CLICK       Main menu                                                              conf 0.624  981 ms, screenshot 817 ms
+   24 CLICK       Change location                                                        conf 0.748  1306 ms, screenshot 816 ms
+   25 CLICK       OK                                                                     conf 0.902  468 ms, screenshot 871 ms
+
+== 2026-09-30__09-44-55  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.901  3135 ms, screenshot 697 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.982  716 ms, screenshot 692 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.753  1055 ms, screenshot 762 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.93  746 ms, screenshot 775 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.594  1103 ms, screenshot 750 ms
+    6 CLICK       One way                                                                conf 0.996  491 ms, screenshot 749 ms
+    7 CLICK       Departure                                                              conf 0.7  1072 ms, screenshot 749 ms
+    8 SCROLL_DOWN None                                                                   conf 0.545  1782 ms, screenshot 814 ms
+    9 CLICK       Next                                                                   conf 0.421  1910 ms, screenshot 808 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.991  2647 ms, screenshot 802 ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.45  2834 ms, screenshot 810 ms
+   12 SCROLL_DOWN None                                                                   conf 0.707  1114 ms, screenshot 762 ms
+   13 CLICK       Frankfurt am Main                                                      conf 0.38  1038 ms, screenshot 795 ms
+   14 CLICK       Frankfurt am Main                                                      conf 0.42  1036 ms, screenshot 1310 ms
+   15 CLICK       Main menu                                                              conf 0.611  1018 ms, screenshot 787 ms
+   16 CLICK       Main menu                                                              conf 0.717  1361 ms, screenshot 806 ms
+   17 CLICK       Main menu                                                              conf 0.546  1018 ms, screenshot 786 ms
+   18 CLICK       Munich                                                                 conf 0.697  1359 ms, screenshot 793 ms
+   19 CLICK       Munich                                                                 conf 0.198  1011 ms, screenshot 813 ms
+   20 SCROLL_UP   None                                                                   conf 0.43  1010 ms, screenshot 816 ms
+   21 SCROLL_DOWN None                                                                   conf 0.235  1095 ms, screenshot 756 ms
+   22 CLICK       Munich                                                                 conf 0.631  1010 ms, screenshot 808 ms
+   23 CLICK       Main menu                                                              conf 0.624  981 ms, screenshot 823 ms
+   24 CLICK       Change location                                                        conf 0.748  1305 ms, screenshot 812 ms
+   25 CLICK       OK                                                                     conf 0.902  461 ms, screenshot 890 ms
+
+== 2026-09-30__09-47-20  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.901  3115 ms, screenshot 685 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.982  718 ms, screenshot 686 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.753  1059 ms, screenshot 762 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.93  744 ms, screenshot 777 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.594  1108 ms, screenshot 754 ms
+    6 CLICK       One way                                                                conf 0.996  491 ms, screenshot 767 ms
+    7 CLICK       Departure                                                              conf 0.7  1072 ms, screenshot 759 ms
+    8 SCROLL_DOWN None                                                                   conf 0.545  1781 ms, screenshot 824 ms
+    9 CLICK       Next                                                                   conf 0.421  1912 ms, screenshot 819 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.991  2658 ms, screenshot 818 ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.45  2830 ms, screenshot 819 ms
+   12 SCROLL_DOWN None                                                                   conf 0.707  1120 ms, screenshot 747 ms
+   13 CLICK       Frankfurt am Main                                                      conf 0.38  1045 ms, screenshot 821 ms
+   14 CLICK       Frankfurt am Main                                                      conf 0.42  1039 ms, screenshot 836 ms
+   15 CLICK       Main menu                                                              conf 0.611  1021 ms, screenshot 833 ms
+   16 CLICK       Main menu                                                              conf 0.717  1366 ms, screenshot 804 ms
+   17 CLICK       Main menu                                                              conf 0.546  1020 ms, screenshot 798 ms
+   18 CLICK       Munich                                                                 conf 0.697  1364 ms, screenshot 813 ms
+   19 CLICK       Munich                                                                 conf 0.198  1018 ms, screenshot 813 ms
+   20 SCROLL_UP   None                                                                   conf 0.43  1013 ms, screenshot 846 ms
+   21 SCROLL_DOWN None                                                                   conf 0.235  1095 ms, screenshot 756 ms
+   22 CLICK       Munich                                                                 conf 0.631  1013 ms, screenshot 816 ms
+   23 CLICK       Main menu                                                              conf 0.624  984 ms, screenshot 829 ms
+   24 CLICK       Change location                                                        conf 0.748  1311 ms, screenshot 818 ms
+   25 CLICK       OK                                                                     conf 0.902  467 ms, screenshot 880 ms
+
+== 2026-09-30__15-32-35  model=jev  decisions=13  end=DONE
+   final page: results page, search date 2026-11-01
+    1 CLICK       Change ticket type. Round trip                                         conf 0.88  304 ms, screenshot None ms
+    2 CLICK       One way                                                                conf 0.77  258 ms, screenshot None ms
+    3 TYPE_TEXT   Where from?                                                            conf 0.92  271 ms, screenshot None ms
+    4 CLICK       Zürich, Switzerland                                                    conf 0.92  245 ms, screenshot None ms
+    5 TYPE_TEXT   Where to?                                                              conf 0.95  299 ms, screenshot None ms
+    6 CLICK       London, United Kingdom                                                 conf 0.91  325 ms, screenshot None ms
+    7 TYPE_TEXT   Departure                                                              conf 0.41  274 ms, screenshot None ms
+    8 CLICK       Departure                                                              conf 0.58  275 ms, screenshot None ms
+    9 CLICK       Next                                                                   conf 0.77  303 ms, screenshot None ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.97  441 ms, screenshot None ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.9  1275 ms, screenshot None ms
+   12 CLICK       Search                                                                 conf 0.93  289 ms, screenshot None ms
+   13 DONE        None                                                                   conf 0.95  330 ms, screenshot None ms
+
+== 2026-09-30__15-33-21  model=jev  decisions=13  end=DONE
+   final page: results page, search date 2026-11-01
+    1 CLICK       Change ticket type. Round trip                                         conf 0.89  345 ms, screenshot None ms
+    2 CLICK       One way                                                                conf 0.76  310 ms, screenshot None ms
+    3 TYPE_TEXT   Where from?                                                            conf 0.94  351 ms, screenshot None ms
+    4 CLICK       Zürich, Switzerland                                                    conf 0.95  507 ms, screenshot None ms
+    5 TYPE_TEXT   Where to?                                                              conf 0.95  310 ms, screenshot None ms
+    6 CLICK       London, United Kingdom                                                 conf 0.92  839 ms, screenshot None ms
+    7 TYPE_TEXT   Departure                                                              conf 0.43  298 ms, screenshot None ms
+    8 CLICK       Departure                                                              conf 0.6  1390 ms, screenshot None ms
+    9 CLICK       Next                                                                   conf 0.8  371 ms, screenshot None ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.97  395 ms, screenshot None ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.88  370 ms, screenshot None ms
+   12 CLICK       Search                                                                 conf 0.91  334 ms, screenshot None ms
+   13 DONE        None                                                                   conf 0.95  367 ms, screenshot None ms
+
+== 2026-09-30__15-34-04  model=jev  decisions=13  end=DONE
+   final page: results page, search date 2026-11-01
+    1 CLICK       Change ticket type. Round trip                                         conf 0.87  314 ms, screenshot None ms
+    2 CLICK       One way                                                                conf 0.74  264 ms, screenshot None ms
+    3 TYPE_TEXT   Where from?                                                            conf 0.92  290 ms, screenshot None ms
+    4 CLICK       Zürich, Switzerland                                                    conf 0.9  320 ms, screenshot None ms
+    5 TYPE_TEXT   Where to?                                                              conf 0.95  1048 ms, screenshot None ms
+    6 CLICK       London, United Kingdom                                                 conf 0.93  339 ms, screenshot None ms
+    7 TYPE_TEXT   Departure                                                              conf 0.43  294 ms, screenshot None ms
+    8 CLICK       Departure                                                              conf 0.57  362 ms, screenshot None ms
+    9 CLICK       Next                                                                   conf 0.76  321 ms, screenshot None ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.96  334 ms, screenshot None ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.88  360 ms, screenshot None ms
+   12 CLICK       Search                                                                 conf 0.91  311 ms, screenshot None ms
+   13 DONE        None                                                                   conf 0.95  333 ms, screenshot None ms
+
+== 2026-09-30__15-34-46  model=jev  decisions=12  end=DONE
+   final page: results page, search date 2026-11-01
+    1 CLICK       Change ticket type. Round trip                                         conf 0.92  646 ms, screenshot None ms
+    2 CLICK       One way                                                                conf 0.77  237 ms, screenshot None ms
+    3 TYPE_TEXT   Where from?                                                            conf 0.93  269 ms, screenshot None ms
+    4 CLICK       Zürich, Switzerland                                                    conf 0.94  320 ms, screenshot None ms
+    5 TYPE_TEXT   Where to?                                                              conf 0.96  360 ms, screenshot None ms
+    6 CLICK       London, United Kingdom                                                 conf 0.94  1259 ms, screenshot None ms
+    7 CLICK       Departure                                                              conf 0.47  370 ms, screenshot None ms
+    8 CLICK       Next                                                                   conf 0.76  298 ms, screenshot None ms
+    9 CLICK       Sunday, November 1, 2026                                               conf 0.97  383 ms, screenshot None ms
+   10 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.88  352 ms, screenshot None ms
+   11 CLICK       Search                                                                 conf 0.93  306 ms, screenshot None ms
+   12 DONE        None                                                                   conf 0.98  343 ms, screenshot None ms
+
+== 2026-09-30__15-35-27  model=jev  decisions=13  end=DONE
+   final page: results page, search date 2026-11-01
+    1 CLICK       Change ticket type. Round trip                                         conf 0.88  309 ms, screenshot None ms
+    2 CLICK       One way                                                                conf 0.79  322 ms, screenshot None ms
+    3 TYPE_TEXT   Where from?                                                            conf 0.94  275 ms, screenshot None ms
+    4 CLICK       Zürich, Switzerland                                                    conf 0.92  250 ms, screenshot None ms
+    5 TYPE_TEXT   Where to?                                                              conf 0.95  270 ms, screenshot None ms
+    6 CLICK       London, United Kingdom                                                 conf 0.92  265 ms, screenshot None ms
+    7 TYPE_TEXT   Departure                                                              conf 0.46  283 ms, screenshot None ms
+    8 CLICK       Departure                                                              conf 0.59  282 ms, screenshot None ms
+    9 CLICK       Next                                                                   conf 0.72  314 ms, screenshot None ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.96  346 ms, screenshot None ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.87  370 ms, screenshot None ms
+   12 CLICK       Search                                                                 conf 0.91  274 ms, screenshot None ms
+   13 DONE        None                                                                   conf 0.93  373 ms, screenshot None ms
+
+== 2026-09-30__15-36-07  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: results page, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.9  3111 ms, screenshot 1189 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.98  717 ms, screenshot 680 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.753  1052 ms, screenshot 783 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.93  741 ms, screenshot 780 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.594  1100 ms, screenshot 758 ms
+    6 CLICK       One way                                                                conf 0.996  496 ms, screenshot 754 ms
+    7 CLICK       Departure                                                              conf 0.7  1068 ms, screenshot 745 ms
+    8 SCROLL_DOWN None                                                                   conf 0.575  1770 ms, screenshot 814 ms
+    9 CLICK       Next                                                                   conf 0.352  1901 ms, screenshot 821 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.989  2639 ms, screenshot 809 ms
+   11 SCROLL_DOWN None                                                                   conf 0.397  2806 ms, screenshot 823 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.591  518 ms, screenshot 878 ms
+   13 SCROLL_DOWN None                                                                   conf 0.424  1440 ms, screenshot 746 ms
+   14 SCROLL_UP   None                                                                   conf 0.534  974 ms, screenshot 796 ms
+   15 SCROLL_DOWN None                                                                   conf 0.352  1442 ms, screenshot 752 ms
+   16 SCROLL_UP   None                                                                   conf 0.47  973 ms, screenshot 815 ms
+   17 SCROLL_DOWN None                                                                   conf 0.23  1442 ms, screenshot 748 ms
+   18 SCROLL_UP   None                                                                   conf 0.366  971 ms, screenshot 800 ms
+   19 SCROLL_DOWN None                                                                   conf 0.25  1442 ms, screenshot 750 ms
+   20 SCROLL_UP   None                                                                   conf 0.495  970 ms, screenshot 821 ms
+   21 SCROLL_DOWN None                                                                   conf 0.236  1443 ms, screenshot 747 ms
+   22 SCROLL_UP   None                                                                   conf 0.364  970 ms, screenshot 793 ms
+   23 CLICK       Search                                                                 conf 0.293  1443 ms, screenshot 746 ms
+   24 SCROLL_DOWN None                                                                   conf 0.6  1858 ms, screenshot 1474 ms
+   25 SCROLL_DOWN None                                                                   conf 0.123  1478 ms, screenshot 968 ms
+
+== 2026-09-30__15-38-08  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: results page, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.898  3108 ms, screenshot 694 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.985  720 ms, screenshot 693 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.753  1061 ms, screenshot 776 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.93  744 ms, screenshot 788 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.594  1105 ms, screenshot 758 ms
+    6 CLICK       One way                                                                conf 0.996  491 ms, screenshot 753 ms
+    7 CLICK       Departure                                                              conf 0.7  1072 ms, screenshot 779 ms
+    8 SCROLL_DOWN None                                                                   conf 0.575  1781 ms, screenshot 829 ms
+    9 CLICK       Next                                                                   conf 0.352  1905 ms, screenshot 820 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.989  2648 ms, screenshot 806 ms
+   11 SCROLL_DOWN None                                                                   conf 0.397  2822 ms, screenshot 828 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.591  518 ms, screenshot 852 ms
+   13 SCROLL_DOWN None                                                                   conf 0.424  1448 ms, screenshot 754 ms
+   14 SCROLL_UP   None                                                                   conf 0.534  978 ms, screenshot 821 ms
+   15 SCROLL_DOWN None                                                                   conf 0.352  1447 ms, screenshot 761 ms
+   16 SCROLL_UP   None                                                                   conf 0.47  976 ms, screenshot 812 ms
+   17 SCROLL_DOWN None                                                                   conf 0.23  1446 ms, screenshot 758 ms
+   18 SCROLL_UP   None                                                                   conf 0.366  978 ms, screenshot 808 ms
+   19 SCROLL_DOWN None                                                                   conf 0.25  1450 ms, screenshot 763 ms
+   20 SCROLL_UP   None                                                                   conf 0.495  972 ms, screenshot 793 ms
+   21 SCROLL_DOWN None                                                                   conf 0.236  1451 ms, screenshot 756 ms
+   22 SCROLL_UP   None                                                                   conf 0.364  972 ms, screenshot 789 ms
+   23 CLICK       Search                                                                 conf 0.293  1446 ms, screenshot 751 ms
+   24 SCROLL_DOWN None                                                                   conf 0.6  1855 ms, screenshot 1492 ms
+   25 SCROLL_DOWN None                                                                   conf 0.123  1488 ms, screenshot 968 ms
+
+== 2026-09-30__15-40-07  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date -
+    1 TYPE_TEXT   Where from?                                                            conf 0.899  3019 ms, screenshot 690 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.984  704 ms, screenshot 682 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.478  940 ms, screenshot 761 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.95  738 ms, screenshot 768 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.685  992 ms, screenshot 739 ms
+    6 CLICK       One way                                                                conf 0.996  490 ms, screenshot 755 ms
+    7 CLICK       Departure                                                              conf 0.704  947 ms, screenshot 749 ms
+    8 SCROLL_DOWN None                                                                   conf 0.546  1783 ms, screenshot 809 ms
+    9 CLICK       Next                                                                   conf 0.395  1906 ms, screenshot 809 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.992  2654 ms, screenshot 793 ms
+   11 SCROLL_DOWN None                                                                   conf 0.391  2836 ms, screenshot 815 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.36  516 ms, screenshot 839 ms
+   13 SCROLL_DOWN None                                                                   conf 0.552  1009 ms, screenshot 791 ms
+   14 SCROLL_DOWN None                                                                   conf 0.469  838 ms, screenshot 761 ms
+   15 CLICK       Flights from popular destinations                                      conf 0.245  1286 ms, screenshot 730 ms
+   16 CLICK       Popular flights routes                                                 conf 0.288  1285 ms, screenshot 1246 ms
+   17 CLICK       Flights from popular destinations                                      conf 0.401  1294 ms, screenshot 775 ms
+   18 CLICK       Flights to popular destinations                                        conf 0.417  1288 ms, screenshot 736 ms
+   19 CLICK       Flights to London                                                      conf 0.371  1283 ms, screenshot 729 ms
+   20 TYPE_TEXT   Where from?                                                            conf 0.582  1016 ms, screenshot 685 ms
+   21 CLICK       Zürich, Switzerland                                                    conf 0.95  735 ms, screenshot 683 ms
+   22 CLICK       Change ticket type. Round trip                                         conf 0.427  1092 ms, screenshot 764 ms
+   23 CLICK       One way                                                                conf 0.997  503 ms, screenshot 768 ms
+   24 CLICK       Departure                                                              conf 0.578  1016 ms, screenshot 760 ms
+   25 SCROLL_DOWN None                                                                   conf 0.362  1780 ms, screenshot 828 ms
+
+== 2026-09-30__15-42-13  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: home page / form, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.901  3134 ms, screenshot 1225 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.986  718 ms, screenshot 680 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.753  1061 ms, screenshot 765 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.93  745 ms, screenshot 778 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.594  1108 ms, screenshot 766 ms
+    6 CLICK       One way                                                                conf 0.996  489 ms, screenshot 758 ms
+    7 CLICK       Departure                                                              conf 0.7  1074 ms, screenshot 765 ms
+    8 SCROLL_DOWN None                                                                   conf 0.575  1782 ms, screenshot 857 ms
+    9 CLICK       Next                                                                   conf 0.352  1909 ms, screenshot 823 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.99  2656 ms, screenshot 812 ms
+   11 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.329  2874 ms, screenshot 814 ms
+   12 SCROLL_DOWN None                                                                   conf 0.707  1116 ms, screenshot 1266 ms
+   13 CLICK       Frankfurt am Main                                                      conf 0.449  1036 ms, screenshot 822 ms
+   14 CLICK       Frankfurt am Main                                                      conf 0.518  1033 ms, screenshot 817 ms
+   15 CLICK       Main menu                                                              conf 0.642  1016 ms, screenshot 804 ms
+   16 CLICK       Main menu                                                              conf 0.745  1358 ms, screenshot 801 ms
+   17 CLICK       Main menu                                                              conf 0.572  1015 ms, screenshot 799 ms
+   18 CLICK       Munich                                                                 conf 0.679  1358 ms, screenshot 816 ms
+   19 CLICK       Munich                                                                 conf 0.198  1017 ms, screenshot 811 ms
+   20 SCROLL_UP   None                                                                   conf 0.43  1014 ms, screenshot 802 ms
+   21 SCROLL_DOWN None                                                                   conf 0.235  1100 ms, screenshot 766 ms
+   22 CLICK       Munich                                                                 conf 0.631  1014 ms, screenshot 820 ms
+   23 CLICK       Main menu                                                              conf 0.624  984 ms, screenshot 812 ms
+   24 CLICK       Change location                                                        conf 0.748  1311 ms, screenshot 821 ms
+   25 CLICK       OK                                                                     conf 0.902  470 ms, screenshot 888 ms
+
+== 2026-09-30__15-44-39  model=omnijev  decisions=25  end=partial: form_phase_budget_exhausted
+   final page: results page, search date 2026-11-01
+    1 TYPE_TEXT   Where from?                                                            conf 0.901  3129 ms, screenshot 1194 ms
+    2 CLICK       Zürich, Switzerland                                                    conf 0.982  722 ms, screenshot 691 ms
+    3 TYPE_TEXT   Where to?                                                              conf 0.753  1061 ms, screenshot 767 ms
+    4 CLICK       London, United Kingdom                                                 conf 0.93  745 ms, screenshot 783 ms
+    5 CLICK       Change ticket type. Round trip                                         conf 0.594  1109 ms, screenshot 759 ms
+    6 CLICK       One way                                                                conf 0.996  494 ms, screenshot 743 ms
+    7 CLICK       Departure                                                              conf 0.7  1076 ms, screenshot 758 ms
+    8 SCROLL_DOWN None                                                                   conf 0.575  1780 ms, screenshot 824 ms
+    9 CLICK       Next                                                                   conf 0.352  1915 ms, screenshot 842 ms
+   10 CLICK       Sunday, November 1, 2026                                               conf 0.989  2654 ms, screenshot 828 ms
+   11 SCROLL_DOWN None                                                                   conf 0.397  2831 ms, screenshot 809 ms
+   12 CLICK       Done. Search for one-way flights, departing on November 1, 2026        conf 0.591  524 ms, screenshot 885 ms
+   13 SCROLL_DOWN None                                                                   conf 0.424  1453 ms, screenshot 745 ms
+   14 SCROLL_UP   None                                                                   conf 0.534  973 ms, screenshot 810 ms
+   15 SCROLL_DOWN None                                                                   conf 0.352  1452 ms, screenshot 751 ms
+   16 SCROLL_UP   None                                                                   conf 0.47  978 ms, screenshot 811 ms
+   17 SCROLL_DOWN None                                                                   conf 0.23  1452 ms, screenshot 787 ms
+   18 SCROLL_UP   None                                                                   conf 0.366  980 ms, screenshot 814 ms
+   19 SCROLL_DOWN None                                                                   conf 0.25  1452 ms, screenshot 761 ms
+   20 SCROLL_UP   None                                                                   conf 0.495  976 ms, screenshot 797 ms
+   21 SCROLL_DOWN None                                                                   conf 0.236  1452 ms, screenshot 764 ms
+   22 SCROLL_UP   None                                                                   conf 0.364  978 ms, screenshot 813 ms
+   23 CLICK       Search                                                                 conf 0.293  1451 ms, screenshot 757 ms
+   24 SCROLL_DOWN None                                                                   conf 0.6  1866 ms, screenshot 975 ms
+   25 SCROLL_DOWN None                                                                   conf 0.123  1483 ms, screenshot 992 ms
+

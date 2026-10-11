@@ -1,0 +1,71 @@
+{
+ "ok": true,
+ "final": "The page text is missing. I need the content of the webpage to find the flight information.",
+ "screenshot": null,
+ "error": null,
+ "elapsed_ms": 22019,
+ "usage": {
+  "decisions": 4,
+  "chat_calls": 8,
+  "chat_input_tokens": 2214,
+  "chat_output_tokens": 61,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.000817
+ },
+ "report": {
+  "elapsed_ms": 21347,
+  "decisions": 4,
+  "interactions": 3,
+  "waits": 1,
+  "median_decision_ms": 1221,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 724,
+  "settle_probes": 3,
+  "settle_ms": 2546,
+  "values": {
+   "cache": 0,
+   "prefetch": 2,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "wait",
+    "kind": "wait",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "status": "BLOCKED",
+ "terminal": {
+  "status": "BLOCKED",
+  "reason": "waited without progress",
+  "url": "https://www.google.com/travel/flights?tfs=CBwQARoOagwIAxIIL20vMDg5NjYaDnIMCAMSCC9tLzA4OTY2QAFIAXABggELCP___________wGYAQE&tfu=KgIIAw&hl=en",
+  "title": "Find Cheap Flights Worldwide & Book Your Ticket - Google Flights",
+  "steps": 3,
+  "elapsed_ms": 20989,
+  "page_text": "",
+  "answer": "The page text is missing. I need the content of the webpage to find the flight information."
+ },
+ "agent": "flights",
+ "model": "omnijev"
+}

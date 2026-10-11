@@ -1,0 +1,59 @@
+{
+ "ok": true,
+ "final": "The page text is missing. I need the page text to find the flight options.",
+ "screenshot": null,
+ "error": null,
+ "elapsed_ms": 89737,
+ "usage": {
+  "decisions": 2,
+  "chat_calls": 2,
+  "chat_input_tokens": 378,
+  "chat_output_tokens": 18,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.000158
+ },
+ "report": {
+  "elapsed_ms": 90721,
+  "decisions": 2,
+  "interactions": 1,
+  "waits": 1,
+  "median_decision_ms": 40560,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 659,
+  "settle_probes": 3,
+  "settle_ms": 1891,
+  "values": {
+   "cache": 0,
+   "prefetch": 0,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Language: English",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "wait",
+    "kind": "wait",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "status": "BLOCKED",
+ "terminal": {
+  "status": "BLOCKED",
+  "reason": "waited without progress",
+  "url": "about:blank",
+  "title": "",
+  "steps": 1,
+  "elapsed_ms": 89002,
+  "page_text": "",
+  "answer": "The page text is missing. I need the page text to find the flight options."
+ },
+ "agent": "flights",
+ "model": "omnijev"
+}

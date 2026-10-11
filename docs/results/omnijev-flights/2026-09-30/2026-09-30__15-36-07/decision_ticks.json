@@ -1,0 +1,1014 @@
+{
+ "report": {
+  "elapsed_ms": 97060,
+  "decisions": 25,
+  "interactions": 25,
+  "waits": 0,
+  "median_decision_ms": 1440,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 761,
+  "settle_probes": 0,
+  "settle_ms": 0,
+  "values": {
+   "cache": 0,
+   "prefetch": 2,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Where from?",
+    "kind": "fill",
+    "text": "Zurich",
+    "page_changed": true
+   },
+   {
+    "action": "Zürich, Switzerland",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Where to?",
+    "kind": "fill",
+    "text": "London",
+    "page_changed": true
+   },
+   {
+    "action": "London, United Kingdom",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Change ticket type. Round trip",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "One way",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Departure",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Next",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Sunday, November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Done. Search for one-way flights, departing on November 1, 2026",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_UP",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_UP",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_UP",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_UP",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_UP",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "Search",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "SCROLL_DOWN",
+    "kind": "scroll",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 713,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 3111,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where from?",
+   "confidence": 0.9,
+   "elements": 25,
+   "elapsed_ms": 6481,
+   "probabilities": {
+    "15": 1.0,
+    "17": 0.0,
+    "16": 0.0,
+    "18": 0.0
+   },
+   "candidates": {
+    "15": "Where from?",
+    "17": "Departure",
+    "16": "Where to?",
+    "18": "Return"
+   },
+   "screenshot_ms": 1189,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "Zurich"
+  },
+  {
+   "tick": 2,
+   "probe_ms": 1289,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 717,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Zürich, Switzerland",
+   "confidence": 0.98,
+   "elements": 10,
+   "elapsed_ms": 9301,
+   "probabilities": {
+    "3": 0.948,
+    "5": 0.04,
+    "2": 0.006,
+    "4": 0.004,
+    "6": 0.001,
+    "9": 0.0
+   },
+   "candidates": {
+    "3": "Zürich, Switzerland",
+    "5": "Zurich Airport (ZRH)",
+    "2": "Origin, Select multiple airports",
+    "4": "Toggle nearby airports for Zürich, Switzerland",
+    "6": "Zürich HB",
+    "9": "Zurich, Netherlands"
+   },
+   "screenshot_ms": 680,
+   "text": null
+  },
+  {
+   "tick": 3,
+   "probe_ms": 758,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1052,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "TYPE_TEXT",
+   "target": "Where to?",
+   "confidence": 0.753,
+   "elements": 25,
+   "elapsed_ms": 13137,
+   "probabilities": {
+    "16": 0.994,
+    "17": 0.003,
+    "18": 0.002,
+    "15": 0.001
+   },
+   "candidates": {
+    "16": "Where to?",
+    "17": "Departure",
+    "18": "Return",
+    "15": "Where from?"
+   },
+   "screenshot_ms": 783,
+   "value_source": "prefetch",
+   "value_ms": 0,
+   "value_error": null,
+   "text": "London"
+  },
+  {
+   "tick": 4,
+   "probe_ms": 1264,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 741,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "London, United Kingdom",
+   "confidence": 0.93,
+   "elements": 9,
+   "elapsed_ms": 16100,
+   "probabilities": {
+    "3": 0.787,
+    "5": 0.163,
+    "2": 0.027,
+    "7": 0.012,
+    "4": 0.009,
+    "6": 0.001
+   },
+   "candidates": {
+    "3": "London, United Kingdom",
+    "5": "Heathrow Airport (LHR)",
+    "2": "Destination, Select multiple airports",
+    "7": "London Gatwick Airport (LGW)",
+    "4": "Toggle nearby airports for London, United Kingdom",
+    "6": "London Stansted Airport (STN)"
+   },
+   "screenshot_ms": 780,
+   "text": null
+  },
+  {
+   "tick": 5,
+   "probe_ms": 755,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1100,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Change ticket type. Round trip",
+   "confidence": 0.594,
+   "elements": 26,
+   "elapsed_ms": 19938,
+   "probabilities": {
+    "12": 0.778,
+    "18": 0.181,
+    "19": 0.024,
+    "16": 0.007,
+    "13": 0.001,
+    "20": 0.001
+   },
+   "candidates": {
+    "12": "Change ticket type. Round trip",
+    "18": "Departure",
+    "19": "Return",
+    "16": "Swap origin and destination.",
+    "13": "1 passenger",
+    "20": "Search"
+   },
+   "screenshot_ms": 758,
+   "text": null
+  },
+  {
+   "tick": 6,
+   "probe_ms": 762,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 496,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "One way",
+   "confidence": 0.996,
+   "elements": 3,
+   "elapsed_ms": 23150,
+   "probabilities": {
+    "2": 0.995,
+    "1": 0.005,
+    "3": 0.0
+   },
+   "candidates": {
+    "2": "One way",
+    "1": "Round trip",
+    "3": "Multi-city"
+   },
+   "screenshot_ms": 754,
+   "text": null
+  },
+  {
+   "tick": 7,
+   "probe_ms": 761,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1068,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Departure",
+   "confidence": 0.7,
+   "elements": 25,
+   "elapsed_ms": 26956,
+   "probabilities": {
+    "18": 0.999,
+    "19": 0.0,
+    "14": 0.0,
+    "9": 0.0,
+    "12": 0.0,
+    "13": 0.0
+   },
+   "candidates": {
+    "18": "Departure",
+    "19": "Search",
+    "14": "Change seating class. Economy",
+    "9": "Change appearance",
+    "12": "Change ticket type. One way",
+    "13": "1 passenger"
+   },
+   "screenshot_ms": 745,
+   "text": null
+  },
+  {
+   "tick": 8,
+   "probe_ms": 1679,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1770,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.575,
+   "elements": 49,
+   "elapsed_ms": 32069,
+   "probabilities": {
+    "SCROLL_DOWN": 0.646,
+    "CLICK": 0.259,
+    "WAIT": 0.086,
+    "BLOCKED": 0.008,
+    "TYPE_TEXT": 0.001,
+    "DONE": 0.0
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 814,
+   "text": null
+  },
+  {
+   "tick": 9,
+   "probe_ms": 1647,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1901,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Next",
+   "confidence": 0.352,
+   "elements": 50,
+   "elapsed_ms": 36683,
+   "probabilities": {
+    "49": 0.513,
+    "35": 0.139,
+    "36": 0.102,
+    "38": 0.048,
+    "39": 0.038,
+    "42": 0.026
+   },
+   "candidates": {
+    "49": "Next",
+    "35": "Saturday, October 31, 2026 , 89 euros",
+    "36": "Monday, November 2, 2026",
+    "38": "Wednesday, November 4, 2026",
+    "39": "Monday, November 9, 2026",
+    "42": "Monday, November 16, 2026"
+   },
+   "screenshot_ms": 821,
+   "text": null
+  },
+  {
+   "tick": 10,
+   "probe_ms": 1874,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2639,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Sunday, November 1, 2026",
+   "confidence": 0.989,
+   "elements": 82,
+   "elapsed_ms": 42763,
+   "probabilities": {
+    "36": 0.936,
+    "66": 0.014,
+    "81": 0.011,
+    "9": 0.006,
+    "37": 0.004,
+    "40": 0.003
+   },
+   "candidates": {
+    "36": "Sunday, November 1, 2026",
+    "66": "Tuesday, December 1, 2026",
+    "81": "Next",
+    "9": "Monday, October 5, 2026 , 138 euros",
+    "37": "Monday, November 2, 2026",
+    "40": "Thursday, November 5, 2026"
+   },
+   "screenshot_ms": 809,
+   "text": null
+  },
+  {
+   "tick": 11,
+   "probe_ms": 1334,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 2806,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.397,
+   "elements": 82,
+   "elapsed_ms": 48527,
+   "probabilities": {
+    "SCROLL_DOWN": 0.483,
+    "CLICK": 0.395,
+    "PRESS_ENTER": 0.076,
+    "DONE": 0.023,
+    "WAIT": 0.021,
+    "BLOCKED": 0.001
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "DONE": "The page shows every requirement of the task met.",
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward."
+   },
+   "screenshot_ms": 823,
+   "text": null
+  },
+  {
+   "tick": 12,
+   "probe_ms": 827,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 518,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Done. Search for one-way flights, departing on November 1, 2026",
+   "confidence": 0.591,
+   "elements": 2,
+   "elapsed_ms": 50979,
+   "probabilities": {
+    "2": 1.0
+   },
+   "candidates": {
+    "2": "Done. Search for one-way flights, departing on November 1, 2026"
+   },
+   "screenshot_ms": 878,
+   "text": null
+  },
+  {
+   "tick": 13,
+   "probe_ms": 753,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1440,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.424,
+   "elements": 28,
+   "elapsed_ms": 54644,
+   "probabilities": {
+    "SCROLL_DOWN": 0.496,
+    "PRESS_ENTER": 0.176,
+    "DONE": 0.174,
+    "WAIT": 0.071,
+    "CLICK": 0.067,
+    "SCROLL_UP": 0.014
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "DONE": "The page shows every requirement of the task met.",
+    "WAIT": "Give the page time to finish updating.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "SCROLL_UP": "Move the viewport up the page."
+   },
+   "screenshot_ms": 746,
+   "text": null
+  },
+  {
+   "tick": 14,
+   "probe_ms": 756,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 974,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_UP",
+   "target": null,
+   "confidence": 0.534,
+   "elements": 21,
+   "elapsed_ms": 57347,
+   "probabilities": {
+    "SCROLL_UP": 0.612,
+    "CLICK": 0.161,
+    "WAIT": 0.157,
+    "SCROLL_DOWN": 0.052,
+    "BLOCKED": 0.009,
+    "DONE": 0.009
+   },
+   "candidates": {
+    "SCROLL_UP": "Move the viewport up the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 796,
+   "text": null
+  },
+  {
+   "tick": 15,
+   "probe_ms": 752,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1442,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.352,
+   "elements": 28,
+   "elapsed_ms": 60451,
+   "probabilities": {
+    "SCROLL_DOWN": 0.433,
+    "DONE": 0.165,
+    "PRESS_ENTER": 0.158,
+    "CLICK": 0.123,
+    "WAIT": 0.084,
+    "SCROLL_UP": 0.036
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "DONE": "The page shows every requirement of the task met.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_UP": "Move the viewport up the page."
+   },
+   "screenshot_ms": 752,
+   "text": null
+  },
+  {
+   "tick": 16,
+   "probe_ms": 1255,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 973,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_UP",
+   "target": null,
+   "confidence": 0.47,
+   "elements": 21,
+   "elapsed_ms": 63657,
+   "probabilities": {
+    "SCROLL_UP": 0.558,
+    "CLICK": 0.255,
+    "WAIT": 0.12,
+    "SCROLL_DOWN": 0.046,
+    "BLOCKED": 0.019,
+    "DONE": 0.002
+   },
+   "candidates": {
+    "SCROLL_UP": "Move the viewport up the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 815,
+   "text": null
+  },
+  {
+   "tick": 17,
+   "probe_ms": 1259,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1442,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.23,
+   "elements": 28,
+   "elapsed_ms": 67258,
+   "probabilities": {
+    "SCROLL_DOWN": 0.326,
+    "DONE": 0.218,
+    "PRESS_ENTER": 0.193,
+    "CLICK": 0.115,
+    "WAIT": 0.088,
+    "SCROLL_UP": 0.058
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "DONE": "The page shows every requirement of the task met.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_UP": "Move the viewport up the page."
+   },
+   "screenshot_ms": 748,
+   "text": null
+  },
+  {
+   "tick": 18,
+   "probe_ms": 750,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 971,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_UP",
+   "target": null,
+   "confidence": 0.366,
+   "elements": 21,
+   "elapsed_ms": 69938,
+   "probabilities": {
+    "SCROLL_UP": 0.471,
+    "CLICK": 0.275,
+    "WAIT": 0.136,
+    "SCROLL_DOWN": 0.084,
+    "BLOCKED": 0.032,
+    "DONE": 0.001
+   },
+   "candidates": {
+    "SCROLL_UP": "Move the viewport up the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 800,
+   "text": null
+  },
+  {
+   "tick": 19,
+   "probe_ms": 757,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1442,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.25,
+   "elements": 28,
+   "elapsed_ms": 73061,
+   "probabilities": {
+    "SCROLL_DOWN": 0.344,
+    "PRESS_ENTER": 0.191,
+    "DONE": 0.182,
+    "CLICK": 0.151,
+    "WAIT": 0.081,
+    "SCROLL_UP": 0.05
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "DONE": "The page shows every requirement of the task met.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_UP": "Move the viewport up the page."
+   },
+   "screenshot_ms": 750,
+   "text": null
+  },
+  {
+   "tick": 20,
+   "probe_ms": 746,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 970,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_UP",
+   "target": null,
+   "confidence": 0.495,
+   "elements": 21,
+   "elapsed_ms": 75755,
+   "probabilities": {
+    "SCROLL_UP": 0.58,
+    "CLICK": 0.26,
+    "WAIT": 0.082,
+    "SCROLL_DOWN": 0.045,
+    "BLOCKED": 0.032,
+    "DONE": 0.001
+   },
+   "candidates": {
+    "SCROLL_UP": "Move the viewport up the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 821,
+   "text": null
+  },
+  {
+   "tick": 21,
+   "probe_ms": 752,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1443,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.236,
+   "elements": 28,
+   "elapsed_ms": 78859,
+   "probabilities": {
+    "SCROLL_DOWN": 0.332,
+    "CLICK": 0.229,
+    "PRESS_ENTER": 0.172,
+    "DONE": 0.146,
+    "WAIT": 0.084,
+    "SCROLL_UP": 0.035
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "DONE": "The page shows every requirement of the task met.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_UP": "Move the viewport up the page."
+   },
+   "screenshot_ms": 747,
+   "text": null
+  },
+  {
+   "tick": 22,
+   "probe_ms": 757,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 970,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_UP",
+   "target": null,
+   "confidence": 0.364,
+   "elements": 21,
+   "elapsed_ms": 81533,
+   "probabilities": {
+    "SCROLL_UP": 0.47,
+    "CLICK": 0.319,
+    "WAIT": 0.092,
+    "SCROLL_DOWN": 0.061,
+    "BLOCKED": 0.057,
+    "DONE": 0.0
+   },
+   "candidates": {
+    "SCROLL_UP": "Move the viewport up the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 793,
+   "text": null
+  },
+  {
+   "tick": 23,
+   "probe_ms": 748,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1443,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Search",
+   "confidence": 0.293,
+   "elements": 28,
+   "elapsed_ms": 84630,
+   "probabilities": {
+    "19": 0.7,
+    "18": 0.271,
+    "28": 0.008,
+    "2": 0.003,
+    "20": 0.002,
+    "22": 0.002
+   },
+   "candidates": {
+    "19": "Search",
+    "18": "Departure",
+    "28": "Find flights from Frankfurt am Main (FRA) to London (LGW) from €134. Operated by Condor. Oct 29 to Nov 4. Nonstop",
+    "2": "Google",
+    "20": "Explore deals with AI",
+    "22": "Frankfurt am Main"
+   },
+   "screenshot_ms": 746,
+   "text": null
+  },
+  {
+   "tick": 24,
+   "probe_ms": 939,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1858,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.6,
+   "elements": 48,
+   "elapsed_ms": 90988,
+   "probabilities": {
+    "SCROLL_DOWN": 0.657,
+    "DONE": 0.154,
+    "CLICK": 0.082,
+    "PRESS_ENTER": 0.057,
+    "WAIT": 0.047,
+    "TYPE_TEXT": 0.002
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "DONE": "The page shows every requirement of the task met.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "PRESS_ENTER": "Submit a filled field by pressing Enter in it, the way a person submits a search.",
+    "WAIT": "Give the page time to finish updating.",
+    "TYPE_TEXT": "Type a value into an editable field, replacing what it holds."
+   },
+   "screenshot_ms": 1474,
+   "text": null
+  },
+  {
+   "tick": 25,
+   "probe_ms": 975,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 1478,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "SCROLL_DOWN",
+   "target": null,
+   "confidence": 0.123,
+   "elements": 44,
+   "elapsed_ms": 94737,
+   "probabilities": {
+    "SCROLL_DOWN": 0.269,
+    "SCROLL_UP": 0.253,
+    "CLICK": 0.25,
+    "WAIT": 0.148,
+    "DONE": 0.066,
+    "BLOCKED": 0.014
+   },
+   "candidates": {
+    "SCROLL_DOWN": "Move the viewport down the page.",
+    "SCROLL_UP": "Move the viewport up the page.",
+    "CLICK": "Press a control on the page: a button, a link, a menu entry, an autocomplete suggestion or a calendar day.",
+    "WAIT": "Give the page time to finish updating.",
+    "DONE": "The page shows every requirement of the task met.",
+    "BLOCKED": "None of the offered operations can move the task forward."
+   },
+   "screenshot_ms": 968,
+   "text": null
+  }
+ ],
+ "final": null,
+ "usage": {
+  "decisions": 25,
+  "chat_calls": 12,
+  "chat_input_tokens": 19526,
+  "chat_output_tokens": 126,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.006173
+ }
+}

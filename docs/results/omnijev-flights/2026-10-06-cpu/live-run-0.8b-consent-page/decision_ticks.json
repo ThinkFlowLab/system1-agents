@@ -1,0 +1,108 @@
+{
+ "report": {
+  "elapsed_ms": 90721,
+  "decisions": 2,
+  "interactions": 1,
+  "waits": 1,
+  "median_decision_ms": 40560,
+  "jev_input_tokens": 0,
+  "median_probe_ms": 659,
+  "settle_probes": 3,
+  "settle_ms": 1891,
+  "values": {
+   "cache": 0,
+   "prefetch": 0,
+   "llm": 0
+  },
+  "history": [
+   {
+    "action": "Language: English",
+    "kind": "click",
+    "text": null,
+    "page_changed": true
+   },
+   {
+    "action": "wait",
+    "kind": "wait",
+    "text": null,
+    "page_changed": null
+   }
+  ]
+ },
+ "ticks": [
+  {
+   "tick": 1,
+   "probe_ms": 662,
+   "settle_probes": 0,
+   "settle_ms": 0,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 55167,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "CLICK",
+   "target": "Language: English",
+   "confidence": 0.602,
+   "elements": 3,
+   "elapsed_ms": 57675,
+   "probabilities": {
+    "1": 0.414,
+    "3": 0.373,
+    "2": 0.213
+   },
+   "candidates": {
+    "1": "Language: English",
+    "3": "cookies (Opens in a new tab)",
+    "2": "Sign in"
+   },
+   "screenshot_ms": 768,
+   "text": null
+  },
+  {
+   "tick": 2,
+   "probe_ms": 657,
+   "settle_probes": 3,
+   "settle_ms": 1891,
+   "action_settle_probes": 0,
+   "action_settle_ms": 0,
+   "decision_ms": 25953,
+   "input_tokens": 0,
+   "output_tokens": 0,
+   "operation": "WAIT",
+   "target": null,
+   "confidence": 0.331,
+   "elements": 0,
+   "elapsed_ms": 85293,
+   "probabilities": {
+    "WAIT": 0.554,
+    "BLOCKED": 0.287,
+    "DONE": 0.159
+   },
+   "candidates": {
+    "WAIT": "Give the page time to finish updating.",
+    "BLOCKED": "None of the offered operations can move the task forward.",
+    "DONE": "The page shows every requirement of the task met."
+   },
+   "screenshot_ms": 663
+  }
+ ],
+ "final": {
+  "status": "BLOCKED",
+  "reason": "waited without progress",
+  "url": "about:blank",
+  "title": "",
+  "steps": 1,
+  "elapsed_ms": 89002,
+  "page_text": "",
+  "answer": "The page text is missing. I need the page text to find the flight options."
+ },
+ "usage": {
+  "decisions": 2,
+  "chat_calls": 2,
+  "chat_input_tokens": 378,
+  "chat_output_tokens": 18,
+  "chat_cache_tokens": 0,
+  "jev_input_tokens": 0,
+  "cost_usd": 0.000158
+ }
+}

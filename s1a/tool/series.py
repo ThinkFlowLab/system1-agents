@@ -11,6 +11,7 @@ from s1a.decision_models import DecisionModel, build_model
 from s1a.config import first_env, optional_chat_model
 from s1a.jobs import Episode, summarize, write_job
 from s1a.pricing import chat_prices, cost_usd, env_prices
+from s1a.recovery import RecoveryLimits
 from s1a.spec import Json, ToolAgentSpec, positive_float, positive_int
 from s1a.tool.loop import MODEL_NAMES, run_episode
 
@@ -55,8 +56,8 @@ def parser(spec: ToolAgentSpec) -> argparse.ArgumentParser:
 
 
 def price_episodes(episodes: list[Episode]) -> None:
-    """Dollars for the episodes that spent chat tokens: one catalogue lookup, and none when nothing called the chat model."""
-    spent = [e for e in episodes if e.chat_input_tokens + e.chat_output_tokens]
+    """Price only episodes with complete chat usage; failed calls keep cost unknown."""
+    spent = [e for e in episodes if e.chat_input_tokens + e.chat_output_tokens and e.usage_known]
     if not spent:
         return
     prices = chat_prices(first_env("MODEL_NAME"))
@@ -83,6 +84,14 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
         raise RuntimeError("--model llm needs the chat model: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
     if args.rethink == "on" and spec.budget.stall_after > 0 and chat is None:
         raise RuntimeError("--rethink on needs the chat model for plans: OPENAI_API_KEY or LLM_API_KEY, and MODEL_NAME")
+    limits = None
+    if args.rethink == "on":
+        attempts = getattr(args, "rethink_attempts", None)
+        rethink_timeout = getattr(args, "rethink_timeout", None)
+        if attempts is not None and rethink_timeout is not None:
+            limits = RecoveryLimits(max_attempts=attempts, timeout_s=float(rethink_timeout))
+            if args.model == "llm":
+                raise RuntimeError("bounded rethink needs a decision model; --model llm cannot use it")
     shared = build_model(args.model) if args.model in ("jev", "clm", "laya", "laya-served", "cua") else None
     run = await asyncio.to_thread(spec.series, args)  # question fetches, game file parsing: seconds of blocking I/O
     if args.model == "rule":
@@ -114,6 +123,7 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
                     timeout_s=float(args.timeout),
                     prices=None,
                     log=args.log,
+                    limits=limits,
                 )
                 run.annotate(env, episode)
                 episodes.append(episode)
