@@ -41,11 +41,13 @@ are secondary calibration measures, with lower values better.
   and limitations. The companion [latency contribution](https://github.com/ThinkFlowLab/system1-omni/pull/131)
   keeps request timing separate from quality.
 
-The published report is available now. The numeric audit attachment for this run
-is prepared but not yet published; complete original responses are not included
-in the repository. The attachment removes question/option text and retains
-probability vectors, label indices, timings and original record hashes. It supports
-numeric recomputation; full response replay additionally requires the original raw.
+The [public summary bundle](https://github.com/user-attachments/files/33304077/public231-benchmark-output.zip)
+contains this campaign's five aggregate summaries, run metadata and collector replay
+receipt. It omits per-question predictions, probabilities and raw responses, so it
+does not support independent numeric recomputation. The separate per-question
+numeric audit attachment remains unpublished; full response replay also requires
+the original raw responses. The public bundle is collector evidence from PR #52,
+not a replay of this PR's `quality_public231.py` consumer.
 
 ## Add a result
 
