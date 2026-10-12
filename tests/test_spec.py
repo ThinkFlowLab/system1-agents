@@ -228,6 +228,49 @@ def _no_lookup(model_name: str) -> None:
     raise AssertionError("a series that spent no chat tokens must not fetch the price catalogue")
 
 
+class TestPriceEpisodesUnknownUsage(TestCase):
+    """An episode with a failed or cancelled chat call keeps its unknown cost: pricing never overwrites it with a sum."""
+
+    def _episode(self, *, usage_known: bool, cost: float | None) -> Any:
+        from datetime import datetime
+
+        from s1a.jobs import Episode
+
+        stamp = datetime.now().isoformat()
+        return Episode(
+            env="counter",
+            policy="rule",
+            seed=0,
+            score=0.0,
+            steps=0,
+            elapsed_s=0.1,
+            started_at=stamp,
+            finished_at=stamp,
+            final_state={},
+            chat_calls=1,
+            chat_input_tokens=0,
+            chat_output_tokens=0,
+            chat_cache_tokens=0,
+            jev_input_tokens=0,
+            invalid_keys=0,
+            cost_usd=cost,
+            usage_known=usage_known,
+        )
+
+    def test_an_unknown_usage_episode_is_left_none_and_never_priced(self) -> None:
+        unknown = self._episode(usage_known=False, cost=None)
+        with patch.object(series, "chat_prices", _no_lookup):
+            series.price_episodes([unknown])
+        self.assertIsNone(unknown.cost_usd, "a partial token sum must not replace the unknown cost")
+
+    def test_a_known_usage_episode_is_priced_as_before(self) -> None:
+        known = self._episode(usage_known=True, cost=None)
+        known.chat_input_tokens = 1000
+        with patch.object(series, "chat_prices", lambda model_name: None):
+            series.price_episodes([known])
+        self.assertIsNone(known.cost_usd, "no catalogue price is still an unknown cost")
+
+
 def _refusing(model_name: str, **kwargs: Any) -> JevModel:
     """The jev model of a run whose key is wrong or whose endpoint is down."""
     error = build_error(StatusCode.MODEL_CALL_FAILED, error_msg="decisions endpoint returned HTTP 401")

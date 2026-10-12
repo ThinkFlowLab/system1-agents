@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
+import shutil
 import sys
 import time
 from datetime import datetime
@@ -14,11 +16,13 @@ from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
+from openjiuwen.core.common.logging import logger
 from openjiuwen.core.foundation.llm import Model
 from openjiuwen.core.runner import Runner
 from openjiuwen.harness.deep_agent import DeepAgent
 from openjiuwen.harness.subagents import create_browser_agent
 from openjiuwen.harness.tools.browser_move.playwright_runtime.config import BrowserInstanceConfig
+from openjiuwen.harness.tools.browser_move.playwright_runtime.runtime import BrowserAgentRuntime, BrowserRuntimeRail
 from openjiuwen.harness.subagents.browser_agent import (
     _BROWSER_MODEL_TEMPERATURE_MARKER,
     DEFAULT_BROWSER_AGENT_TEMPERATURE,
@@ -28,8 +32,9 @@ from openjiuwen.harness.tools.browser_move.utils.parsing import extract_json_obj
 from s1a.browser.decision_model import URL_RE, BrowserDecisionModel, BrowserPolicy
 from s1a.decision_models import DecisionModel, build_model
 from s1a.config import HOME, browser_launch_args, chat_model_from_env, first_env
-from s1a.counting_model import CountingModel
+from s1a.counting_model import CountingModel, usage_known
 from s1a.pricing import chat_prices, cost_usd
+from s1a.recovery import RecoveryLimits
 from s1a.browser.profiler import BrowserProfiler, render
 from s1a.spec import BrowserAgentSpec, positive_float, positive_int
 
@@ -44,6 +49,10 @@ BROWSER_MODEL_NAMES = (
     "llm",
 )  # a decision model (Jev or served Laya over HTTP, Laya, Cua-S1 or OmniJev in process) or the chat model
 RUNS_DIR = HOME / "runs" / "browser"
+FINAL_SCREENSHOT = "final.png"  # the page the task ended on, next to the run's records
+SCREENSHOT_TIMEOUT_S = 5.0  # @playwright/mcp's page.screenshot timeout; also caps a hung call before the cleanup
+# the screenshot report's link line to its PNG, from the MCP cwd; the path is written raw and can hold parentheses
+SCREENSHOT_LINK = re.compile(r"^- \[Screenshot of [^\]\r\n]+\]\((.+\.png)\)\r?$", re.MULTILINE)
 
 
 def browser_result(final: str) -> dict[str, Any] | None:
@@ -78,14 +87,33 @@ def finish_llm(answer: Answer) -> Answer:
 
 def finish_decision_model(answer: Answer, *, model_name: str) -> Answer:
     """The policy's answer from the page it reached (on DONE, or on BLOCKED after progress) is the result; none fails.
-    ``model_name`` names the decision model in the error."""
+
+    A bounded recovery that timed out, errored or ran out of attempts is a failure even when the summary carries an
+    answer: the run did not settle the task, it stopped trying. A policy that still answers BLOCKED after one or more
+    replans is a failure too, even with a partial answer: the task remains blocked, so the partial text is kept only
+    as context, with the real reason and an actionable next step. ``model_name`` names the decision model in the error.
+    """
     summary = terminal_summary(answer["final"])
     if summary is None:
         return answer
     status = str(summary.get("status") or "")
+    recovery = summary.get("recovery") or {}
     answer["status"] = status
     answer["terminal"] = summary
     answer["final"] = str(summary.get("answer") or "")
+    if recovery.get("failed"):
+        answer["ok"] = False
+        detail = recovery.get("error") or summary.get("reason") or "no reason given"
+        answer["error"] = f"{model_name} recovery {recovery.get('termination') or 'failed'}: {detail}"
+        # The actionable escalation rides with the failure; it never widens the tool set or retries on its own.
+        answer["next_action"] = recovery.get("next_action") or summary.get("next_action")
+        return answer
+    if recovery.get("blocked_after_recovery"):
+        answer["ok"] = False
+        detail = recovery.get("reason") or summary.get("reason") or "no reason given"
+        answer["error"] = f"{model_name} BLOCKED after recovery: {detail}"
+        answer["next_action"] = recovery.get("next_action") or summary.get("next_action")
+        return answer
     answer["ok"] = bool(answer["final"])
     if answer["ok"]:
         answer["error"] = None  # run_task flagged the harness's own verdict; the policy's answer is the one that counts
@@ -96,11 +124,20 @@ def finish_decision_model(answer: Answer, *, model_name: str) -> Answer:
     return answer
 
 
-def usage_summary(calls: list[dict[str, Any]], *, jev_input_tokens: int, decisions: int) -> dict[str, Any]:
-    """Counts and dollars for one task: decisions, the chat model's calls and tokens, Jev's input tokens, the sum in USD."""
+def usage_summary(
+    calls: list[dict[str, Any]], *, jev_input_tokens: int, decisions: int, decision_usage_known: bool = True
+) -> dict[str, Any]:
+    """Counts and dollars for one task: decisions, the chat model's calls and tokens, Jev's input tokens, the sum in USD.
+
+    A failed or cancelled call is in ``calls`` with unknown usage: its tokens cannot be summed, so the task's
+    ``cost_usd`` is None (unknown), never zero, and ``usage_known`` is False with the count in ``unknown_calls``.
+    ``decision_usage_known`` carries a decision reply that did not report its usage, so a partial sum is not billed.
+    """
     chat_in = sum(int(call["input_tokens"]) for call in calls)
     chat_out = sum(int(call["output_tokens"]) for call in calls)
     chat_cached = sum(int(call.get("cache_tokens") or 0) for call in calls)
+    complete = usage_known(calls) and decision_usage_known
+    unknown_calls = len([call for call in calls if not call.get("usage_known", True)])
     prices = chat_prices(first_env("MODEL_NAME")) if chat_in + chat_out else None
     return {
         "decisions": decisions,
@@ -109,17 +146,56 @@ def usage_summary(calls: list[dict[str, Any]], *, jev_input_tokens: int, decisio
         "chat_output_tokens": chat_out,
         "chat_cache_tokens": chat_cached,
         "jev_input_tokens": jev_input_tokens,
-        "cost_usd": cost_usd(jev_input_tokens, chat_in, chat_out, chat_cached, prices),
+        "usage_known": complete,
+        "unknown_calls": unknown_calls,
+        "cost_usd": None if not complete else cost_usd(jev_input_tokens, chat_in, chat_out, chat_cached, prices),
     }
 
 
-async def run_task(agent: DeepAgent, goal: str, *, timeout_s: float) -> Answer:
+def browser_runtime(agent: DeepAgent) -> BrowserAgentRuntime | None:
+    """The Playwright runtime ``create_browser_agent`` built for ``agent``, held by the rail it injects."""
+    rail = next((rail for rail in agent.configured_rails() if isinstance(rail, BrowserRuntimeRail)), None)
+    return rail._runtime if rail is not None else None  # ponytail: the runtime has no public handle on the agent
+
+
+async def save_final_screenshot(agent: DeepAgent, answer: Answer, logs_dir: Path) -> None:
+    """The page the task ended on as ``final.png`` in ``logs_dir``, for a judge that grades the end state.
+
+    Its path goes to ``answer["screenshot"]``. Nothing is taken when the runtime never observed a page, since the
+    screenshot tool would launch a browser for one. A failure leaves the path None and records the exception type in
+    ``answer["screenshot_error"]``; the exception text can quote the page and is dropped.
+    """
+    path = logs_dir / FINAL_SCREENSHOT
+    try:
+        runtime = browser_runtime(agent)
+        if runtime is None or not runtime.service.started or not runtime.export_page_state().get("url"):
+            return
+        # ponytail: _call_playwright_tool is private, as in s1a/tool/hands.py. @playwright/mcp writes the PNG under its
+        # output directory and links it in its report; the runtime's MCP client replaces the inline image with a note.
+        report = await asyncio.wait_for(
+            runtime._call_playwright_tool("browser_take_screenshot", {"type": "png", "fullPage": False}),
+            timeout=SCREENSHOT_TIMEOUT_S,
+        )
+        link = SCREENSHOT_LINK.search(str(report.get("result") if isinstance(report, dict) else report))
+        if link is None:
+            raise FileNotFoundError("the screenshot report links no PNG")
+        shutil.copyfile(Path(runtime.service.mcp_cfg.params.get("cwd") or Path.cwd()) / link.group(1), path)
+    except Exception as exc:  # noqa: BLE001 - a missing screenshot never changes the task's outcome
+        answer["screenshot_error"] = type(exc).__name__
+        logger.warning("[browse] final screenshot failed: %s", answer["screenshot_error"])
+        return
+    answer["screenshot"] = str(path)
+
+
+async def run_task(agent: DeepAgent, goal: str, *, timeout_s: float, logs_dir: Path) -> Answer:
     """One conversation through the started Runner; a timed-out task keeps the harness's partial output.
 
-    The browser (the agent's task resources) and the Runner session are released however the task ends, so the
-    next run in the same process starts its own browser with its own launch args and cookies.
+    A ``final.png`` an earlier run left in ``logs_dir`` is removed first. However the task ends, the page it ended on
+    is saved there (``save_final_screenshot``), then the browser (the agent's task resources) and the Runner session
+    are released, so the next run in the same process starts its own browser with its own launch args and cookies.
     """
     answer: Answer = {"ok": False, "final": "", "screenshot": None, "error": None, "elapsed_ms": 0}
+    (logs_dir / FINAL_SCREENSHOT).unlink(missing_ok=True)  # a reused logs dir: a judge would grade the earlier page
     conversation_id = f"s1a-{datetime.now():%Y%m%d-%H%M%S}-{uuid4().hex[:6]}"
     await agent.ensure_initialized()
     started = time.perf_counter()
@@ -132,8 +208,11 @@ async def run_task(agent: DeepAgent, goal: str, *, timeout_s: float) -> Answer:
         return answer
     finally:
         answer["elapsed_ms"] = round((time.perf_counter() - started) * 1000)  # the task's wall clock
-        await agent.cleanup_task_resources()
-        await Runner.release(conversation_id)
+        try:
+            await save_final_screenshot(agent, answer, logs_dir)  # before the cleanup closes the page
+        finally:  # a cancellation during the screenshot still releases the browser and the session
+            await agent.cleanup_task_resources()
+            await Runner.release(conversation_id)
     answer["final"] = str(result.get("output") or "")
     answer["ok"] = result.get("result_type") == "answer" and bool(answer["final"])
     if not answer["ok"]:
@@ -157,10 +236,14 @@ async def browse(
     """One task with a decision model (``jev``, ``laya``, ``cua``) or the chat model (``llm``) deciding every browser step.
     Needs a started Runner.
 
-    A decision model writes ``decision_ticks.json`` under ``logs_dir`` and returns the ticks and the policy's report with
-    the answer; ``llm`` writes ``chat_calls.json``. ``decision_model`` is required by every other name and unused
-    by ``llm``.
+    A decision model saves ticks and its report; ``llm`` saves chat calls. Both save the final page as ``final.png``.
+    ``decision_model`` is required except for ``llm``. Bounded recovery needs a decision model that reads the plan,
+    so ``llm`` with ``policy.rethink_on`` is rejected before building the agent or browser.
     """
+    if policy.rethink_on and model_name == "llm":
+        raise RuntimeError("--rethink on needs a decision model; --model llm cannot use it")
+    if policy.rethink_on and decision_model is None:
+        raise RuntimeError(f"--rethink on needs a decision model; --model {model_name} was given none")
     logs_dir.mkdir(parents=True, exist_ok=True)
     calls: list[dict[str, Any]] = []
     counted = CountingModel(chat, calls)
@@ -179,10 +262,15 @@ async def browse(
                 browser_instance=instance,
                 browser_capabilities=["unsafe_dev"] if policy.batch_actions else None,
             )
-            answer = await run_task(agent, goal, timeout_s=timeout_s)
+            answer = await run_task(agent, goal, timeout_s=timeout_s, logs_dir=logs_dir)
             report = slot_model.report()
             answer["usage"] = await asyncio.to_thread(  # the price catalogue fetch is a blocking HTTP call
-                usage_summary, calls, jev_input_tokens=report["jev_input_tokens"], decisions=report["decisions"]
+                usage_summary,
+                calls,
+                jev_input_tokens=report["jev_input_tokens"],
+                decisions=report["decisions"],
+                # A decision tick that did not report usage makes the task's total unknown, never a confirmed zero.
+                decision_usage_known=all(tick.get("usage_known", True) for tick in slot_model.ticks),
             )
             answer["report"], answer["ticks"] = report, slot_model.ticks
             (logs_dir / "decision_ticks.json").write_text(
@@ -209,7 +297,7 @@ async def browse(
                 workspace=workspace,
                 browser_instance=instance,
             )
-            answer = finish_llm(await run_task(agent, goal, timeout_s=timeout_s))
+            answer = finish_llm(await run_task(agent, goal, timeout_s=timeout_s, logs_dir=logs_dir))
             answer["usage"] = await asyncio.to_thread(
                 usage_summary, calls, jev_input_tokens=0, decisions=sum(1 for call in calls if call["tool_calls"])
             )
@@ -261,10 +349,31 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
         help="decision models only: offer values extracted from the goal as a choice head",
     )
     build.add_argument(
+        "--rethink",
+        choices=("on", "off"),
+        default="off",
+        help=(
+            "decision models only: on a stall re-probe the page and ask the chat model for a plan under a bounded "
+            "budget (off keeps the legacy BLOCKED guard; run the same goal both ways to compare)"
+        ),
+    )
+    build.add_argument(
+        "--rethink-attempts",
+        type=positive_int,
+        default=3,
+        help="bounded rethink: stalls handled by a refresh and a plan before the task gives up",
+    )
+    build.add_argument(
+        "--rethink-timeout",
+        type=positive_float,
+        default=15.0,
+        help="bounded rethink: seconds across all refreshes and plans in one task, never reset by progress",
+    )
+    build.add_argument(
         "--logs-dir",
         type=Path,
         default=RUNS_DIR / spec.name / f"{datetime.now():%Y-%m-%d__%H-%M-%S}",
-        help="where the ticks, the chat calls and the workspace go",
+        help="where the ticks, the chat calls, the final screenshot and the workspace go",
     )
     build.add_argument(
         "--profile-out",
@@ -276,10 +385,13 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
 
 
 def policy_from_args(args: argparse.Namespace) -> BrowserPolicy:
+    """The policy from the parsed flags. ``RecoveryLimits`` rejects a non-finite or non-positive budget here."""
     return BrowserPolicy(
         prefetch_values=args.prefetch == "on",
         batch_actions=args.batch == "on",
         goal_value_cache=args.goal_values == "on",
+        rethink_on=args.rethink == "on",
+        recovery_limits=RecoveryLimits(max_attempts=args.rethink_attempts, timeout_s=float(args.rethink_timeout)),
     )
 
 

@@ -5,6 +5,8 @@ description: Self-review System1-Agents changes before opening a PR or requestin
 
 # System1-Agents self-review
 
+Start with the [human contributor-intent gate](#human-contributor-intent-gate).
+
 Read the target checkout's `CONTRIBUTING.md`, PR template, and applicable local
 instructions. Record the actual target branch and base/head commits, and review
 the full diff from their merge base plus relevant uncommitted changes. Distinguish
@@ -31,6 +33,48 @@ agent/backend, result checks can detect failure, and each profile's validation s
 This skill prepares a local contributor report. It does not itself authorize
 edits, commits, pushes, external posts, paid model calls, downloads, or changes to
 review status. Use only separately authorized execution resources and budgets.
+
+## Human contributor-intent gate
+
+Complete this gate with the human contributor before implementation and before
+submitting a PR (including a draft). At pre-submit self-review, verify the answers
+still describe the actual diff; ask again only where the scope or evidence changed.
+This is a contributor preparation step, not a prerequisite for an independent
+read-only review of someone else's PR, and it does not change automated review
+selection or authorize any external action.
+
+Before submission, verify that the [PR template](../../../.github/PULL_REQUEST_TEMPLATE.md)'s
+four required human answers and PR-necessity decision are complete and traceable,
+and that bug-fix failure evidence is present when applicable. Blank fields,
+placeholders, and agent-invented answers block implementation/submission. This is
+a contributor workflow constraint; the Markdown template itself is not server-side
+enforcement. Independent read-only reviews remain outside this gate.
+
+Use explicit human answers already present in the task, issue, or discussion,
+keeping a traceable reference to their source. Ask only for missing or ambiguous
+answers, then wait for the human; do not infer, invent, or answer on their behalf:
+
+1. What outcome are you trying to achieve?
+2. What is the highest-leverage variable for that outcome?
+3. How will this work move that variable rather than create busywork?
+4. Who is the customer or user, and what do they actually need?
+
+After those answers are clear, ask the human: **Is a PR needed at all to achieve
+this outcome?** Reuse an explicit, still-applicable human decision if already
+recorded. If the answer is no or remains unclear, stop implementation/submission
+and clarify the next step instead of manufacturing a change to justify a PR.
+
+For a bug fix, also link actual observed failure evidence, such as a minimal
+reproduction with its observed result, a failing regression test, or a relevant
+trace. Separate observed behavior from an untested diagnosis; a hypothetical
+failure is not verified evidence. If the evidence is missing, ask for it or obtain
+it within the authorized scope before proceeding.
+
+Keep source references in the working task and include only audience-appropriate,
+authorized summaries or links in the PR. Do not copy private conversations,
+customer data, or credentials into a public repository. Missing human answers
+remain a blocker; an agent-written rationale or completed checklist cannot
+substitute for them.
 
 ## Committed artifact hygiene
 

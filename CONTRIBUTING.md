@@ -1,5 +1,16 @@
 # Contributing
 
+## Before implementation or a PR
+
+Complete the [human contributor-intent gate](.agents/skills/self-review/SKILL.md#human-contributor-intent-gate)
+before implementation and before submitting a PR, including a draft. It records
+the human's outcome, highest-leverage variable, why the work moves it, customer
+and actual need, then whether a PR is needed at all. Reuse explicit traceable
+answers and ask only what is missing; wait rather than filling in answers for the
+contributor. Bug fixes need linked observed failure evidence. Keep private source
+material private. This contributor gate does not block independent read-only
+reviews or change automated review selection.
+
 ## Setup
 
 ```bash
@@ -26,10 +37,11 @@ scripts/smoke.sh
 On Windows, run `scripts/smoke.sh` and the Git hooks from Git Bash with the native Windows `uv` on `PATH`.
 The shell scripts and hooks keep LF line endings even when Git's `core.autocrlf` is enabled.
 
-CI runs these on two installs: the core (`uv sync --extra dev`, on Linux with Python 3.11 and 3.13 and on
-Windows with Python 3.11, where the game tests skip) and the contributor install above (on Linux, where the
-ALFWorld tests skip and the GIF test renders in the Chromium that `playwright install` fetches). `uv build`
-and `ty check` run in the core job only, since the extras resolve the optional imports `ty` is told to ignore.
+CI runs these on two installs: the core (`uv sync --extra dev`, on Linux with Python 3.11 and 3.13 on every
+run, and on Windows with Python 3.11 on pushes to `main` and the weekly schedule, where the game tests skip)
+and the contributor install above (on Linux, where the ALFWorld tests skip and the GIF test renders in the
+Chromium that `playwright install` fetches). `uv build` and `ty check` run in the core jobs only, since the
+extras resolve the optional imports `ty` is told to ignore.
 `scripts/smoke.sh` is the contract for the core install: `list`, `--help` for every agent, `decide` without a key
 and the MCP listing must work with no extra installed. A game whose extra is missing must say which one on stderr.
 
