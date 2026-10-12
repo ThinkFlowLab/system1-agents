@@ -7,7 +7,6 @@ import json
 import math
 import os
 from pathlib import Path
-import sys
 import time
 
 from benchmarks.client import DecisionClient, decode
@@ -158,13 +157,9 @@ def predict(args):
         write_json(
             output / "run.meta.json",
             dict(
-                argv=sys.argv,
                 endpoint=args.endpoint,
                 path=args.path,
-                environment=meta,
-                environment_file=str(args.run_meta.resolve()),
                 environment_sha256=digest(environment),
-                manifest_file=str(args.manifest.resolve()),
                 manifest_sha256=digest(source),
                 planned=len(rows),
                 timeout_s=args.timeout,

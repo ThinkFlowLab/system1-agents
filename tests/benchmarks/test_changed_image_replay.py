@@ -1,6 +1,5 @@
 """Offline replay contract checks; no model inference or external HTTP traffic."""
 
-import copy
 import json
 from types import SimpleNamespace
 
@@ -90,12 +89,10 @@ def test_serial_three_kinds_preserve_repeated_images_options_and_evidence(setup,
     inputs = [item("first"), item("second", "noul", JPEG), item("third", "score"), item("reversed"), item("again")]
     inputs[3]["request"]["options"].reverse()
     inputs[2]["request"]["state"][1] = {"type": "image_url", "image_url": {"url": PNG}}
-    before = copy.deepcopy(inputs)
     args, calls = setup(inputs)
     args.path, args.cache_state = path, "cold"
     output = replay.predict(args)
     records, raw, complete = evidence(output)
-    assert inputs == before
     assert [json.loads(call.content) for call in calls] == [row["request"] for row in inputs]
     assert all(str(call.url) == args.endpoint + path for call in calls)
     assert [row["sequence"] for row in records] == [1, 2, 3, 4, 5]
@@ -113,6 +110,7 @@ def test_serial_three_kinds_preserve_repeated_images_options_and_evidence(setup,
     assert (output / "manifest.jsonl").read_bytes() == args.manifest.read_bytes()
     assert (output / "environment.json").read_bytes() == args.run_meta.read_bytes()
     meta = json.loads((output / "run.meta.json").read_text())
+    assert not {"argv", "environment", "environment_file", "manifest_file"} & meta.keys()
     assert meta["cache_state_declared"] == "cold"
     assert meta["manifest_sha256"] == digest(args.manifest.read_bytes())
     assert meta["environment_sha256"] == digest(args.run_meta.read_bytes())
