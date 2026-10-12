@@ -49,6 +49,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- Review guidance (`self-review`, `review-pr`) now treats merge readiness as a gate: authors confirm the pull
+  request reports mergeable with CI green on the recorded head before requesting review, and reviewers do not
+  approve a conflicting branch or a run pinned to an older commit.
+- `review-pr` reads for readability as well as correctness: names that say what they do, reviewable function
+  length, and the repository's house idioms, judged against those conventions rather than personal style.
 - Core Windows CI (`core (windows, 3.11)`) runs on pushes to `main` and the weekly schedule, not on every
   pull request. Linux `core` and `full` still run on PRs.
 
