@@ -261,11 +261,28 @@ def test_escaped_surrogate_response_is_retained_and_sequence_continues(setup, st
     assert records[0]["raw_sha256"] == digest((args.out / records[0]["raw_file"]).read_bytes())
 
 
-def test_structure_check_does_not_compare_reference_values(setup):
-    body = answer(item()["request"]) | {"probabilities": [0.2, 0.2]}
+@pytest.mark.parametrize("probabilities", [[0.2, 0.8], [0.20000000298023224, 0.800000011920929]])
+def test_structure_check_does_not_compare_reference_values(setup, probabilities):
+    body = answer(item()["request"]) | {"probabilities": probabilities}
     args, _ = setup(handler=lambda _: httpx.Response(200, json=body))
     records, raw, _ = evidence(replay.predict(args))
     assert records[0]["ok"] and raw[0]["response"] == body
+
+
+def test_unnormalized_probabilities_are_failed_and_sequence_continues(setup):
+    body = answer(item()["request"]) | {"probabilities": [0.2, 0.2]}
+
+    def handler(request):
+        response = body if len(calls) == 1 else answer(json.loads(request.content))
+        return httpx.Response(200, json=response)
+
+    args, calls = setup([item(), item("next")], handler)
+    records, raw, complete = evidence(replay.predict(args))
+    assert len(calls) == complete["attempted"] == 2 and complete["remaining"] == 0
+    assert records[0]["status"] == "parse_error" and not records[0]["ok"]
+    assert "sum to 1" in records[0]["error"] and records[1]["ok"]
+    assert raw[0]["response"] == body and json.loads(raw[0]["response_body"]) == body
+    assert complete["failed"] == complete["succeeded"] == 1 and complete["stop_reason"] is None
 
 
 def test_output_never_overwrites_existing_evidence(setup):

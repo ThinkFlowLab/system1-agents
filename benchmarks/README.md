@@ -26,9 +26,13 @@ python -m benchmarks.legs.leg1_public231 aggregate \
   --out /absolute/path/to/results/open-jev-9b
 ```
 
-Omni native Open-Jev uses `/v1/systemone`; Intern's official service uses
-`/v1/decisions`. `--model` is optional. The collector preserves state, questions and
-option order, sends `thinking.enabled=false`, and never sends targets or provenance.
+The public231 collector uses the typed `state` / `questions` / `thinking` request
+and reads `answers.decision`. Omni native text Open-Jev exposes this contract at
+`/v1/systemone`; Intern's official service uses `/v1/decisions`. Omni's request
+and response schema depends on the selected worker: native JEV-27B-VL instead
+uses the flat contract described below at the same `/v1/systemone` path.
+`--model` is optional. The collector preserves state, questions and option order,
+sends `thinking.enabled=false`, and never sends targets or provenance.
 It makes one request at a time, without retries. It does not start services or choose GPUs.
 
 `environment.json` describes the **actual service**, without credentials:
@@ -73,8 +77,10 @@ detect inconsistent evidence, not coordinated rewriting of an unsigned archive.
 
 ## Changed-image replay
 
-Replay a frozen screenshot sequence against official JEV `/v1/decide` or native
-Omni `/v1/systemone`, using the same `DecisionClient` without a model override:
+Replay a frozen screenshot sequence using the flat `kind` / `state` / `question` /
+`options` contract of official JEV `/v1/decide` or Omni native JEV-27B-VL
+`/v1/systemone`, using the same `DecisionClient` without a model override. This
+collector does not send the public231 typed contract to Intern `/v1/decisions`:
 
 ```bash
 python -m benchmarks.legs.changed_image_replay \
@@ -107,22 +113,33 @@ Keep any canonical-ID alias map alongside the external input evidence.
 
 The fresh output directory must be outside this repository. It retains the exact
 `manifest.jsonl`, `environment.json`, `run.meta.json`, one `raw/NNNNNN.json` per
-attempt and `results.jsonl`. Records include sequence/id/group/kind, hashes of
-the request serialized by `benchmarks.evidence.dump`, image URIs in order, raw
-evidence and original response text. Raw evidence retains request, HTTP status,
-text, decoded response, client error, timestamp and latency. `completion.json`
-counts planned/attempted/remaining/succeeded/failed and records the stop reason.
+attempt and `results.jsonl`. Result records include sequence/id/group/kind,
+`request_sha256` (of the request serialized by `benchmarks.evidence.dump`), ordered
+`image_uri_sha256`, `response_body_sha256`, and the raw file's path and hash.
+The full request, image URIs and original response text are in raw evidence,
+together with HTTP status, decoded response, client error, timestamp and latency.
+`completion.json` counts planned/attempted/remaining/succeeded/failed and records
+the stop reason.
 HTTP 400/422 refusals and malformed answers remain failed records; access errors,
 other non-2xx responses, transport failures and interruptions stop the sequence.
 
 Response validation checks kind/effective_kind, ordered options, probability
-count/range and choice/index consistency. `noul` uses `false,true`; `score` uses
-`0` through `5`. This is structural validation, not reference agreement or task
-quality, and does not add three-kind support to the Agents `DecisionModel` API.
-Use the independent Omni harness for numerical reference comparison. Client
-`latency_s` ends after `response.text` is read, before JSON decoding; it excludes
-service startup. Short replays do not establish stable p95 latency, and replaying
-2048 screenshots does not establish autonomous game completion.
+count/range, a probability sum within `1e-6` of 1, and choice/index consistency.
+The sum tolerance only allows floating-point rounding, including float32 output;
+it is not a reference-comparison tolerance. Unnormalized answers remain
+`parse_error` records with their raw evidence and count as failures. `noul` uses
+`false,true`; `score` uses `0` through `5`. `ok` and `succeeded` mean only a valid
+response; they do not establish reference agreement, cache correctness or task
+completion, and do not add three-kind support to the Agents `DecisionModel` API.
+Use the independent Omni harness for numerical reference comparison. Comparing
+repeated images requires the complete request to match, including all state text,
+image order, question, options and inference settings. Compare the cache path
+with the reference or cache-disabled path under the same checkpoint and runtime;
+require deterministic inference settings or account for expected nondeterminism
+before attributing differences to caching. Matching image URI hashes alone is
+insufficient. Client `latency_s` ends after `response.text` is read, before JSON
+decoding; it excludes service startup. Short replays do not establish stable p95
+latency, and replaying 2048 screenshots does not establish autonomous game completion.
 
 ## Tests
 

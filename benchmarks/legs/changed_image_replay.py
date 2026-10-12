@@ -4,6 +4,7 @@ import argparse
 import base64
 from contextlib import closing
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -96,6 +97,8 @@ def response_error(request, response):
         or any(isinstance(p, bool) or not isinstance(p, (int, float)) or not 0 <= p <= 1 for p in probabilities)
     ):
         return "Expected one finite probability in [0, 1] per option"
+    if not math.isclose(math.fsum(probabilities), 1.0, rel_tol=0, abs_tol=1e-6):
+        return "Expected probabilities to sum to 1"
     index = response.get("choice_index")
     if isinstance(index, bool) or not isinstance(index, int) or not 0 <= index < len(options):
         return "choice_index is outside the options"
