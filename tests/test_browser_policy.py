@@ -100,11 +100,6 @@ def _answers(operation: str, value: str) -> dict[str, Any]:
     }
 
 
-def _control_answer(operation: str) -> dict[str, Any]:
-    """An ``operation`` answer scoped to an action space with no addressable elements."""
-    return {"answers": {"operation": _answer(operation, _CONTROL_OPERATIONS)}}
-
-
 def _op_answer(operation: str) -> dict[str, Any]:
     """A control operation (``WAIT`` / ``DONE`` / ``BLOCKED`` / scroll) over the full ``_SNAPSHOT`` action space.
 
@@ -302,8 +297,14 @@ class _ScriptedUrlRuntime:
 class _AlwaysFailingRuntime:
     """A runtime whose probe never recovers, mirroring the B3-fixed ``probe_for_policy`` failure envelope."""
 
+    def __init__(self, error: str | None = None) -> None:
+        self.error = error
+
     async def probe_for_policy(self, source: str, params: dict[str, Any]) -> dict[str, Any]:
-        return json.loads(json.dumps(_FAILED_PROBE_ENVELOPE))
+        envelope = json.loads(json.dumps(_FAILED_PROBE_ENVELOPE))
+        if self.error is not None:
+            envelope["error"] = self.error
+        return envelope
 
 
 class _Wire(ScriptedTransport):
@@ -427,11 +428,20 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
 
         tick = slot_model.ticks[0]
         self.assertEqual((tick["decision_ms"], tick["input_tokens"], tick["output_tokens"]), (7, 315, 0))
+        self.assertTrue(tick["usage_known"])
         self.assertEqual((tick["operation"], tick["target"], tick["confidence"]), ("CLICK", "Search", 0.9))
         self.assertEqual(tick["probabilities"], {"1": 0.9, "2": 0.1}, "the click head's probabilities, for the replay")
         self.assertEqual(tick["candidates"]["1"], "Search")
         report = slot_model.report()
         self.assertEqual((report["decisions"], report["median_decision_ms"], report["jev_input_tokens"]), (1, 7, 315))
+
+    async def test_a_tick_marks_usage_unknown_when_the_backend_did_not_report_it(self) -> None:
+        from s1a.decision_models import ScriptedModel
+
+        decision_model = ScriptedModel(latency_ms=3, usage=Usage(known=False), model="laya-rl-agent")
+        slot_model = _slot_model([], goal_value_cache=False, decision_model=decision_model)
+        await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+        self.assertFalse(slot_model.ticks[0]["usage_known"], "missing usage stays distinct from an explicit zero")
 
     async def test_report_prices_input_tokens_by_backend_flag(self) -> None:
         """The scripted backend's token usage is priced only when it opts into the Jev input rate."""
@@ -515,6 +525,19 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
                 "settle_ms": 0,
                 "values": {"cache": 0, "prefetch": 0, "llm": 0},
                 "history": [],
+                "recovery": {
+                    "attempts": 0,
+                    "spent_s": 0.0,
+                    "exhausted": False,
+                    "failed": False,
+                    "blocked_after_recovery": False,
+                    "termination": None,
+                    "stage": None,
+                    "error": None,
+                    "reason": None,
+                    "next_action": None,
+                    "events": [],
+                },
             },
         )
         self.assertEqual(slot_model.ticks, [])
@@ -633,23 +656,97 @@ class TestDecisionModelAttributeIsolation(TestCase):
         self.assertIs(slot_model._decision_model, decision_model)
 
 
-class TestJevProbeFailureDegradesToBlocked(IsolatedAsyncioTestCase):
-    """B3: a probe that never recovers must not spin or raise — it must reach BLOCKED."""
+class _HiddenTabRuntime:
+    """A hidden first probe; ``activate_page`` succeeds and the re-probe either succeeds or fails."""
 
-    async def test_always_failing_probe_terminates_blocked_within_the_wait_budget(self) -> None:
-        scripted = [_control_answer("WAIT") for _ in range(MAX_CONSECUTIVE_WAITS + 1)]
-        slot_model = _slot_model(scripted, goal_value_cache=False, runtime=_AlwaysFailingRuntime())
+    def __init__(self, *, reprobe_fails: bool) -> None:
+        self.reprobe_fails = reprobe_fails
+        self.calls: list[dict[str, Any]] = []
+        self.activations = 0
+
+    async def probe_for_policy(self, source: str, params: dict[str, Any]) -> dict[str, Any]:
+        self.calls.append(params)
+        if len(self.calls) == 1:
+            snapshot = json.loads(json.dumps(_SNAPSHOT))
+            snapshot["visibility"] = "hidden"
+            return snapshot
+        if self.reprobe_fails:
+            return json.loads(json.dumps(_FAILED_PROBE_ENVELOPE))
+        snapshot = json.loads(json.dumps(_SNAPSHOT))
+        snapshot["visibility"] = "visible"
+        return snapshot
+
+    async def activate_page(self, url: str) -> bool:
+        self.activations += 1
+        return True
+
+
+class TestJevProbeFailureRaisesBeforeDecision(IsolatedAsyncioTestCase):
+    """A failed probe is not an empty page: it must raise before the decision model or the chat answer reads it."""
+
+    async def test_initial_failed_probe_raises_without_a_decision(self) -> None:
+        slot_model = _slot_model([], goal_value_cache=False, runtime=_AlwaysFailingRuntime())
+
+        with self.assertRaises(RuntimeError) as caught:
+            await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+
+        self.assertIn("observation failed", str(caught.exception))
+        self.assertEqual(len(_wire(slot_model).bodies), 0, "the decision model is never reached")
+        self.assertFalse(slot_model.ticks, "a failed observation records no decision tick")
+        self.assertFalse(slot_model._run.finished, "a failed observation is not a terminal DONE")
+
+    async def test_a_failed_probe_reason_is_bounded(self) -> None:
+        huge = "libatk-1.0.so.0: cannot open shared object file\n" * 200  # a real missing-library log
+        slot_model = _slot_model([], goal_value_cache=False, runtime=_AlwaysFailingRuntime(huge))
+
+        with self.assertRaises(RuntimeError) as caught:
+            await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+
+        message = str(caught.exception)
+        self.assertIn("libatk-1.0.so.0", message)
+        self.assertLessEqual(len(message), 250, "the reason is bounded, not the whole browser log")
+        self.assertNotIn("\n", message, "the reason is one line")
+
+    async def test_a_failed_activation_reprobe_raises_without_a_decision(self) -> None:
+        runtime = _HiddenTabRuntime(reprobe_fails=True)
+        slot_model = _slot_model([], goal_value_cache=False, runtime=runtime)
+
+        with self.assertRaises(RuntimeError) as caught:
+            await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+
+        self.assertIn("observation failed", str(caught.exception))
+        self.assertEqual(runtime.activations, 1, "the hidden tab was activated once, then its re-probe refused")
+        self.assertEqual(len(runtime.calls), 2, "one probe to see the hidden page, one after activation")
+        self.assertEqual(len(_wire(slot_model).bodies), 0, "the decision model is never reached")
+
+    async def test_a_successful_activation_reprobe_still_decides(self) -> None:
+        runtime = _HiddenTabRuntime(reprobe_fails=False)
+        slot_model = _slot_model([_answers("CLICK", "none")], goal_value_cache=False, runtime=runtime)
 
         message = await slot_model.invoke(_MESSAGES, tools=_TOOLS)
 
-        self.assertIsNone(message.tool_calls)
-        summary = json.loads(message.content)
+        self.assertEqual(message.tool_calls[0].name, "browser_click")
+        self.assertEqual(runtime.activations, 1)
+        self.assertEqual(len(_wire(slot_model).bodies), 1)
+
+    async def test_a_failed_settle_probe_cannot_produce_a_chat_answer(self) -> None:
+        # After real progress (the click moved the page) every WAIT settle probe fails: the BLOCKED terminal
+        # must not ask the chat model to answer over the failed page and turn the failure into a success.
+        runtime = _ScriptedPageKeyRuntime(["k1", "k2", None, None, None])
+        slot_model = _slot_model(
+            [_answers("CLICK", "none"), _op_answer("WAIT")], goal_value_cache=False, runtime=runtime
+        )
+        fallback = slot_model._fallback
+
+        first = await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+        self.assertEqual(first.tool_calls[0].name, "browser_click")
+        summary = json.loads((await slot_model.invoke(_MESSAGES, tools=_TOOLS)).content)
+
         self.assertEqual(summary["status"], "BLOCKED")
-        self.assertEqual(
-            len(_wire(slot_model).bodies),
-            1,
-            "a probe that never recovers exhausts the streak budget on the first WAIT, and an exhausted "
-            "budget is terminal -- the model is never re-asked about a snapshot it already answered",
+        self.assertEqual(summary["answer"], "")
+        self.assertFalse(
+            any("final page" in asked[0]["content"] for asked in fallback.asked),
+            "a failed observation is never sent to the chat answer",
         )
 
 

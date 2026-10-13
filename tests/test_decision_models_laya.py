@@ -309,6 +309,18 @@ class TestLayaModelCompaction(IsolatedAsyncioTestCase):
         ((state, _asked),) = agent.calls
         self.assertEqual(state, _BROWSER_STATE)
 
+    async def test_a_recovery_plan_survives_compaction_while_page_text_is_dropped(self) -> None:
+        agent = FakeLayaAgent()
+        plan = "Click Enable editing, then fill Value."
+        state = dict(_BROWSER_STATE, page=dict(_BROWSER_STATE["page"]), plan=plan)
+        question = ChoiceQuestion({"1": {"element": "[1] Search"}})
+        await _model(agent).decide_many(Observation(state), {"operation": question})
+        ((seen, _asked),) = agent.calls
+        self.assertEqual(seen["plan"], plan)
+        self.assertNotIn("text", seen["page"])
+        self.assertEqual(state["plan"], plan)
+        self.assertEqual(state["page"]["text"], "x" * 5000)
+
 
 class TestFailures(IsolatedAsyncioTestCase):
     async def test_option_overflow_and_torch_errors_are_model_call_failures(self) -> None:

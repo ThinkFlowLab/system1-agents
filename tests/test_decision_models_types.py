@@ -73,9 +73,18 @@ class TestAnswersAndUsage(TestCase):
 
     def test_usage_tolerates_a_missing_or_malformed_payload(self) -> None:
         self.assertEqual(Usage.from_payload({"input_tokens": 315, "output_tokens": 31}), Usage(315, 31))
-        self.assertEqual(Usage.from_payload(None), Usage())
-        self.assertEqual(Usage.from_payload({"input_tokens": "x", "output_tokens": None}), Usage())
-        self.assertEqual(Usage.from_payload("junk"), Usage())
+        self.assertEqual(Usage.from_payload({"input_tokens": 0}), Usage(0, 0, known=True), "an explicit zero is known")
+        self.assertEqual(Usage.from_payload({"input_tokens": 4, "output_tokens": 0}), Usage(4, 0, known=True))
+        # Missing or malformed usage is unknown, not a confirmed zero; the tolerant counts are still kept.
+        self.assertEqual(Usage.from_payload(None), Usage(0, 0, known=False))
+        self.assertEqual(Usage.from_payload("junk"), Usage(0, 0, known=False))
+        self.assertEqual(Usage.from_payload({}), Usage(0, 0, known=False), "input must be present")
+        self.assertEqual(Usage.from_payload({"output_tokens": 7}), Usage(0, 7, known=False))
+        self.assertEqual(Usage.from_payload({"input_tokens": "x", "output_tokens": None}), Usage(0, 0, known=False))
+        for bad in (True, -1, 1.5, "3", float("inf")):
+            with self.subTest(bad=bad):
+                self.assertFalse(Usage.from_payload({"input_tokens": bad}).known)
+        self.assertFalse(Usage.from_payload({"input_tokens": 5, "output_tokens": -1}).known)
 
     def test_a_decision_hands_out_answers_by_type(self) -> None:
         decision = Decision(answers={"pick": GOOD, "check": Noul(0.2, 0.8)}, latency_ms=9)

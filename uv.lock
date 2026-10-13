@@ -5224,6 +5224,7 @@ dependencies = [
     { name = "httpx" },
     { name = "mcp" },
     { name = "openjiuwen" },
+    { name = "pillow" },
     { name = "python-dotenv" },
 ]
 
@@ -5299,6 +5300,7 @@ requires-dist = [
     { name = "openjiuwen", git = "https://github.com/ThinkFlowLab/agent-core?rev=jj-0.1.0" },
     { name = "peft", marker = "extra == 'cua-four-b'", specifier = ">=0.21,<1" },
     { name = "peft", marker = "extra == 'omnijev'", specifier = ">=0.15" },
+    { name = "pillow", specifier = ">=10" },
     { name = "pillow", marker = "extra == 'cua-four-b'", specifier = ">=10" },
     { name = "pillow", marker = "extra == 'omnijev'" },
     { name = "pillow", marker = "extra == 'report'", specifier = ">=10" },
