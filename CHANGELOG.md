@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `jev-vl-served` in the browser front and decision-model factory: JEV-27B-VL through System1-Omni's native
+  flat HTTP protocol, with a mandatory current PNG/JPEG, choice/noul mapping and a shared decision deadline.
+  Local tests use mocks; real GPU/browser execution and the integration demo remain unverified.
 - Optional local Cua-S1 4B inference through the `cua-four-b` extra and `CUA_S1_VARIANT=4b`, supporting text and
   multimodal input. Desktop `--pixel-target` offers named screenshot points; clicks remain bound to the observed
   window and capture.
