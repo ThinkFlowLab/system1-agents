@@ -26,7 +26,7 @@ from s1a.decision_models.types import (
 
 
 def unit_interval(value: object) -> TypeGuard[float]:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 1
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value <= 1 and math.isfinite(value)
 
 
 def choice_faults(fields: Json, ids: list[str]) -> list[str]:

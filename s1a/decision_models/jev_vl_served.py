@@ -57,7 +57,9 @@ def _image_url(observation: Observation) -> str:
                 or max(w, h) > 200 * min(w, h)
             ):
                 raise ValueError("image format, frame count or dimensions exceed the native worker's limits")
-            # Forced one-option decisions make no HTTP call, so they must also reject undecodable images here.
+            # verify checks PNG CRCs; load also checks compressed pixels before a forced decision can bypass HTTP.
+            picture.verify()
+        with PillowImage.open(io.BytesIO(image.data)) as picture:
             picture.load()
     except (OSError, ValueError, SyntaxError, PillowImage.DecompressionBombError) as exc:
         raise build_error(

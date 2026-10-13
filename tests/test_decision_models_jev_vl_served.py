@@ -45,6 +45,18 @@ PNG = image_bytes()
 OBSERVATION = Observation({"task": "Pick a visible control"}, (Image(PNG),))
 
 
+def corrupt_idat_crc() -> bytes:
+    data = bytearray(PNG)
+    offset = 8
+    while offset < len(data):
+        size = int.from_bytes(data[offset : offset + 4], "big")
+        if data[offset + 4 : offset + 8] == b"IDAT":
+            data[offset + 8 + size] ^= 1
+            return bytes(data)
+        offset += size + 12
+    raise AssertionError("fixture has no IDAT chunk")
+
+
 def animated_png() -> bytes:
     buffer = BytesIO()
     PillowImage.new("RGB", (8, 8), "white").save(
@@ -109,6 +121,43 @@ def body(server: Server, index: int = 0) -> dict[str, Any]:
 
 def assert_status(caught: pytest.ExceptionInfo[BaseError], expected=StatusCode.MODEL_CALL_FAILED) -> None:
     assert caught.value.status == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("question", [PICK, ChoiceQuestion({"only": "Only option"})])
+async def test_idat_crc_corruption_is_rejected_before_forced_or_http_decision(make_model, question):
+    model, server = make_model()
+    observation = Observation({}, (Image(corrupt_idat_crc()),))
+    with pytest.raises(BaseError) as caught:
+        await model.decide_many(observation, {"pick": question})
+    assert_status(caught, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
+    assert server.requests == []
+
+
+@pytest.mark.asyncio
+async def test_extreme_integer_probability_is_a_model_error(make_model):
+    def invalid(request):
+        return httpx.Response(200, json=flat_answer(json.loads(request.content), probabilities=[10**1000, 0.8]))
+
+    model, _ = make_model(script=[invalid])
+    with pytest.raises(BaseError) as caught:
+        await model.decide_many(OBSERVATION, {"pick": PICK})
+    assert_status(caught)
+
+
+@pytest.mark.asyncio
+async def test_integer_usage_counts_do_not_overflow_float_validation(make_model):
+    def reported(request):
+        return httpx.Response(
+            200,
+            json=flat_answer(json.loads(request.content), usage={"prompt_tokens": 10**1000, "completion_tokens": 1}),
+        )
+
+    model, _ = make_model(script=[reported])
+    decision = await model.decide_many(OBSERVATION, {"pick": PICK})
+    assert decision.usage.known is True
+    assert decision.usage.input_tokens == 10**1000
+    assert decision.usage.output_tokens == 1
 
 
 @pytest.mark.asyncio
