@@ -24,6 +24,10 @@ the browser's element rows); `NoulQuestion(question, criteria=)` asks whether a 
 `Decision(answers, latency_ms, usage, model, raw)` with one `Choice(key, probabilities, confidence)` or
 `Noul(p, confidence)` per question name.
 
+`Usage.known` distinguishes reported zero tokens from missing or malformed provider usage. A local backend can
+return `Usage()` for a known zero; `Usage.from_payload` preserves tolerant counts but marks incomplete usage unknown.
+Input-only decision usage is accepted with zero output tokens. Consumers must not price a partial total as complete.
+
 ```python
 model = build_model("jev")
 decision = await model.decide_many(
