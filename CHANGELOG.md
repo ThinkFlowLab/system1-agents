@@ -22,6 +22,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- Browser front: the screenshot for an image-reading decision model is read from the `png` field of the
+  capture's own result, layer by layer, and must decode to a PNG. Before, a pattern search over the whole run-code
+  output could take PNG-like text from elsewhere in the result, such as the page state, for the picture.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
 - Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.
