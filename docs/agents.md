@@ -101,9 +101,11 @@ it is unsure about; `pass_uncertain` names that choice, and a stricter deploymen
 `act` or thresholds. No text the decision did not see reaches the model while the guard is attached; a page whose
 useful content sits past character 6,000 loses it.
 
-Each tick carries `p`, `band`, `ms` and `input_tokens` (or `error` and `failed`), with `handling`, `coverage`
-(`complete` or `partial`), `chars` and `inspected_chars`. Ticks never hold the tool output's text. Tools outside the
-two guarded ones are neither asked about nor recorded.
+Each tick carries `p`, `band`, `ms` and `input_tokens` (or `error`, `error_code` and `failed`), with `handling`,
+`coverage` (`complete` or `partial`), `chars` and `inspected_chars`. Ticks never hold the tool output's text. On a
+failure, the tick and the warning log name only the error's status and cause type (`MODEL_CALL_FAILED (ReadTimeout)`),
+never its message: an endpoint's error body can quote the submitted state back. Tools outside the two guarded ones
+are neither asked about nor recorded.
 
 The labelled-set scores in [benchmarks.md](benchmarks.md#the-injection-guard-rail) measure the classifier on its
 records. They say nothing about the runtime handling above, which `tests/test_rails.py` and

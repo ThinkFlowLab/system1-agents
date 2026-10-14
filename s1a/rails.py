@@ -53,6 +53,17 @@ async def ask(spec: RailSpec, state: Json, decision_model: DecisionModel) -> Ver
     return Verdict(p=p, band=spec.thresholds.band(p), ms=decision.latency_ms, input_tokens=decision.usage.input_tokens)
 
 
+def failure_category(exc: BaseError) -> str:
+    """A decision failure as its status name, plus its cause's type when it has one (``MODEL_CALL_FAILED (ReadTimeout)``).
+
+    Never the exception's message: an endpoint's error body can quote the submitted state, and so the guarded tool
+    output, back into it.
+    """
+    category = getattr(exc.status, "name", type(exc).__name__)
+    cause = exc.__cause__
+    return f"{category} ({type(cause).__name__})" if cause is not None else category
+
+
 class DecisionModelRail(DeepAgentRail):
     """The spec's question on the spec's hook; the spec's action runs in the act band. ``ticks`` records every verdict.
 
@@ -67,7 +78,8 @@ class DecisionModelRail(DeepAgentRail):
     - ``act_on_failure`` / ``pass_on_failure``: the decision failed on a closed / open rail.
 
     With ``coverage_of`` set, a tick also carries ``coverage`` (``complete`` or ``partial``), ``chars`` and
-    ``inspected_chars``. A tick holds numbers, bands and the error text; never the event's content.
+    ``inspected_chars``. A tick holds numbers, bands and, on a failure, the error's category and code (see
+    ``failure_category``); never the event's content and never an exception's message, which can echo it.
     """
 
     def __init__(self, spec: RailSpec, decision_model: DecisionModel) -> None:
@@ -96,13 +108,15 @@ class DecisionModelRail(DeepAgentRail):
         try:
             verdict = await ask(self._spec, state, self._decision_model)
         except BaseError as exc:
+            error = failure_category(exc)
             logger.warning(
-                "[DecisionModelRail %s] decision failed, %s: %s", self._spec.name, self._spec.on_failure, exc
+                "[DecisionModelRail %s] decision failed, %s: %s", self._spec.name, self._spec.on_failure, error
             )
             closed = self._spec.on_failure == "closed"
             self.ticks.append(
                 {
-                    "error": str(exc),
+                    "error": error,
+                    "error_code": exc.code,
                     "failed": self._spec.on_failure,
                     "handling": "act_on_failure" if closed else "pass_on_failure",
                     **seen,

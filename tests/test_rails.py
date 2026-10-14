@@ -11,6 +11,7 @@ from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import MagicMock, patch
 
+import httpx
 from openjiuwen.core.common.exception.codes import StatusCode
 from openjiuwen.core.common.exception.errors import BaseError, build_error
 from openjiuwen.core.foundation.llm import ToolMessage
@@ -19,6 +20,7 @@ from openjiuwen.core.single_agent.rail.base import AgentCallbackContext, AgentCa
 from s1a import rails
 from s1a.agents.injection_guard import SPEC as GUARD
 from s1a.decision_models import JevModel, LayaModel, ScriptedModel, ScriptedTransport, Usage
+from s1a.decision_models.wire import JevDecisionsClient
 from s1a.spec import Coverage, RailSpec, Thresholds
 
 INJECTED = (
@@ -201,7 +203,7 @@ class TestDecisionModelRailOnTheInjectionGuard(IsolatedAsyncioTestCase):
         self.assertNotIn("ignore", ctx.inputs.tool_result)
         self.assertEqual(ctx.inputs.tool_msg.content, ctx.inputs.tool_result)
         self.assertEqual((rail.ticks[0]["failed"], rail.ticks[0]["handling"]), ("closed", "act_on_failure"))
-        self.assertIn("decisions endpoint unavailable", rail.ticks[0]["error"])
+        self.assertEqual((rail.ticks[0]["error"], rail.ticks[0]["error_code"]), ("MODEL_CALL_FAILED", 181001))
 
     async def test_a_deadline_quarantines_a_long_result_on_a_closed_rail(self) -> None:
         error = build_error(StatusCode.MODEL_CALL_FAILED, error_msg="no answer within 30 s")
@@ -224,7 +226,43 @@ class TestDecisionModelRailOnTheInjectionGuard(IsolatedAsyncioTestCase):
         await rail.on_event(ctx)
         self.assertEqual((ctx.inputs.tool_result, ctx.inputs.tool_msg.content), (INJECTED, INJECTED))
         self.assertEqual((rail.ticks[0]["failed"], rail.ticks[0]["handling"]), ("open", "pass_on_failure"))
-        self.assertIn("decisions endpoint unavailable", rail.ticks[0]["error"])
+        self.assertEqual(rail.ticks[0]["error"], "MODEL_CALL_FAILED")
+
+    async def test_an_error_body_echoing_the_state_never_reaches_the_ticks_or_the_log(self) -> None:
+        marker = "SYNTHETIC-ECHOED-STATE-MARKER"
+
+        def echo(request: httpx.Request) -> httpx.Response:
+            state = json.loads(request.content)["state"]
+            return httpx.Response(400, text="Invalid state: " + json.dumps(state))
+
+        client = JevDecisionsClient(api_key="k", url="https://decisions.invalid/v1/decide", model="jev", timeout_s=5)
+        await client._client.aclose()
+        client._client = httpx.AsyncClient(transport=httpx.MockTransport(echo))
+        self.addAsyncCleanup(client.close)
+        for on_failure, handling in (("closed", "act_on_failure"), ("open", "pass_on_failure")):
+            with self.subTest(on_failure=on_failure):
+                spec = RailSpec(**{**GUARD.__dict__, "on_failure": on_failure})
+                rail = rails.DecisionModelRail(spec, JevModel(client))
+                ctx = _ctx("fetch_webpage", f"Ordinary page. {marker}")
+                with patch.object(rails, "logger") as log:
+                    await rail.on_event(ctx)
+                tick = rail.ticks[0]
+                self.assertEqual((tick["handling"], tick["error"]), (handling, "MODEL_CALL_FAILED"))
+                self.assertNotIn(marker, json.dumps(rail.ticks))
+                self.assertNotIn("Invalid state", json.dumps(rail.ticks))
+                self.assertEqual(log.warning.call_count, 1)
+                logged = " ".join(str(arg) for arg in log.warning.call_args.args)
+                self.assertIn("MODEL_CALL_FAILED", logged)
+                self.assertNotIn(marker, logged)
+                self.assertNotIn("Invalid state", logged)
+                self.assertEqual(marker in ctx.inputs.tool_result, on_failure == "open")
+
+    def test_a_failure_category_names_the_status_and_the_cause_type_only(self) -> None:
+        cause = httpx.ReadTimeout("secret page text")
+        error = build_error(StatusCode.MODEL_CALL_FAILED, cause=cause, error_msg="secret page text")
+        self.assertEqual(rails.failure_category(error), "MODEL_CALL_FAILED (ReadTimeout)")
+        plain = build_error(StatusCode.MODEL_CALL_FAILED, error_msg="secret page text")
+        self.assertEqual(rails.failure_category(plain), "MODEL_CALL_FAILED")
 
     async def test_a_body_that_is_no_object_is_a_failure_too(self) -> None:
         for body in ([], "nope", {"answers": []}):
