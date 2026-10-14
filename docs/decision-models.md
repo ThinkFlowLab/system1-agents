@@ -52,7 +52,7 @@ shorthands; `warm()` and `close()` open and release the backend.
 | `--model` | class | `name` | notes |
 |---|---|---|---|
 | `jev` | `JevModel(transport)` | `jev` | the request body every front sent before the layer existed, byte for byte; `from_env` picks TypeSafe or the OpenRouter proxy (see [configuration.md](configuration.md)) |
-| `jev-vl-served` | `ServedJevVLModel(url=, timeout_s=)` | `jev-vl-served` | `autotrust/JEV-27B-VL` through native flat `POST /v1/systemone`; exactly one current PNG/JPEG, choice and noul only; sequential questions share one deadline, with no HTTP retry or answer re-ask. Browser and direct factory paths; local tests use mocks, real GPU/browser execution remains unverified. See below. |
+| `jev-vl-served` | `ServedJevVLModel(url=, timeout_s=)` | `jev-vl-served` | `autotrust/JEV-27B-VL` through native flat `POST /v1/systemone`; exactly one current PNG/JPEG, choice and noul only; sequential questions share one deadline, with no HTTP retry or answer re-ask. Browser and direct factory paths; local tests use mocks, with separate [bounded R3 GPU/browser validation](#served-jev-vl). |
 | `clm` | `ClmModel(client, model=)` | `clm` | CLM behind `/v1/systemone`: a frozen Qwen3-8B encoder and two projection heads, scored by an engine that owns everything after the encoder. One POST per decision; `MODEL_SERVICE_CONFIG_ERROR` without `CLM_URL`, `MODEL_CALL_FAILED` when nothing is listening, on an error status, or on a body with no `answers`. Records `url`, the `X-Request-Id` it sent and `served_by` (the served names, read once — by `warm()` on the agent fronts, or on the first decision for `decide`/`probe`); choice and noul ([docs/clm.md](clm.md)) |
 | `laya` | `LayaModel(agent, model=)` | `laya` | one forward pass per call on a thread; `MODEL_SERVICE_CONFIG_ERROR` when `input_tokens` fills the window (Laya cuts the state silently; see `LAYA_MAX_LEN` and `LAYA_HEAD_MAX_LEN` in [configuration.md](configuration.md)); `ValueError` and `RuntimeError` from the library become `MODEL_CALL_FAILED` |
 | `laya-served` | `ServedLayaModel(client, model=, max_len=)` | `laya-served` | one `POST /v1/systemone` per request to `LAYA_SERVED_URL`, body built with `laya_question()` as for `laya`; one retry on a dropped connection, 502 or 504, and after `Retry-After` on 503, all within `LAYA_SERVED_TIMEOUT_S`; the same window check as `laya`; `model` is the served checkpoint and revision, and `raw` keeps `served_by`, `url`, `request_id` and `server_timing` (see [served-laya.md](served-laya.md)) |
@@ -94,9 +94,23 @@ the invocation is:
 JEV_VL_URL=http://127.0.0.1:8080 S1A_DECISION_TIMEOUT_S=30 uv run s1a run flights --model jev-vl-served --rethink off
 ```
 
-This is a setup example. Local adapter and registration tests use mocks; real GPU inference, browser task
-completion and the application/Agents/Omni demo remain unverified. Other agent fronts are not registered for this
-image-required backend. This path is separate from the in-process `omnijev` adapter.
+This is a setup example; the validation below does not establish Flights task completion. Other agent fronts
+are not registered for this image-required backend. This path is separate from the in-process `omnijev` adapter.
+
+Bounded R3 validation (2026-10-14) used frozen Agents `0def92771746ec94adc38bf41be9720bccfbf19d`
+and Omni `26dc76bf65c544815e7b285866791da1e703816d` on one NVIDIA H800. Native correctness
+(612 requests), cache eviction (36 requests), and the full 60-episode paired HTTP replay (1,080 timed requests)
+passed their checks. The [RECOVERABLE fixture](../evals/recovery/fixture.py), run through the
+[live browser evaluator](../evals/recovery/live.py) with recovery off, completed three actions and a verified
+`hello world` POST. Four operation choices were non-forced; six forced targets do not count as learned choices.
+A separate chat/value model supplied text; JEV-VL selected the operations. The same-trial application video
+and Agents/Omni evidence replay contain 294 frames over 11.76 seconds. R1 failed in transport; R2 completed
+the task but had an empty recording; R3 passed the complete evidence checks. All three attempts are retained.
+This is a single-fixture smoke check, not broad task-quality evidence or an end-to-end browser speedup claim.
+
+Run-local audit records and media are retained outside this repository and are not yet published:
+`20261012T114800Z-online-vision-agents/revisions/26dc76b-agents-0def927`, browser job `419202`;
+the evidence replay SHA-256 is `58550ee293bbfb9c5b1f563c03e8cbdb6f6ac2a3ef23080f73ec3435b932a9e4`.
 
 ## What each front sends
 
