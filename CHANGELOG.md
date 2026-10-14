@@ -8,7 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 - `scripts/build_browsesafe_set.py`: a seeded, label-stratified BrowseSafe-Bench test sample (row ids in
   `evals/labelled/browsesafe-test-sample.json`, dataset not vendored) in the injection guard's labelled-set shape,
-  and the share of page text the guard inspects at its 6,000-character clip (`docs/benchmarks.md`).
+  and the share of page text the guard inspects at its 6,000-character clip (`docs/benchmarks.md`). Every
+  command, including one given a local `--parquet`, refuses a file whose sha256 is not the pinned one.
 
 - Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
   complete-denominator quality metrics and per-round service latency.

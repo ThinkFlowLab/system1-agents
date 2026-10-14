@@ -199,6 +199,25 @@ def read_rows(path: Path) -> list[tuple[str, str]]:
     return list(zip(table.column("content").to_pylist(), table.column("label").to_pylist()))
 
 
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify(path: Path) -> Path:
+    """``path`` if its bytes are the split's parquet file at REVISION, else a ValueError naming both digests.
+
+    Every command hashes its source before decoding it, so a local ``--parquet`` from another revision cannot be
+    stamped with the pinned revision, digest or row ids."""
+    digest = sha256(path)
+    if digest != PARQUET_SHA256:
+        raise ValueError(f"{path}: sha256 {digest}, expected {PARQUET_SHA256} for revision {REVISION}")
+    return path
+
+
 def fetch(cache: Path = CACHE) -> Path:
     """The split's parquet file at REVISION, downloaded once and checked against PARQUET_SHA256."""
     path = cache / f"{SPLIT}-{REVISION[:12]}.parquet"
@@ -213,10 +232,7 @@ def fetch(cache: Path = CACHE) -> Path:
                 for chunk in response.iter_bytes():
                     out.write(chunk)
         partial.rename(path)
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    if digest != PARQUET_SHA256:
-        raise ValueError(f"{path}: sha256 {digest}, expected {PARQUET_SHA256} for revision {REVISION}")
-    return path
+    return verify(path)
 
 
 def load_ids(path: Path = IDS) -> dict[str, Any]:
@@ -241,7 +257,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     report.add_argument("--clip", type=int, default=MAX_CHARS)
     args = parser.parse_args(argv)
 
-    rows = read_rows(args.parquet or fetch())
+    rows = read_rows(verify(args.parquet) if args.parquet else fetch())
     if args.command == "sample":
         row_ids = stratified_sample([label for _, label in rows], args.per_label, args.seed)
         args.ids.write_text(

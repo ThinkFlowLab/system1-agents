@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from unittest import IsolatedAsyncioTestCase, TestCase
+from unittest import IsolatedAsyncioTestCase, TestCase, mock
 
 from s1a import rails
 from s1a.agents import injection_guard
@@ -99,6 +99,32 @@ class TestSample(TestCase):
             path.write_text(json.dumps({**bsb.load_ids(), "revision": "main"}), encoding="utf-8")
             with self.assertRaises(ValueError):
                 bsb.load_ids(path)
+
+
+class TestSource(TestCase):
+    """A local --parquet is hashed before decoding, like the downloaded file, so nothing is stamped with the pin."""
+
+    def test_a_mismatching_local_parquet_is_refused_before_decoding_or_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            parquet = Path(tmp) / "test.parquet"
+            parquet.write_bytes(b"PAR1 not the pinned revision PAR1")
+            for command in (["sample"], ["build", "--out", str(Path(tmp) / "out.jsonl")], ["coverage"]):
+                ids = Path(tmp) / "ids.json"
+                argv = ["--parquet", str(parquet), "--ids", str(ids), *command]
+                with self.subTest(command=command[0]):
+                    with mock.patch.object(bsb, "read_rows", side_effect=AssertionError("decoded")) as read:
+                        with self.assertRaisesRegex(ValueError, bsb.PARQUET_SHA256):
+                            bsb.main(argv)
+                    read.assert_not_called()
+                    self.assertFalse(ids.exists())
+            self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()), ["test.parquet"])
+
+    def test_the_pinned_digest_is_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            parquet = Path(tmp) / "test.parquet"
+            parquet.write_bytes(b"stand-in bytes")
+            with mock.patch.object(bsb, "PARQUET_SHA256", bsb.sha256(parquet)):
+                self.assertEqual(bsb.verify(parquet), parquet)
 
 
 class TestCoverage(TestCase):
