@@ -126,6 +126,60 @@ class TestSource(TestCase):
             with mock.patch.object(bsb, "PARQUET_SHA256", bsb.sha256(parquet)):
                 self.assertEqual(bsb.verify(parquet), parquet)
 
+    def _download(self, body: bytes) -> mock.MagicMock:
+        response = mock.MagicMock()
+        response.iter_bytes.return_value = [body]
+        stream = mock.MagicMock()
+        stream.return_value.__enter__.return_value = response
+        return stream
+
+    def test_a_mismatching_download_is_not_cached(self) -> None:
+        import httpx
+
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp)
+            stream = self._download(b"not the pinned bytes")
+            with mock.patch.object(httpx, "stream", stream):
+                for _ in range(2):
+                    with self.assertRaisesRegex(ValueError, bsb.PARQUET_SHA256):
+                        bsb.fetch(cache)
+                    self.assertEqual(list(cache.iterdir()), [])
+            self.assertEqual(stream.call_count, 2)
+
+    def test_a_matching_download_is_cached_and_reused(self) -> None:
+        import httpx
+
+        body = b"stand-in bytes"
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp)
+            seed = cache / "seed"
+            seed.write_bytes(body)
+            digest = bsb.sha256(seed)
+            seed.unlink()
+            stream = self._download(body)
+            with mock.patch.object(bsb, "PARQUET_SHA256", digest), mock.patch.object(httpx, "stream", stream):
+                first = bsb.fetch(cache)
+                self.assertEqual(bsb.fetch(cache), first)
+            self.assertEqual(stream.call_count, 1)
+            self.assertEqual([p.name for p in cache.iterdir()], [first.name])
+
+    def test_a_mismatching_cached_file_is_fetched_again(self) -> None:
+        import httpx
+
+        body = b"stand-in bytes"
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp)
+            stale = cache / f"{bsb.SPLIT}-{bsb.REVISION[:12]}.parquet"
+            stale.write_bytes(b"poisoned by an older run")
+            seed = cache / "seed"
+            seed.write_bytes(body)
+            digest = bsb.sha256(seed)
+            seed.unlink()
+            stream = self._download(body)
+            with mock.patch.object(bsb, "PARQUET_SHA256", digest), mock.patch.object(httpx, "stream", stream):
+                self.assertEqual(bsb.fetch(cache).read_bytes(), body)
+            self.assertEqual(stream.call_count, 1)
+
 
 class TestCoverage(TestCase):
     def test_inspected_and_delivered_shares(self) -> None:

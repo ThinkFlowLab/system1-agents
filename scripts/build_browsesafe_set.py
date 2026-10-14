@@ -219,20 +219,33 @@ def verify(path: Path) -> Path:
 
 
 def fetch(cache: Path = CACHE) -> Path:
-    """The split's parquet file at REVISION, downloaded once and checked against PARQUET_SHA256."""
-    path = cache / f"{SPLIT}-{REVISION[:12]}.parquet"
-    if not path.exists():
-        import httpx
+    """The split's parquet file at REVISION, downloaded once and checked against PARQUET_SHA256.
 
-        cache.mkdir(parents=True, exist_ok=True)
-        partial = path.with_suffix(".part")
+    The download is hashed while still a ``.part`` file and only promoted to the cache path when it matches, so a
+    successful response with the wrong bytes never poisons the cache; a mismatching cached file (left by an older
+    run) is discarded and fetched again."""
+    path = cache / f"{SPLIT}-{REVISION[:12]}.parquet"
+    if path.exists():
+        try:
+            return verify(path)
+        except ValueError:
+            path.unlink()
+    import httpx
+
+    cache.mkdir(parents=True, exist_ok=True)
+    partial = path.with_suffix(".part")
+    try:
         with httpx.stream("GET", parquet_url(), follow_redirects=True, timeout=300) as response:
             response.raise_for_status()
             with partial.open("wb") as out:
                 for chunk in response.iter_bytes():
                     out.write(chunk)
-        partial.rename(path)
-    return verify(path)
+        verify(partial)
+    except BaseException:
+        partial.unlink(missing_ok=True)
+        raise
+    partial.rename(path)
+    return path
 
 
 def load_ids(path: Path = IDS) -> dict[str, Any]:
