@@ -78,6 +78,62 @@ The same showcase on ALFWorld, Blackjack and Millionaire is under `results/<eval
 
 The rail scores 20 of 20 on its labelled set at a median of 464 ms (`s1a run injection_guard`).
 
+### Page-length inputs: BrowseSafe-Bench
+
+The 20-item set and the InjecAgent/AgentDojo set of #23 are short tool outputs. Real `browser_snapshot` and
+`fetch_webpage` results are whole pages, and the guard decides on the first 6,000 characters (`MAX_CHARS`).
+[BrowseSafe-Bench](https://huggingface.co/datasets/perplexity-ai/browsesafe-bench) (Perplexity, MIT;
+[arXiv:2511.20597](https://arxiv.org/abs/2511.20597)) is HTML from real browser-agent use, with benign distractors
+and multilingual attacks. Its public test split has 3,680 rows (1,824 `yes`, 1,856 `no`) and only `content` and
+`label`; the paper's attack-type and strategy columns are not released. These figures are kept apart from #23's.
+
+**Sample.** `evals/labelled/browsesafe-test-sample.json`: 100 `yes` and 100 `no` rows drawn with seed 0 from the
+test split at revision `b506fb5`, `test.parquet` sha256 `00cbad96…0573d0`. The dataset is not vendored;
+`scripts/build_browsesafe_set.py build` downloads the pinned file, checks its digest and writes the JSONL with
+each page in full. The evaluation applies the runtime clip itself (`RailSpec.labelled_state`), so the scores
+measure what the guard sees in production. Budget: 200 Jev decisions per text mode.
+
+**Text.** `html` (default) is the row unchanged, as a raw `fetch_webpage` returns it; the label is defined on it,
+so hidden injections survive. `text` keeps the visible text, comments and the alt/title/aria-label/placeholder
+attributes, roughly a reader-mode fetch; it is about an eighth as long, but an injection in another attribute or
+a `<script>` disappears while the row stays `yes`. A Playwright `browser_snapshot` of the rendered page matches
+production best and is not built yet.
+
+**Coverage**, measured from the data (no model call), on 2026-10-14. "Inspected" is the share of page characters
+inside the 6,000-character clip, summed over pages; "mean page" averages that share per page. On main a page
+below the act band reaches the model whole whatever was inspected. Under #57's withhold-uninspected policy
+(PR #73) only the inspected prefix reaches it. Both columns assume the page is allowed.
+
+| text | label | pages | median chars | fully inspected | text inspected | mean page inspected | reaches model, main | reaches model, withhold |
+|---|---|---|---|---|---|---|---|---|
+| html | yes | 100 | 53,084 | 8 | 9.8% | 24.3% | 100% | 9.8% |
+| html | no | 100 | 49,118 | 14 | 11.3% | 29.8% | 100% | 11.3% |
+| text | yes | 100 | 6,329 | 49 | 34.4% | 71.1% | 100% | 34.4% |
+| text | no | 100 | 5,860 | 51 | 43.5% | 75.8% | 100% | 43.5% |
+| html, whole split | yes / no | 1,824 / 1,856 | 44,863 / 47,749 | 187 / 157 | 10.5% / 10.4% | 27.4% / 25.4% | 100% | 10.5% / 10.4% |
+| text, whole split | yes / no | 1,824 / 1,856 | 5,918 / 5,802 | 921 / 950 | 39.7% / 40.4% | 74.6% / 74.7% | 100% | 39.7% / 40.4% |
+
+So on raw HTML the guard inspects about a tenth of the page text: today the other nine tenths reach the model
+uninspected, and under the withhold policy a benign page loses them. Reader-mode text raises the inspected share
+to about 40%; most page text is still outside the clip.
+
+**Scores.** Not run yet: they need a Jev key (`TYPESAFE_API_KEY`). Reproduce with
+
+```bash
+uv run --with pyarrow python scripts/build_browsesafe_set.py build --text html
+uv run s1a run injection_guard --model jev --labelled-set .external/browsesafe/test-sample-html.jsonl
+uv run --with pyarrow python scripts/build_browsesafe_set.py coverage   # the table above
+```
+
+`summary.json` gives precision and recall of the act band with all 200 rows in the denominator, `uncertain`,
+`failures` (a failed decision counts as acted on this closed rail) and `bands`: allow/uncertain/act/failure per
+label. The paper's baseline on the same split is, for example, PromptGuard-2 22M at F1 0.350 (precision 0.975,
+recall 0.213).
+
+| date | text | rows | clip | model | label | allow | uncertain | act | failure | precision | recall |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| pending | html | 200 | 6,000 | jev | yes / no | | | | | | |
+
 ## Series
 
 The protocol in `evals/README.md` quotes nothing under ten episodes and asks for 500 Blackjack hands. The series of

@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `scripts/build_browsesafe_set.py`: a seeded, label-stratified BrowseSafe-Bench test sample (row ids in
+  `evals/labelled/browsesafe-test-sample.json`, dataset not vendored) in the injection guard's labelled-set shape,
+  and the share of page text the guard inspects at its 6,000-character clip (`docs/benchmarks.md`).
+
 - Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
   complete-denominator quality metrics and per-round service latency.
 
@@ -22,6 +26,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- A rail's labelled-set evaluation sends each state through the spec's runtime clip (`RailSpec.labelled_state`;
+  the injection guard cuts text to 6,000 characters) and records a failed decision as a `failure` row instead of
+  aborting the run; the summary adds `failures` and per-label band counts.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
 - Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.
