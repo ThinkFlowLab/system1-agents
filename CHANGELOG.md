@@ -6,13 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
+  complete-denominator quality metrics and per-round service latency.
+
+- Optional local Cua-S1 4B inference through the `cua-four-b` extra and `CUA_S1_VARIANT=4b`, supporting text and
+  multimodal input. Desktop `--pixel-target` offers named screenshot points; clicks remain bound to the observed
+  window and capture.
 - `jev-vl-served` in the browser front and decision-model factory: JEV-27B-VL through System1-Omni's native
   flat HTTP protocol, with a mandatory current PNG/JPEG, choice/noul mapping and a shared decision deadline.
   Local tests use mocks; single-H800 GPU checks and the bounded R3 browser fixture with same-trial video
   are validated. See the [validation scope](docs/decision-models.md#served-jev-vl).
-- Optional local Cua-S1 4B inference through the `cua-four-b` extra and `CUA_S1_VARIANT=4b`, supporting text and
-  multimodal input. Desktop `--pixel-target` offers named screenshot points; clicks remain bound to the observed
-  window and capture.
 - Verified desktop text input through `--text`, `--text-target`, and `--text-mode` (insert or replace).
   Completion requires confirmed input and fresh field readback; `--verify-file` also requires matching contents
   in a freshly written file. `--window-title` selects an exact window and `--app-path` launches a macOS app bundle.
