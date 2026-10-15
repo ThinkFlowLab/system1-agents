@@ -7,6 +7,9 @@ import argparse
 import asyncio
 from pathlib import Path
 
+import anyio
+
+from s1a import progress
 from s1a.decision_models import DecisionModel, build_model
 from s1a.config import first_env, optional_chat_model
 from s1a.jobs import Episode, summarize, write_job
@@ -76,8 +79,9 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
 
     Jev, Laya, Cua and the rule share one model for the series (warmed once, closed at the end); chance gets a fresh
     stream per episode from that episode's seed. The keys and the price variables are checked before the series is
-    built. Whatever ends the seed loop, the finished episodes are written; a series whose every episode errored writes
-    its job folder, then raises."""
+    built. Whatever ends the seed loop, the finished episodes are written, a cancellation included (its job records the
+    unfinished seeds as cancelled); a series whose every episode errored writes its job folder, then raises. Each
+    finished episode is reported to ``s1a.progress``."""
     env_prices()
     chat = optional_chat_model()
     if args.model == "llm" and chat is None:
@@ -105,6 +109,8 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
         return shared
 
     episodes: list[Episode] = []
+    total = len(run.seeds)
+    cancelled = 0
     try:
         if shared is not None:
             await shared.warm()
@@ -127,12 +133,20 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
                 )
                 run.annotate(env, episode)
                 episodes.append(episode)
+                await progress.report(len(episodes), total, f"episode {len(episodes)}/{total}")
+    except asyncio.CancelledError:  # a host cancelled the call: the seeds not finished are recorded as cancelled
+        cancelled = total - len(episodes)
+        raise
     finally:
-        if shared is not None:
-            await shared.close()
-        if episodes:
-            await asyncio.to_thread(price_episodes, episodes)  # the price catalogue fetch is a blocking HTTP call
-            job_dir = write_job(spec.name, episodes, results_dir=results_dir)
+        with anyio.CancelScope(shield=True):  # a cancelled series still closes its model and writes what it finished
+            if shared is not None:
+                await shared.close()
+            if episodes:
+                if (
+                    not cancelled
+                ):  # the price catalogue fetch is a blocking HTTP call; a cancelled run leaves cost unknown
+                    await asyncio.to_thread(price_episodes, episodes)
+                job_dir = write_job(spec.name, episodes, results_dir=results_dir, cancelled=cancelled)
     if not episodes:
         raise RuntimeError("the series selected no episodes")
     if all(episode.error is not None for episode in episodes):

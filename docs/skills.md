@@ -79,8 +79,37 @@ probability per option, a confidence and the latency in ms. `model` accepts `jev
 omit it keep using Jev. For local decisions, install the matching extra in the server's checkout (`uv sync
 --extra laya` or `uv sync --extra cua`) and pass `model="laya"` or `model="cua"`; no Jev API key is needed.
 The first local call may download the checkpoint. Each call loads and closes its model; `ms` measures the
-decision, not model loading. Agent runs and decisions are serialized, and model output stays off the stdio
-protocol stream.
+decision, not model loading. Model output stays off the stdio protocol stream.
+
+The server runs one call at a time. A `run_agent` or `decide` that arrives while another call runs fails at once
+with a tool error naming the running call and how long it has run; it does not queue. When the request carries a
+`progressToken`, `run_agent` sends `notifications/progress` once per finished episode (`episode 3/20`) or decided
+browser step (`step 7/100`), at most one a second. A cancelled call (`notifications/cancelled`) releases the slot,
+closes the browser and the decision model it started, and records the cancellation: a tool agent's job
+`result.json` has `"cancelled": true` and counts the unfinished episodes in `n_cancelled_trials`; a browser agent's
+`answer.json` has `"cancelled": true`.
+
+#### Host timeouts
+
+`flights` budgets 180 s and `allrecipes` 300 s, and a tool agent's run grows with `--episodes`. Run `uv sync` in the
+checkout once before registering the server, so the first start does not spend minutes resolving the `openjiuwen`
+git pin inside the host's startup wait.
+
+[Codex](https://developers.openai.com/codex/mcp) stops a tool call after 60 s and a server start after 10 s by
+default. Raise both for this server in `~/.codex/config.toml`
+([config reference](https://developers.openai.com/codex/config-reference)):
+
+```toml
+[mcp_servers.s1a]
+command = "uv"
+args = ["run", "--project", "/path/to/system1-agents", "s1a-mcp"]
+startup_timeout_sec = 60
+tool_timeout_sec = 600
+```
+
+[Claude Code](https://code.claude.com/docs/en/mcp) has no short tool limit by default. To set one, add
+`"timeout": 600000` (milliseconds) to the server's `.mcp.json` entry or export `MCP_TOOL_TIMEOUT=600000`; give the
+first start more room with `MCP_TIMEOUT=60000`.
 
 ## Build a System 1 agent
 

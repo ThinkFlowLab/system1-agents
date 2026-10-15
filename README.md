@@ -129,7 +129,9 @@ folder with the score. Without a key, `--model cua` answers in process after `uv
 codex mcp add s1a -- uv run --project /path/to/system1-agents s1a-mcp
 ```
 
-It serves three tools, `list_agents`, `run_agent` and `decide`, to any host that speaks MCP.
+It serves three tools, `list_agents`, `run_agent` and `decide`, to any host that speaks MCP. Run `uv sync` in the
+checkout once before registering it, and raise the host's tool timeout: a browser run takes minutes, beyond Codex's
+60 s default. The settings for Codex and Claude Code: [docs/skills.md](docs/skills.md#host-timeouts).
 
 ## Build your own
 

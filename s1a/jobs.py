@@ -89,8 +89,11 @@ def summarize(episodes: list[Episode]) -> dict[str, Any]:
     }
 
 
-def write_job(eval_name: str, episodes: list[Episode], *, results_dir: Path) -> Path:
+def write_job(eval_name: str, episodes: list[Episode], *, results_dir: Path, cancelled: int = 0) -> Path:
     """One Harbor job folder per run: config.json, result.json, summary.json, one trial folder per episode.
+
+    ``cancelled`` counts the planned trials a cancellation stopped before they finished; a job with any has
+    ``"cancelled": true`` in its result.json.
 
     The trial shape follows agent-eval's runner so Nullius reads both roots alike.
     """
@@ -164,9 +167,10 @@ def write_job(eval_name: str, episodes: list[Episode], *, results_dir: Path) -> 
             "n_errored_trials": errored,
             "n_running_trials": 0,
             "n_pending_trials": 0,
-            "n_cancelled_trials": 0,
+            "n_cancelled_trials": cancelled,
             "n_retries": 0,
         },
+        "cancelled": cancelled > 0,
     }
     (job_dir / "result.json").write_text(json.dumps(job, indent=2), encoding="utf-8")
     config = {

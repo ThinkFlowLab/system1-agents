@@ -32,6 +32,7 @@ from openjiuwen.core.common.logging import logger
 from openjiuwen.core.foundation.llm import AssistantMessage, AssistantMessageChunk, ToolCall
 from openjiuwen.core.foundation.llm.model import Model
 from openjiuwen.harness.tools.browser_move.utils.parsing import extract_json_object
+from s1a import progress
 from s1a.browser import prompts
 from s1a.browser.action_space import (
     NONE_VALUE,
@@ -172,6 +173,7 @@ class BrowserDecisionModel(Model):
         *,
         decision_model: DecisionModel,
         value_model: Model | None,
+        max_steps: int | None = None,
     ) -> None:
         """``policy.goal_value_cache`` offers goal-extracted values to Jev as a choice head; off means every typed
         value comes from the chat model given the field and page context. ``policy.prefetch_values`` makes that
@@ -180,7 +182,8 @@ class BrowserDecisionModel(Model):
         sends each action and the next probe as one ``browser_run_code_unsafe`` call when that tool is
         offered, skipping the runtime's target validation and one transport round trip per step.
         ``value_model`` answers the typed-value calls when given; the fallback chat model otherwise.
-        ``decision_model`` decides every browser step; its ``name`` (``jev``, ``laya``) is the ``--model`` value."""
+        ``decision_model`` decides every browser step; its ``name`` (``jev``, ``laya``) is the ``--model`` value.
+        Each decided step is reported to ``s1a.progress``, out of ``max_steps`` when given."""
         super().__init__(fallback.model_client_config, fallback.model_config)
         self._spec = spec
         self._fallback = fallback
@@ -190,6 +193,7 @@ class BrowserDecisionModel(Model):
         self._batch_actions = policy.batch_actions
         self._rethink_on = policy.rethink_on
         self._recovery_limits = policy.recovery_limits
+        self._max_steps = max_steps
         self._language = spec.language
         self._decision_model = decision_model
         # the chat model writes the bounded recovery's plan, as the tool front's RethinkRail does
@@ -352,6 +356,8 @@ class BrowserDecisionModel(Model):
             if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
                 record["screenshot_ms"] = screenshot_ms
             run.ticks.append(record)
+            step = len(run.ticks)
+            await progress.report(step, self._max_steps, f"step {step}/{self._max_steps or '?'}")
             if move.operation == "WAIT":
                 run.consecutive_waits += 1
                 wait_entry = {"action": "wait", "kind": "wait", "text": None, "page_changed": None}
