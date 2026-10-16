@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
+  read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
+  `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every
+  `decide` model (`jev`, `clm`, `laya`, `laya-served`, `cua`).
+
+- Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
+  complete-denominator quality metrics and per-round service latency.
+
 - Optional local Cua-S1 4B inference through the `cua-four-b` extra and `CUA_S1_VARIANT=4b`, supporting text and
   multimodal input. Desktop `--pixel-target` offers named screenshot points; clicks remain bound to the observed
   window and capture.
@@ -26,6 +34,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   policy is in `docs/agents.md`. `RailSpec` gains optional `coverage_of` and `on_partial`. A failed decision's
   tick and warning log record the error's status and cause type (`error`, `error_code`) instead of its message,
   which can echo an HTTP error body quoting the guarded text.
+- Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
 - Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.

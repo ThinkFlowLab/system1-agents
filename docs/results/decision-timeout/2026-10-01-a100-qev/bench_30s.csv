@@ -1,0 +1,16 @@
+time,model,run,success,total_s,decisions,median_decision_ms,model_s,page_s,browser_s,reason
+13:59:52,onejev27B,1,1,86.6,11,3682,61.2,11.4,9.9,The page displays one-way flight options from Zurich to London on November 1; 2026; for one adult in economy; matching all criteria.
+14:01:27,onejev27B,2,1,87.4,11,3732,62.1,11.4,9.9,The page displays one-way flight results from Zurich to London on November 1; with multiple options visible; matching all specified criteria.
+14:02:31,onejev27B,3,0,0.0,0,0,0.0,0.0,0.0,The agent has selected the correct date and origin; but has not yet entered the destination or displayed flight results.
+14:02:46,onejev27B,4,0,7.7,0,0,0.0,0.0,0.0,The agent stopped on the initial flight search page; with no flight results visible and the form not yet filled out.
+14:02:56,onejev27B,5,0,2.6,0,0,0.0,0.0,0.0,The agent stopped on the initial flight search page; with no flight results visible and the form not yet filled out.
+15:19:23,onejev27B,1,1,85.6,11,3662,61.2,11.3,9.6,The page displays a list of one-way flight results from Zurich to London on November 1; with prices and flight details.
+15:20:57,onejev27B,2,1,86.8,11,3733,62.1,11.4,9.7,The page displays a list of one-way flight results from Zurich to London on November 1; with prices and flight details.
+15:22:32,onejev27B,3,1,87.3,11,3769,62.6,11.4,9.9,The page displays a list of one-way flight results from Zurich to London on November 1; with the correct origin; destination; and date.
+15:24:07,onejev27B,4,1,87.5,11,3787,62.8,11.4,9.9,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:25:39,onejev27B,5,1,84.6,11,3237,60.3,11.4,9.7,The page shows a list of one-way flight results from Zurich to London on November 1; with prices and flight details visible.
+15:27:00,onejev27Bc,1,1,73.6,11,3082,48.7,11.4,10.0,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:28:21,onejev27Bc,2,1,73.6,11,3079,48.6,11.4,10.0,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:29:42,onejev27Bc,3,1,73.4,11,3076,48.6,11.5,9.9,The page displays a list of one-way flight options from Zurich to London on November 1; with prices and flight details visible.
+15:31:03,onejev27Bc,4,0,74.3,11,3073,46.6,15.4,8.9,The page shows an error message "Oops; something went wrong" instead of flight results.
+15:32:24,onejev27Bc,5,1,73.8,11,3070,48.6,11.4,9.9,The page shows a list of one-way flight results from Zurich to London on November 1; with the correct number of adults and economy class selected.
