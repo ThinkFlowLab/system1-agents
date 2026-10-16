@@ -12,3 +12,9 @@ This product includes software developed by third parties:
   evals/2048/style/fonts are Clear Sans by Intel Corporation (Apache-2.0)
 - evals/millionaire/questions.json, fetched at first run: Open Trivia Database
   (https://opentdb.com), CC BY-SA 4.0
+- evals/labelled/injection-public.jsonl: tool outputs from InjecAgent,
+  uiuc-kang-lab/InjecAgent (MIT, Copyright (c) 2023 Qiusi Zhan). Full license text:
+  THIRD_PARTY_LICENSES.md
+- evals/labelled/injection-public.jsonl: tool outputs from AgentDojo, ethz-spylab/agentdojo
+  (MIT, Copyright (c) 2024 Edoardo Debenedetti, Jie Zhang, Mislav Balunovic, Luca
+  Beurer-Kellner, Marc Fischer, and Florian Tramèr). Full license text: THIRD_PARTY_LICENSES.md

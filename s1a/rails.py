@@ -5,6 +5,7 @@ labelled-set evaluation."""
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import statistics
 from datetime import datetime
@@ -87,10 +88,13 @@ class DecisionModelRail(DeepAgentRail):
             await self._spec.act(ctx, verdict)
 
 
-def read_labelled(path: Path) -> list[dict[str, Any]]:
-    """JSONL records, each with a ``state`` for Jev and a boolean ``label``: does the flagged statement hold."""
+def read_labelled(path: Path, data: bytes | None = None) -> list[dict[str, Any]]:
+    """JSONL records, each with a ``state`` for Jev and a boolean ``label``: does the flagged statement hold.
+
+    ``data`` is the file's bytes when the caller has already read them, so what is parsed is what it hashed."""
     records: list[dict[str, Any]] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    text = (path.read_bytes() if data is None else data).decode("utf-8")
+    for line_number, line in enumerate(text.splitlines(), start=1):
         if not line.strip():
             continue
         try:
@@ -113,7 +117,8 @@ async def evaluate(
     spec: RailSpec, labelled_set: Path, *, decision_model: DecisionModel, results_dir: Path
 ) -> dict[str, Any]:
     """Every record through the same question; precision and recall of the act band against the labels, one job folder."""
-    records = read_labelled(labelled_set)
+    data = labelled_set.read_bytes()  # one read before the first await: the digest covers the bytes evaluated
+    records = read_labelled(labelled_set, data)
     verdicts = [await ask(spec, record["state"], decision_model) for record in records]
     acted = [verdict.band == "act" for verdict in verdicts]
     labels = [bool(record["label"]) for record in records]
@@ -123,6 +128,7 @@ async def evaluate(
     jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts) if decision_model.bills_input_tokens else 0
     summary = {
         "rail": spec.name,
+        "model": decision_model.name,
         "records": len(records),
         "positives": sum(labels),
         "acted": sum(acted),
@@ -135,6 +141,7 @@ async def evaluate(
         "cost_usd": cost_usd(jev_input_tokens, 0, 0, 0, None),
         "thresholds": {"allow": spec.thresholds.allow, "act": spec.thresholds.act},
         "labelled_set": str(labelled_set),
+        "labelled_set_sha256": hashlib.sha256(data).hexdigest(),
         "finished_at": now_iso(),
     }
     job_dir = results_dir / spec.name / f"{datetime.now():%Y-%m-%d__%H-%M-%S-%f}__{decision_model.name}"
