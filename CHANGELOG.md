@@ -27,6 +27,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- `s1a-mcp` long runs: `run_agent` reports progress per episode or browser step when the request has a
+  `progressToken`; a call made while another runs fails at once with a tool error instead of queueing past the
+  host's timeout; a cancelled run finishes its browser and model teardown (it was cut at the first `await`) and
+  records the cancellation in the job `result.json` or `answer.json` even when no episode finished; cancelled
+  seeds count in `n_total_trials`. The server instructions put serialization and the timeout advice in their
+  first 512 characters, and docs/skills.md gives the Codex and Claude Code settings.
 - Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
