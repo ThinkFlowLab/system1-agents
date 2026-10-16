@@ -129,7 +129,7 @@ jobs:
       - run: uv sync --extra dev
       - name: Required benchmark tests
         run: |
-          uv run pytest tests/benchmarks/test_public231.py -q --junitxml="${RUNNER_TEMP}/benchmark-tests.xml"
+          uv run pytest tests/benchmarks -q --junitxml="${RUNNER_TEMP}/benchmark-tests.xml"
           uv run python - <<'PY'
           import os
           import xml.etree.ElementTree as ET
