@@ -27,6 +27,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- The injection guard no longer passes the uninspected end of a long result: below the act band, a
+  `browser_snapshot` or `fetch_webpage` result longer than the 6,000 characters its decision reads reaches the
+  model as those characters plus a withheld notice. Rail ticks record `handling` (`pass`, `pass_uncertain`,
+  `withhold_uninspected`, `act`, `act_on_failure`, ...) and coverage counts, never tool-output text; the runtime
+  policy is in `docs/agents.md`. `RailSpec` gains optional `coverage_of` and `on_partial`. A failed decision's
+  tick and warning log record the error's status and cause type (`error`, `error_code`) instead of its message,
+  which can echo an HTTP error body quoting the guarded text.
 - Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.

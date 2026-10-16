@@ -2,7 +2,8 @@
 
 Four kinds of agent share the loop, the models and the job folders: browser use over `@playwright/mcp`, computer use
 over [Cua Driver](https://cua.ai/docs/cua-driver), games and embodied text, and rails that answer one question at a
-hook of a running agent. The injection guard rail fails closed: a decision error quarantines the tool result too.
+hook of a running agent. The injection guard rail fails closed: a decision error quarantines the tool result too;
+[its runtime policy](#injection-guard-runtime-policy) covers uncertain verdicts and results longer than it inspects.
 
 | agent | front | what it measures | run |
 |---|---|---|---|
@@ -79,6 +80,36 @@ text. The run is headed
 because the site answers a headless Chromium with a bot wall. `scripts/browser_showcase.sh allrecipes 2` runs both models
 twice with a frame after every browser call and renders the pair GIFs from the median run of each model; the numbers
 and the replay are in [benchmarks.md](benchmarks.md#browser-use-allrecipes).
+
+## Injection guard runtime policy
+
+The guard asks one decision about each `browser_snapshot` or `fetch_webpage` result (MCP prefixes match by suffix),
+after the tool call and before the next model call reads the result. The decision sees the first 6,000 characters
+(`MAX_CHARS`) of the result's text, JSON-serialised when the result is not a string. One decision per result is the
+whole budget: there is no second pass, retry or escalation. `DecisionModelRail.ticks` records each outcome:
+
+| verdict | coverage | what the next model call reads | `handling` |
+|---|---|---|---|
+| act band, p ≥ 0.7 | any | a quarantine notice alone | `act` |
+| decision failure: endpoint down, bad key, deadline, malformed answer | any | a quarantine notice alone (the rail fails closed) | `act_on_failure` |
+| allow band, p ≤ 0.3 | complete | the result unchanged | `pass` |
+| uncertain band, 0.3 < p < 0.7 | complete | the result unchanged | `pass_uncertain` |
+| allow or uncertain band | partial: the result is longer than 6,000 characters | the inspected 6,000 characters, then a notice that the rest was withheld uninspected | `withhold_uninspected` |
+
+The uncertain band is the model abstaining. The guard keeps pass-through for it, so as not to quarantine every page
+it is unsure about; `pass_uncertain` names that choice, and a stricter deployment can quarantine it with its own
+`act` or thresholds. No text the decision did not see reaches the model while the guard is attached; a page whose
+useful content sits past character 6,000 loses it.
+
+Each tick carries `p`, `band`, `ms` and `input_tokens` (or `error`, `error_code` and `failed`), with `handling`,
+`coverage` (`complete` or `partial`), `chars` and `inspected_chars`. Ticks never hold the tool output's text. On a
+failure, the tick and the warning log name only the error's status and cause type (`MODEL_CALL_FAILED (ReadTimeout)`),
+never its message: an endpoint's error body can quote the submitted state back. Tools outside the two guarded ones
+are neither asked about nor recorded.
+
+The labelled-set scores in [benchmarks.md](benchmarks.md#the-injection-guard-rail) measure the classifier on its
+records. They say nothing about the runtime handling above, which `tests/test_rails.py` and
+`tests/test_rail_in_agent.py` check offline with synthetic markers.
 
 ## The ticket router
 

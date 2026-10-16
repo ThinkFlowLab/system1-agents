@@ -77,6 +77,8 @@ The same showcase on ALFWorld, Blackjack and Millionaire is under `results/<eval
 ## The injection guard rail
 
 The rail scores 20 of 20 on its labelled set at a median of 464 ms (`s1a run injection_guard`).
+These are classification scores on the labelled records, not a measure of runtime protection; the handling of
+uncertain verdicts and long results is in [agents.md](agents.md#injection-guard-runtime-policy).
 
 ## Series
 
