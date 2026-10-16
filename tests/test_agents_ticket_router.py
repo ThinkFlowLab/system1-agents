@@ -146,6 +146,32 @@ class TestTicketRouterEnv(IsolatedAsyncioTestCase):
 
 
 class TestTicketRouterData(TestCase):
+    def test_load_tickets_preserves_valid_unicode_records_and_ignores_blank_lines(self):
+        rows = [TICKETS[0], {**TICKETS[1], "title": "付款问题", "description": "付款失败，请帮忙"}]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "工单.jsonl"
+            path.write_text(
+                "\n \t\n" + "\n\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(router().load_tickets(path), rows)
+
+    def test_invalid_json_names_the_dataset_and_physical_line_without_ticket_text(self):
+        for invalid in ("{not-json}", '{"description":"私人工单内容",}'):
+            with self.subTest(invalid=invalid), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "工单.jsonl"
+                path.write_text("\n" + json.dumps(TICKETS[0]) + "\n \t\n" + invalid + "\n", encoding="utf-8")
+                with self.assertRaises(ValueError) as caught:
+                    router().load_tickets(path)
+                cause = caught.exception.__cause__
+                self.assertIsInstance(cause, json.JSONDecodeError)
+                self.assertEqual(
+                    str(caught.exception),
+                    f"ticket dataset {path}: line 4, column {cause.colno}: {cause.msg}",
+                )
+                self.assertNotIn(invalid, str(caught.exception))
+                self.assertNotIn("私人工单内容", str(caught.exception))
+
     def test_rejects_ambiguous_or_malformed_labelled_data(self):
         module = router()
         for rows in (

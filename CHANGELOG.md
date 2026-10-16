@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   `evals/labelled/browsesafe-test-sample.json`, dataset not vendored) in the injection guard's labelled-set shape,
   and the share of page text the guard inspects at its 6,000-character clip (`docs/benchmarks.md`). Every
   command, including one given a local `--parquet`, refuses a file whose sha256 is not the pinned one.
+- `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
+  read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
+  `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every
+  `decide` model (`jev`, `clm`, `laya`, `laya-served`, `cua`).
 
 - Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
   complete-denominator quality metrics and per-round service latency.
@@ -30,6 +34,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - A rail's labelled-set evaluation sends each state through the spec's runtime clip (`RailSpec.labelled_state`;
   the injection guard cuts text to 6,000 characters) and records a failed decision as a `failure` row instead of
   aborting the run; the summary adds `failures` and per-label band counts.
+- Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
 - Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.
