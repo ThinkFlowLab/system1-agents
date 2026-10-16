@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
+  read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
+  `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every
+  `decide` model (`jev`, `clm`, `laya`, `laya-served`, `cua`).
+
 - Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
   complete-denominator quality metrics and per-round service latency.
 
@@ -25,8 +30,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 - `s1a-mcp` long runs: `run_agent` reports progress per episode or browser step when the request has a
   `progressToken`; a call made while another runs fails at once with a tool error instead of queueing past the
   host's timeout; a cancelled run finishes its browser and model teardown (it was cut at the first `await`) and
-  records the cancellation in the job `result.json` or `answer.json`. The server instructions put serialization
-  and the timeout advice in their first 512 characters, and docs/skills.md gives the Codex and Claude Code settings.
+  records the cancellation in the job `result.json` or `answer.json` even when no episode finished; cancelled
+  seeds count in `n_total_trials`. The server instructions put serialization and the timeout advice in their
+  first 512 characters, and docs/skills.md gives the Codex and Claude Code settings.
+- Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
 - Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.

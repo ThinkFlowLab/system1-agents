@@ -141,12 +141,14 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
         with anyio.CancelScope(shield=True):  # a cancelled series still closes its model and writes what it finished
             if shared is not None:
                 await shared.close()
-            if episodes:
+            if episodes or cancelled:  # cancel during warm-up / first episode still writes a cancelled job
                 if (
-                    not cancelled
+                    episodes and not cancelled
                 ):  # the price catalogue fetch is a blocking HTTP call; a cancelled run leaves cost unknown
                     await asyncio.to_thread(price_episodes, episodes)
-                job_dir = write_job(spec.name, episodes, results_dir=results_dir, cancelled=cancelled)
+                job_dir = write_job(
+                    spec.name, episodes, results_dir=results_dir, cancelled=cancelled, policy=args.model
+                )
     if not episodes:
         raise RuntimeError("the series selected no episodes")
     if all(episode.error is not None for episode in episodes):

@@ -141,3 +141,24 @@ class TestSummaryAndJob(TestCase):
             trial = next(p for p in job_dir.iterdir() if p.is_dir())
             self.assertEqual(sorted(p.name for p in (trial / "agent" / "frames").iterdir()), ["000.png", "001.png"])
             self.assertFalse(frames.exists())
+
+    def test_cancelled_trials_count_in_the_job_total(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            job_dir = write_job(
+                "counter", [_episode(0, 1.0, 3)], results_dir=Path(tmp), cancelled=2
+            )
+            job = json.loads((job_dir / "result.json").read_text())
+            self.assertEqual(job["n_total_trials"], 3)
+            self.assertEqual(job["stats"]["n_cancelled_trials"], 2)
+            self.assertTrue(job["cancelled"])
+            config = json.loads((job_dir / "config.json").read_text())
+            self.assertEqual(config["datasets"], [{"name": "counter", "n_tasks": 3}])
+
+    def test_a_cancel_with_no_finished_episode_still_writes_the_job(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            job_dir = write_job("counter", [], results_dir=Path(tmp), cancelled=3, policy="random")
+            job = json.loads((job_dir / "result.json").read_text())
+            self.assertEqual((job["n_total_trials"], job["stats"]["n_cancelled_trials"]), (3, 3))
+            self.assertTrue(job["cancelled"])
+            self.assertTrue(job_dir.name.endswith("__random"))
+            self.assertEqual(json.loads((job_dir / "summary.json").read_text())["episodes"], 0)

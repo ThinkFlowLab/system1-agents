@@ -9,6 +9,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import jsonschema
 import os
 import re
 import subprocess
@@ -442,7 +443,7 @@ class TestLongRuns(IsolatedAsyncioTestCase):
         (job_dir,) = (self.tmp / "results" / COUNTER.name).iterdir()
         job = json.loads((job_dir / "result.json").read_text(encoding="utf-8"))
         self.assertTrue(job["cancelled"])
-        self.assertEqual((job["n_total_trials"], job["stats"]["n_cancelled_trials"]), (1, 2))
+        self.assertEqual((job["n_total_trials"], job["stats"]["n_cancelled_trials"]), (3, 2))
 
     async def test_a_cancelled_browser_play_writes_a_cancelled_answer(self) -> None:
         async def blocks(*args: Any, **kwargs: Any) -> Any:
@@ -463,3 +464,94 @@ class TestLongRuns(IsolatedAsyncioTestCase):
                 await task
         answer = json.loads((self.tmp / "logs" / "answer.json").read_text(encoding="utf-8"))
         self.assertEqual((answer["ok"], answer["cancelled"], answer["model"]), (False, True, "llm"))
+
+    async def test_a_cancel_before_any_episode_still_writes_a_cancelled_job(self) -> None:
+        """Cancel during the first episode: no finished trial, but every planned seed is recorded."""
+        real, blocked = series.run_episode, asyncio.Event()
+
+        async def blocks_first(*args: Any, **kwargs: Any) -> Any:
+            blocked.set()
+            await asyncio.Event().wait()
+            return await real(*args, **kwargs)
+
+        parsed = series.parser(COUNTER).parse_args([*RANDOM_RUN[:5], "3"])
+        with patch.object(series, "run_episode", blocks_first):
+            task = asyncio.create_task(series.play(COUNTER, parsed, results_dir=self.tmp / "results"))
+            await asyncio.wait_for(blocked.wait(), 5)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        (job_dir,) = (self.tmp / "results" / COUNTER.name).iterdir()
+        job = json.loads((job_dir / "result.json").read_text(encoding="utf-8"))
+        self.assertTrue(job["cancelled"])
+        self.assertEqual((job["n_total_trials"], job["stats"]["n_cancelled_trials"]), (3, 3))
+        self.assertEqual(job["stats"]["n_completed_trials"], 0)
+        config = json.loads((job_dir / "config.json").read_text(encoding="utf-8"))
+        self.assertEqual(config["datasets"], [{"name": COUNTER.name, "n_tasks": 3}])
+
+
+class TestAdvertisedTools(IsolatedAsyncioTestCase):
+    """What ``tools/list`` tells a host: titles, behavior hints and typed result schemas (#82)."""
+
+    async def _tools(self) -> dict[str, Any]:
+        async with create_connected_server_and_client_session(mcp_server.server) as session:
+            listed = await session.list_tools()
+        return {tool.name: tool for tool in listed.tools}
+
+    async def test_each_tool_has_a_title_and_its_behavior_hints(self) -> None:
+        tools = await self._tools()
+        expected = {  # name: (title, readOnly, destructive, idempotent, openWorld)
+            "list_agents": ("List S1A agents", True, None, True, False),
+            "decide": ("Decide one choice", True, None, None, True),
+            "run_agent": ("Run an S1A agent", False, True, False, True),
+        }
+        for name, (title, read_only, destructive, idempotent, open_world) in expected.items():
+            with self.subTest(tool=name):
+                hints = tools[name].annotations
+                self.assertEqual(tools[name].title, title)
+                self.assertIsNotNone(hints)
+                self.assertEqual(
+                    (hints.readOnlyHint, hints.destructiveHint, hints.idempotentHint, hints.openWorldHint),
+                    (read_only, destructive, idempotent, open_world),
+                )
+
+    async def test_decide_advertises_its_four_keys_and_its_result_validates(self) -> None:
+        schema = (await self._tools())["decide"].outputSchema
+        self.assertIsNotNone(schema)
+        self.assertEqual(sorted(schema["required"]), ["choice", "confidence", "ms", "probabilities"])
+        with patch.object(mcp_server, "build_model", return_value=JevModel(ScriptedTransport(choose="inc"))):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                result = await session.call_tool(
+                    "decide", {"state": {"n": 1}, "options": {"inc": "add one", "dec": "take one"}, "rules": "count"}
+                )
+        self.assertFalse(result.isError)
+        jsonschema.validate(result.structuredContent, schema)
+        self.assertEqual(json.loads(result.content[0].text), result.structuredContent)
+
+    async def test_list_agents_rows_are_typed_and_an_unavailable_row_still_validates(self) -> None:
+        schema = (await self._tools())["list_agents"].outputSchema
+        self.assertIsNotNone(schema)
+        row = schema["properties"]["result"]["items"]
+        row = schema["$defs"][row["$ref"].rsplit("/", 1)[-1]] if "$ref" in row else row
+        self.assertEqual(sorted(row["required"]), ["description", "front", "name"])
+        self.assertIn("flags", row["properties"])
+        real = agents.load
+
+        def load(name: str) -> agents.Spec:
+            if name == "alfworld":
+                raise FileNotFoundError("ALFWORLD_DATA is empty")
+            return real(name)
+
+        with patch.object(agents, "load", load):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                result = await session.call_tool("list_agents", {})
+        self.assertFalse(result.isError)
+        jsonschema.validate(result.structuredContent, schema)
+        rows = {row["name"]: row for row in _rows(result)}
+        self.assertNotIn("flags", rows["alfworld"])
+        self.assertIn("flags", rows["game2048"])
+
+    async def test_run_agent_stays_an_untyped_object(self) -> None:
+        schema = (await self._tools())["run_agent"].outputSchema
+        self.assertEqual((schema or {}).get("type"), "object")
+        self.assertNotIn("required", schema or {})

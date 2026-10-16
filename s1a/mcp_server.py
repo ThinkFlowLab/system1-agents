@@ -15,6 +15,8 @@ from typing import Any, Literal
 import s1a.console  # first: routes the harness logs to files before openjiuwen loads and logs to the console
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
+from mcp.types import ToolAnnotations
+from typing_extensions import NotRequired, TypedDict  # pydantic, under mcp, needs this TypedDict before Python 3.12
 
 from s1a import config, probe, progress
 from s1a.decision_models import build_model
@@ -96,16 +98,46 @@ def _progress_reporter(ctx: Context) -> progress.Reporter | None:
     return send
 
 
-@server.tool()
-async def list_agents() -> list[dict[str, Any]]:
+class AgentRow(TypedDict):
+    """One ``list_agents`` row; an agent that fails to import has no flags."""
+
+    name: str
+    front: str
+    description: str
+    flags: NotRequired[list[dict[str, Any]]]
+
+
+class Decision(TypedDict):
+    """What ``decide`` returns: ``probe.pick``'s four keys."""
+
+    choice: str
+    probabilities: dict[str, float]
+    confidence: float
+    ms: int
+
+
+# Hints for hosts that auto-approve by them (Codex approval modes, Claude permissions); they are hints, not enforcement.
+LIST_AGENTS_HINTS = ToolAnnotations(  # imports local agent modules; no I/O beyond the checkout
+    readOnlyHint=True, idempotentHint=True, openWorldHint=False
+)
+DECIDE_HINTS = ToolAnnotations(  # changes nothing, but jev, clm and laya-served call a remote service that may bill
+    readOnlyHint=True, openWorldHint=True
+)
+RUN_AGENT_HINTS = ToolAnnotations(  # a browser agent clicks and submits on live sites; a tool agent writes job folders
+    readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=True
+)
+
+
+@server.tool(title="List S1A agents", annotations=LIST_AGENTS_HINTS)
+async def list_agents() -> list[AgentRow]:
     """Every S1A agent: its name, its front (tool, browser or rail), what it does and the flags run_agent takes for it
     (flag, takes_value, required, choices, default, help; a flag with takes_value false is passed alone); an agent
     that fails to import, a missing optional dependency included, is listed as unavailable with the error instead."""
     return await asyncio.to_thread(_agent_rows)  # importing the agent modules is slow and must not stall the loop
 
 
-def _agent_rows() -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
+def _agent_rows() -> list[AgentRow]:
+    rows: list[AgentRow] = []
     for name in agents.names():
         try:
             spec = agents.load(name)
@@ -123,14 +155,14 @@ def _agent_rows() -> list[dict[str, Any]]:
     return rows
 
 
-@server.tool()
+@server.tool(title="Run an S1A agent", annotations=RUN_AGENT_HINTS)
 async def run_agent(name: str, flags: list[str], ctx: Context) -> dict[str, Any]:
     """Run one agent with the flags `s1a run <name>` takes, e.g. ["--model", "jev", "--goal", "..."].
 
     A browser agent returns its answer, a tool agent its series summary with the job folder it wrote, a rail its
-    evaluation summary. A run can take minutes: progress goes out per episode or browser step when the request has a
-    progressToken, a call made while another runs is refused at once, and a cancelled run releases its browser and
-    records the cancellation.
+    evaluation summary. The result stays an untyped object because its shape depends on the agent's front. A run can
+    take minutes: progress goes out per episode or browser step when the request has a progressToken, a call made
+    while another runs is refused at once, and a cancelled run releases its browser and records the cancellation.
     """
     reporter = _progress_reporter(ctx)
     # argparse writes help to stdout and any stray print would too; under the stdio transport that stream is the protocol
@@ -145,13 +177,13 @@ async def run_agent(name: str, flags: list[str], ctx: Context) -> dict[str, Any]
                 raise ValueError(f"{name}: bad flags {flags}; `s1a run {name} --help` lists them") from exc
 
 
-@server.tool()
+@server.tool(title="Decide one choice", annotations=DECIDE_HINTS)
 async def decide(
     state: dict[str, Any],
     options: dict[str, str],
     rules: str,
     model: Literal["jev", "clm", "laya", "laya-served", "cua"] = "jev",
-) -> dict[str, Any]:
+) -> Decision:
     """One choice question: the chosen key, probabilities, confidence and decision latency in ms.
 
     Use jev over HTTP (default), laya/cua locally after installing the matching extra, or laya-served against a
@@ -162,7 +194,13 @@ async def decide(
         with contextlib.redirect_stdout(sys.stderr):  # local SDK loading must not write to the stdio protocol
             decision_model = await asyncio.to_thread(build_model, model)
             try:
-                return await probe.pick(decision_model, state=state, options=options, rules=rules)
+                answer = await probe.pick(decision_model, state=state, options=options, rules=rules)
+                return Decision(
+                    choice=answer["choice"],
+                    probabilities=answer["probabilities"],
+                    confidence=answer["confidence"],
+                    ms=answer["ms"],
+                )
             finally:
                 await decision_model.close()
 
