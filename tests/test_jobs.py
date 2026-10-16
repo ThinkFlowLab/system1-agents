@@ -144,9 +144,7 @@ class TestSummaryAndJob(TestCase):
 
     def test_cancelled_trials_count_in_the_job_total(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            job_dir = write_job(
-                "counter", [_episode(0, 1.0, 3)], results_dir=Path(tmp), cancelled=2
-            )
+            job_dir = write_job("counter", [_episode(0, 1.0, 3)], results_dir=Path(tmp), cancelled=2)
             job = json.loads((job_dir / "result.json").read_text())
             self.assertEqual(job["n_total_trials"], 3)
             self.assertEqual(job["stats"]["n_cancelled_trials"], 2)
