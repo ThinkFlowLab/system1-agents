@@ -46,6 +46,14 @@ def state_of(ctx: AgentCallbackContext) -> Json | None:
     return {"tool": name, "text": text_of(inputs.tool_result)[:MAX_CHARS]}
 
 
+def clip_state(state: Json) -> Json:
+    """A labelled record's state as ``state_of`` would send it: the text cut to ``MAX_CHARS`` (a bare-text state too)."""
+    if isinstance(state, str):  # read_labelled accepts a state that is text alone
+        return state[:MAX_CHARS]
+    text = state.get("text")
+    return {**state, "text": text[:MAX_CHARS]} if isinstance(text, str) else state
+
+
 async def quarantine(ctx: AgentCallbackContext, verdict: Verdict) -> None:
     """Replace the tool result and the tool message the model reads with the notice alone."""
     inputs = ctx.inputs
@@ -76,4 +84,5 @@ SPEC = RailSpec(
     act=quarantine,
     on_failure="closed",
     labelled_set=ROOT / "evals" / "labelled" / "injection.jsonl",
+    labelled_state=clip_state,
 )

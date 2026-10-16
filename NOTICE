@@ -12,3 +12,6 @@ This product includes software developed by third parties:
   evals/2048/style/fonts are Clear Sans by Intel Corporation (Apache-2.0)
 - evals/millionaire/questions.json, fetched at first run: Open Trivia Database
   (https://opentdb.com), CC BY-SA 4.0
+- evals/labelled/browsesafe-test-sample.json and scripts/build_browsesafe_set.py: row ids of, and a
+  converter for, BrowseSafe-Bench (perplexity-ai/browsesafe-bench; Zhang et al., 2025, arXiv:2511.20597),
+  MIT, Copyright 2025 Perplexity AI, Inc. The dataset itself is not included. Details: THIRD_PARTY_LICENSES.md

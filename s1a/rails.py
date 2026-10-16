@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,7 @@ from s1a.spec import Json, RailSpec, Verdict
 
 QUESTION = "check"
 RAIL_MODEL_NAMES = ("jev", "clm", "laya", "laya-served")
+BANDS = ("allow", "uncertain", "act", "failure")  # a labelled-set row's outcome; failure: the decision itself failed
 
 
 def question(spec: RailSpec) -> Question:
@@ -112,25 +114,45 @@ def read_labelled(path: Path) -> list[dict[str, Any]]:
 async def evaluate(
     spec: RailSpec, labelled_set: Path, *, decision_model: DecisionModel, results_dir: Path
 ) -> dict[str, Any]:
-    """Every record through the same question; precision and recall of the act band against the labels, one job folder."""
+    """Every record through the same question; precision and recall of the act band against the labels, one job folder.
+
+    A record's state goes through ``spec.labelled_state`` first, as the hook would clip it. A decision that fails
+    (endpoint, key, deadline, malformed answer) is a ``failure`` row, not an abort: every record stays in the
+    denominator, and on a closed rail it counts as acted, as the runtime quarantines it."""
     records = read_labelled(labelled_set)
-    verdicts = [await ask(spec, record["state"], decision_model) for record in records]
-    acted = [verdict.band == "act" for verdict in verdicts]
+    clip: Callable[[Json], Json] = spec.labelled_state or (lambda state: state)
+    verdicts: list[Verdict | None] = []
+    errors: list[str | None] = []
+    for record in records:
+        try:
+            verdicts.append(await ask(spec, clip(record["state"]), decision_model))
+            errors.append(None)
+        except BaseError as exc:  # the error's class and code only: its message can echo the page
+            verdicts.append(None)
+            errors.append(getattr(getattr(exc, "status", None), "name", None) or type(exc).__name__)
+    bands = [verdict.band if verdict else "failure" for verdict in verdicts]
+    acted = [band == "act" or (band == "failure" and spec.on_failure == "closed") for band in bands]
     labels = [bool(record["label"]) for record in records]
+    answered = [verdict for verdict in verdicts if verdict]
     tp = sum(a and label for a, label in zip(acted, labels))
     fp = sum(a and not label for a, label in zip(acted, labels))
     fn = sum(label and not a for a, label in zip(acted, labels))
-    jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts) if decision_model.bills_input_tokens else 0
+    jev_input_tokens = sum(verdict.input_tokens for verdict in answered) if decision_model.bills_input_tokens else 0
     summary = {
         "rail": spec.name,
         "records": len(records),
         "positives": sum(labels),
         "acted": sum(acted),
-        "uncertain": sum(verdict.band == "uncertain" for verdict in verdicts),
+        "uncertain": bands.count("uncertain"),
+        "failures": bands.count("failure"),
+        "bands": {
+            str(flag).lower(): {band: sum(b == band and lab == flag for b, lab in zip(bands, labels)) for band in BANDS}
+            for flag in (True, False)
+        },
         "precision": round(tp / (tp + fp), 3) if tp + fp else None,
         "recall": round(tp / (tp + fn), 3) if tp + fn else None,
         "accuracy": round(sum(a == label for a, label in zip(acted, labels)) / len(records), 3),
-        "median_ms": int(statistics.median(verdict.ms for verdict in verdicts)),
+        "median_ms": int(statistics.median(verdict.ms for verdict in answered)) if answered else None,
         "jev_input_tokens": jev_input_tokens,
         "cost_usd": cost_usd(jev_input_tokens, 0, 0, 0, None),
         "thresholds": {"allow": spec.thresholds.allow, "act": spec.thresholds.act},
@@ -144,15 +166,16 @@ async def evaluate(
             json.dumps(
                 {
                     "label": label,
-                    "p": round(verdict.p, 3),
-                    "band": verdict.band,
-                    "ms": verdict.ms,
+                    "p": round(verdict.p, 3) if verdict else None,
+                    "band": verdict.band if verdict else "failure",
+                    "ms": verdict.ms if verdict else None,
                     "note": record.get("note"),
-                },
+                }
+                | ({"error": error} if error else {}),
                 ensure_ascii=False,
             )
             + "\n"
-            for record, label, verdict in zip(records, labels, verdicts)
+            for record, label, verdict, error in zip(records, labels, verdicts, errors)
         ),
         encoding="utf-8",
     )

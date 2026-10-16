@@ -156,6 +156,9 @@ class RailSpec:
     act: Callable[[AgentCallbackContext, Verdict], Awaitable[None]]
     on_failure: Literal["open", "closed"]  # closed: a decision error runs act with a verdict at the act threshold
     labelled_set: Path | None  # JSONL records {"state", "label"}; the label says whether the flagged statement holds
+    # What the hook would send for a labelled record's state (the injection guard clips the text as state_of does), so
+    # a set can keep pages in full and the evaluation measures the runtime clip. None sends the state as is.
+    labelled_state: Callable[[Json], Json] | None = None
 
     def __post_init__(self) -> None:
         _check_name_and_text(self.name, self.description, self.rules)
