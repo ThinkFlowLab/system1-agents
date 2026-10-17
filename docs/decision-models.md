@@ -108,9 +108,12 @@ and Agents/Omni evidence replay contain 294 frames over 11.76 seconds. R1 failed
 the task but had an empty recording; R3 passed the complete evidence checks. All three attempts are retained.
 This is a single-fixture smoke check, not broad task-quality evidence or an end-to-end browser speedup claim.
 
-Run-local audit records and media are retained outside this repository and are not yet published:
-`20261012T114800Z-online-vision-agents/revisions/26dc76b-agents-0def927`, browser job `419202`;
-the evidence replay SHA-256 is `58550ee293bbfb9c5b1f563c03e8cbdb6f6ac2a3ef23080f73ec3435b932a9e4`.
+Run-local audit records remain outside this repository:
+`20261012T114800Z-online-vision-agents/revisions/26dc76b-agents-0def927`, browser job `419202`.
+The same-trial [evidence replay](https://github.com/linear3735/system1-agents/releases/download/jevvl-r3-419202-evidence/evidence-replay.mp4)
+and [sanitized R3 records](https://github.com/linear3735/system1-agents/releases/download/jevvl-r3-419202-evidence/jevvl-r3-evidence.zip)
+are public; the full GPU raw records are not published. The evidence replay SHA-256 is
+`58550ee293bbfb9c5b1f563c03e8cbdb6f6ac2a3ef23080f73ec3435b932a9e4`.
 
 ## What each front sends
 
