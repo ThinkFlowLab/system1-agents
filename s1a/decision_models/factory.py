@@ -11,12 +11,14 @@ from s1a.decision_models.clm import ClmModel
 from s1a.decision_models.cua import CuaS1Model
 from s1a.decision_models.cua_four_b import CuaFourBModel
 from s1a.decision_models.jev import JevModel
+from s1a.decision_models.jev_vl_served import ServedJevVLModel
 from s1a.decision_models.laya import LayaModel
 from s1a.decision_models.omnijev import OmniJevModel
 from s1a.decision_models.served import ServedLayaModel
 
 DECISION_MODEL_NAMES = (
     "jev",
+    "jev-vl-served",
     "clm",
     "laya",
     "laya-served",
@@ -28,10 +30,12 @@ DECISION_MODEL_NAMES = (
 
 
 def build_model(model_name: str, *, seed: int = 0, rule: tuple[str, Rule] | None = None) -> DecisionModel:
-    """``jev``, ``clm``, ``laya``, ``laya-served``, ``cua`` and ``omnijev`` from the environment, ``random`` from the seed, ``rule`` from the agent's baseline."""
+    """Configured backends from the environment, ``random`` from the seed, ``rule`` from the agent's baseline."""
     match model_name:
         case "jev":
             return JevModel.from_env()
+        case "jev-vl-served":
+            return ServedJevVLModel.from_env()
         case "clm":
             return ClmModel.from_env()  # CLM over HTTP; no torch, no cloud key
         case "laya":

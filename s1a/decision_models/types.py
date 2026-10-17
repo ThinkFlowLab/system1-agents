@@ -164,7 +164,7 @@ def _valid_count(value: Any) -> bool:
     """A usable token count: a non-negative integer, never a bool; a float only when it is whole."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return False
-    return math.isfinite(value) and float(value).is_integer() and value >= 0
+    return value >= 0 and (isinstance(value, int) or (math.isfinite(value) and value.is_integer()))
 
 
 @dataclass(frozen=True)
