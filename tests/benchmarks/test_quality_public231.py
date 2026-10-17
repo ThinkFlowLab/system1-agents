@@ -3,6 +3,7 @@
 import copy
 import json
 import os
+import py_compile
 from pathlib import Path
 
 import pytest
@@ -200,6 +201,40 @@ def test_source_hash_is_required(tmp_path):
     source.write_text("raise AssertionError('must not execute')")
     with pytest.raises(ValueError, match="collector hash"):
         load_collector(source)
+
+
+def test_collector_executes_verified_source_instead_of_cached_bytecode(tmp_path, collector):
+    trusted = Path(collector.__file__).read_bytes()
+    source = tmp_path / "bench.py"
+    untrusted = b"raise AssertionError('unverified bytecode executed')\n"
+    source.write_bytes(untrusted + b"#" * (len(trusted) - len(untrusted)))
+    mtime = 1_700_000_000
+    os.utime(source, (mtime, mtime))
+    cache = Path(
+        py_compile.compile(str(source), doraise=True, invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
+    )
+    source.write_bytes(trusted)
+    os.utime(source, (mtime, mtime))
+    assert cache.exists() and source.stat().st_size == len(trusted) and int(source.stat().st_mtime) == mtime
+
+    loaded = load_collector(source)
+    assert loaded.SOURCE_SHA256 == collector.SOURCE_SHA256
+    assert callable(loaded.summarize_saved)
+
+
+def test_collector_executes_the_bytes_read_before_hashing(tmp_path, collector, monkeypatch):
+    source = tmp_path / "bench.py"
+    source.write_bytes(Path(collector.__file__).read_bytes())
+
+    def hash_then_replace(data):
+        result = digest(data)
+        source.write_text("raise AssertionError('unverified replacement executed')\n")
+        return result
+
+    monkeypatch.setattr("benchmarks.quality_public231.digest", hash_then_replace)
+    loaded = load_collector(source)
+    assert loaded.SOURCE_SHA256 == collector.SOURCE_SHA256
+    assert callable(loaded.summarize_saved)
 
 
 def test_recorded_round_identity_is_separate_from_stable_model_config(tmp_path, collector, input_manifest):

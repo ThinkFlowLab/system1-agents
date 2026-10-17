@@ -23,12 +23,13 @@ RAW_CLOCK = "post_to_body_json_and_schema_validation"
 
 def load_collector(path):
     # Only this reviewed interface is executable; never import a file selected by raw metadata.
-    source_hash = digest(path.read_bytes())
+    source_bytes = path.read_bytes()
+    source_hash = digest(source_bytes)
     if source_hash != COLLECTOR_SHA256:
         raise ValueError("Frozen Omni collector hash mismatch")
     spec = importlib.util.spec_from_file_location("public231_omni_raw", path)
     collector = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(collector)
+    exec(compile(source_bytes, str(path), "exec"), collector.__dict__)
     collector.SOURCE_SHA256 = source_hash
     return collector
 
