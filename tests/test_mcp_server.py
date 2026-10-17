@@ -7,6 +7,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import jsonschema
 import os
 import re
 import subprocess
@@ -281,3 +282,70 @@ class TestMcpServer(IsolatedAsyncioTestCase):
             rows["alfworld"], {"name": "alfworld", "front": "unavailable", "description": "ALFWORLD_DATA is empty"}
         )
         self.assertEqual(rows["game2048"]["front"], "tool")
+
+
+class TestAdvertisedTools(IsolatedAsyncioTestCase):
+    """What ``tools/list`` tells a host: titles, behavior hints and typed result schemas (#82)."""
+
+    async def _tools(self) -> dict[str, Any]:
+        async with create_connected_server_and_client_session(mcp_server.server) as session:
+            listed = await session.list_tools()
+        return {tool.name: tool for tool in listed.tools}
+
+    async def test_each_tool_has_a_title_and_its_behavior_hints(self) -> None:
+        tools = await self._tools()
+        expected = {  # name: (title, readOnly, destructive, idempotent, openWorld)
+            "list_agents": ("List S1A agents", True, None, True, False),
+            "decide": ("Decide one choice", True, None, None, True),
+            "run_agent": ("Run an S1A agent", False, True, False, True),
+        }
+        for name, (title, read_only, destructive, idempotent, open_world) in expected.items():
+            with self.subTest(tool=name):
+                hints = tools[name].annotations
+                self.assertEqual(tools[name].title, title)
+                self.assertIsNotNone(hints)
+                self.assertEqual(
+                    (hints.readOnlyHint, hints.destructiveHint, hints.idempotentHint, hints.openWorldHint),
+                    (read_only, destructive, idempotent, open_world),
+                )
+
+    async def test_decide_advertises_its_four_keys_and_its_result_validates(self) -> None:
+        schema = (await self._tools())["decide"].outputSchema
+        self.assertIsNotNone(schema)
+        self.assertEqual(sorted(schema["required"]), ["choice", "confidence", "ms", "probabilities"])
+        with patch.object(mcp_server, "build_model", return_value=JevModel(ScriptedTransport(choose="inc"))):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                result = await session.call_tool(
+                    "decide", {"state": {"n": 1}, "options": {"inc": "add one", "dec": "take one"}, "rules": "count"}
+                )
+        self.assertFalse(result.isError)
+        jsonschema.validate(result.structuredContent, schema)
+        self.assertEqual(json.loads(result.content[0].text), result.structuredContent)
+
+    async def test_list_agents_rows_are_typed_and_an_unavailable_row_still_validates(self) -> None:
+        schema = (await self._tools())["list_agents"].outputSchema
+        self.assertIsNotNone(schema)
+        row = schema["properties"]["result"]["items"]
+        row = schema["$defs"][row["$ref"].rsplit("/", 1)[-1]] if "$ref" in row else row
+        self.assertEqual(sorted(row["required"]), ["description", "front", "name"])
+        self.assertIn("flags", row["properties"])
+        real = agents.load
+
+        def load(name: str) -> agents.Spec:
+            if name == "alfworld":
+                raise FileNotFoundError("ALFWORLD_DATA is empty")
+            return real(name)
+
+        with patch.object(agents, "load", load):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                result = await session.call_tool("list_agents", {})
+        self.assertFalse(result.isError)
+        jsonschema.validate(result.structuredContent, schema)
+        rows = {row["name"]: row for row in _rows(result)}
+        self.assertNotIn("flags", rows["alfworld"])
+        self.assertIn("flags", rows["game2048"])
+
+    async def test_run_agent_stays_an_untyped_object(self) -> None:
+        schema = (await self._tools())["run_agent"].outputSchema
+        self.assertEqual((schema or {}).get("type"), "object")
+        self.assertNotIn("required", schema or {})

@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
+  read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
+  `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every
+  `decide` model (`jev`, `clm`, `laya`, `laya-served`, `cua`).
+
 - Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
   complete-denominator quality metrics and per-round service latency.
 
@@ -26,6 +31,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
 - Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.
