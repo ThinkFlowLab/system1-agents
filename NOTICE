@@ -12,3 +12,8 @@ This product includes software developed by third parties:
   evals/2048/style/fonts are Clear Sans by Intel Corporation (Apache-2.0)
 - evals/millionaire/questions.json, fetched at first run: Open Trivia Database
   (https://opentdb.com), CC BY-SA 4.0
+- s1a/agents/_sokoban.py: adapted Valen Sokoban simulator (Liuziyu77/Valen), Apache-2.0.
+  s1a/agents/_sokoban_render.py and the visual-mode instruction texts: adapted Valen Sokoban
+  renderer and dataset texts (Liuziyu77/Valen), Apache-2.0.
+  Sokoban levels and test references: Valen-Team/Valen-Eval-Game, Apache-2.0.
+  Pinned sources and modifications: THIRD_PARTY_LICENSES.md
