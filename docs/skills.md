@@ -75,12 +75,23 @@ codex mcp add s1a -- uv run --project /path/to/system1-agents s1a-mcp
 description and the flags `run_agent` accepts for it; an agent whose optional dependency is missing is listed as
 unavailable with the error. `run_agent(name, flags)` runs one agent with the flags of `s1a run <name>` and returns
 its JSON object. `decide(state, options, rules, model="jev")` answers one choice question: the chosen key, a
-probability per option, a confidence and the latency in ms. `model` accepts `jev`, `laya` or `cua`; callers that
-omit it keep using Jev. For local decisions, install the matching extra in the server's checkout (`uv sync
+probability per option, a confidence and the latency in ms. `model` accepts `jev`, `clm`, `laya`, `laya-served`
+or `cua`; callers that omit it keep using Jev. `clm` needs `CLM_URL` (a running `clm-serve`) and `laya-served` needs
+`LAYA_SERVED_URL`. For local decisions, install the matching extra in the server's checkout (`uv sync
 --extra laya` or `uv sync --extra cua`) and pass `model="laya"` or `model="cua"`; no Jev API key is needed.
 The first local call may download the checkpoint. Each call loads and closes its model; `ms` measures the
 decision, not model loading. Agent runs and decisions are serialized, and model output stays off the stdio
 protocol stream.
+
+Each tool carries a `title` and MCP behavior hints, which hosts such as Codex (`default_tools_approval_mode =
+"writes"`) and Claude use to decide what to auto-approve. `list_agents` is read-only, idempotent and closed-world: it
+only imports the checkout's agent modules, so a host may approve it without asking. `decide` is read-only but
+open-world: it changes nothing, yet `jev`, `clm` and `laya-served` call a remote service that may bill per call.
+`run_agent` is marked destructive, non-idempotent and open-world, because a browser agent clicks and submits on live
+sites and a tool agent writes job folders, so a host should keep prompting for it. The hints are advice to the host,
+not enforcement by the server. `decide` and `list_agents` also advertise typed output schemas (`choice`,
+`probabilities`, `confidence`, `ms`; `name`, `front`, `description` and, for an available agent, `flags`);
+`run_agent` returns an untyped object because its shape depends on the agent's front.
 
 ## Build a System 1 agent
 
