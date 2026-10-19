@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Offline quality consumer for shared Omni public231 raw, retaining planned
+  denominators and original scoring.
 - `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
   read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
   `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every

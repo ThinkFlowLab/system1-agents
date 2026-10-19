@@ -88,7 +88,18 @@ def body_for(task, model):
     return body
 
 
-def score_record(upstream, identity, task, raw, model, round_number, kind, raw_hash):
+def score_record(
+    upstream,
+    identity,
+    task,
+    raw,
+    model,
+    round_number,
+    kind,
+    raw_hash,
+    *,
+    latency_basis="client_single_request_wall_seconds",
+):
     status, error, probs, source = "ok", None, None, "unavailable"
     response = raw["response"]
     code = raw["http_status"]
@@ -124,7 +135,7 @@ def score_record(upstream, identity, task, raw, model, round_number, kind, raw_h
         status_code=code,
         error=error or scored.get("error"),
         latency_s=raw["latency_s"],
-        latency_basis="client_single_request_wall_seconds",
+        latency_basis=latency_basis,
         **{key: scored.get(key) for key in ("valid", "strict_valid", "renormalized", "correct", "predicted", "probs")},
         expected=task.expected,
         candidate_count=len(task.labels),
