@@ -10,6 +10,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   `evals/labelled/browsesafe-test-sample.json`, dataset not vendored) in the injection guard's labelled-set shape,
   and the share of page text the guard inspects at its 6,000-character clip (`docs/benchmarks.md`). Every
   command, including one given a local `--parquet`, refuses a file whose sha256 is not the pinned one.
+- Offline quality consumer for shared Omni public231 raw, retaining planned
+  denominators and original scoring.
 - `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
   read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
   `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every
