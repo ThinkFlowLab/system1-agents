@@ -195,7 +195,7 @@ class TestDecide(TestCase):
             code, out, _err = _main(DECIDE)
         self.assertEqual((code, built), (0, ["jev"]))
         answer = json.loads(out)
-        self.assertEqual(sorted(answer), ["choice", "confidence", "ms", "probabilities"])
+        self.assertEqual({"choice", "confidence", "ms", "probabilities"} - set(answer), set())
         self.assertEqual((answer["choice"], answer["probabilities"]["stand"], answer["ms"]), ("stand", 1.0, 9))
         question = transport.bodies[0]["questions"]["pick"]
         self.assertEqual(

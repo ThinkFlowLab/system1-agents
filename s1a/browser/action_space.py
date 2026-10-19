@@ -69,6 +69,7 @@ class Move:
     latency_ms: int
     usage: Usage
     model: str
+    backend_confidence: float | None = None
 
 
 def submittable(item: dict[str, Any]) -> bool:
@@ -242,4 +243,5 @@ def interpret(decision: Decision, space: ActionSpace) -> Move:
         latency_ms=decision.latency_ms,
         usage=decision.usage,
         model=decision.model,
+        backend_confidence=operation.backend_confidence,
     )

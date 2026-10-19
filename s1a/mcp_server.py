@@ -128,7 +128,7 @@ async def decide(
     rules: str,
     model: Literal["jev", "clm", "laya", "laya-served", "cua"] = "jev",
 ) -> Decision:
-    """One choice question: the chosen key, probabilities, confidence and decision latency in ms.
+    """One choice question: the chosen key, probabilities, confidence (= max p) and decision latency in ms.
 
     Use jev over HTTP (default), laya/cua locally after installing the matching extra, or laya-served against a
     running Laya server (LAYA_SERVED_URL). Local model loading

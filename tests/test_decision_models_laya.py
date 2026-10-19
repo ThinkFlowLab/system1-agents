@@ -122,8 +122,8 @@ class TestMapping(IsolatedAsyncioTestCase):
     async def test_the_answers_come_back_typed_with_laya_usage_model_and_a_measured_latency(self) -> None:
         agent = FakeLayaAgent(input_tokens=77)
         decision = await _model(agent).decide_many(OBSERVATION, {"pick": PICK, "check": CHECK})
-        self.assertEqual(decision.choice("pick"), Choice("hit", {"hit": 1.0, "stand": 0.0}, 1.0))
-        self.assertEqual(decision.noul("check"), Noul(0.5, 0.5))
+        self.assertEqual(decision.choice("pick"), Choice("hit", {"hit": 1.0, "stand": 0.0}, 1.0, backend_confidence=1.0))
+        self.assertEqual(decision.noul("check"), Noul(0.5, 0.5, backend_confidence=0.5))
         self.assertEqual((decision.usage.input_tokens, decision.usage.output_tokens), (77, 0))
         self.assertEqual(decision.model, "laya-rl-agent")
         self.assertGreater(decision.latency_ms, 0)

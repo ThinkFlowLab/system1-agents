@@ -54,6 +54,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- `Choice.confidence` / `Noul.confidence` now mean the same thing on every backend: `max_k p_k` for a choice and
+  `max(p, 1 - p)` for a noul, both computed in `validation.py` from the validated probabilities. Historical `conf=`
+  values from `laya` / `laya-served` (normalised entropy), `jev` / `clm` (service-reported) and `omnijev` (Jev margin)
+  are not comparable with new ones. Each backend's own number is kept as `backend_confidence` on the answer, in
+  `Decision.raw["backend_confidence"]`, and on tool/browser tick records when present. See #89.
+
 - Review guidance (`self-review`, `review-pr`) now treats merge readiness as a gate: authors confirm the pull
   request reports mergeable with CI green on the recorded head before requesting review, and reviewers do not
   approve a conflicting branch or a run pinned to an older commit.

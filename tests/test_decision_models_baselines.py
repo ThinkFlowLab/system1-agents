@@ -40,10 +40,12 @@ class TestRandomModel(IsolatedAsyncioTestCase):
         decision_model = RandomModel(seed)
         return [(await decision_model.decide(OBSERVATION, PICK)).key for _ in range(20)]  # type: ignore[union-attr]
 
-    async def test_uniform_with_no_confidence_and_no_cost(self) -> None:
+    async def test_uniform_with_peak_confidence_and_no_cost(self) -> None:
         decision = await RandomModel(0).decide_many(OBSERVATION, {"pick": PICK})
         choice = decision.choice("pick")
-        self.assertEqual((choice.probabilities, choice.confidence), ({"hit": 0.5, "stand": 0.5}, 0.0))
+        # contract confidence is max p (= 0.5 for uniform two-way); backend sent 0.0 for provenance
+        self.assertEqual(choice.probabilities, {"hit": 0.5, "stand": 0.5})
+        self.assertEqual((choice.confidence, choice.backend_confidence), (0.5, 0.0))
         self.assertEqual((decision.latency_ms, decision.usage.input_tokens, decision.model), (0, 0, "random"))
 
     async def test_reproducible_per_seed_and_not_the_stream_of_random_seeded_with_the_integer(self) -> None:
@@ -59,7 +61,7 @@ class TestRuleModel(IsolatedAsyncioTestCase):
         decision_model = RuleModel("always-inc", lambda state, options: seen.append((state, options)) or "inc")
         options = {"inc": "add one", "noop": "do nothing"}
         decision = await decision_model.decide_many(Observation({"n": 1}), {"pick": ChoiceQuestion(options)})
-        self.assertEqual(decision.choice("pick"), Choice("inc", {"inc": 1.0, "noop": 0.0}, 1.0))
+        self.assertEqual(decision.choice("pick"), Choice("inc", {"inc": 1.0, "noop": 0.0}, 1.0, backend_confidence=1.0))
         self.assertEqual(
             (decision_model.name, decision_model.model, decision.latency_ms), ("always-inc", "always-inc", 0)
         )
