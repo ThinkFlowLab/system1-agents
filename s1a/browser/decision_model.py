@@ -348,7 +348,10 @@ class BrowserDecisionModel(Model):
                 "elapsed_ms": round((time.perf_counter() - run.started_at) * 1000),
                 "probabilities": probabilities,  # the replay's bars: the settled head's top keys
                 "candidates": candidates,
+                **decision.provenance,
             }
+            if self._decision_model.name == "jev-vl-served":
+                record["decision_raw"] = decision.raw
             if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
                 record["screenshot_ms"] = screenshot_ms
             run.ticks.append(record)
