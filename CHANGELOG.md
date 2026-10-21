@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `s1a probe --order reverse|shuffle:N` (with `--seed` and `--json PATH`): the option-order check. Every case is
+  asked in file order and again with the same keys and texts in another dict order; the probe reports the flip
+  rate, accuracy in each order and a row per case with every order asked. Verdict and exit code are unchanged
+  without `--order`. See #90.
 - Offline quality consumer for shared Omni public231 raw, retaining planned
   denominators and original scoring.
 - `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with

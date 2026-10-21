@@ -65,6 +65,15 @@ def parser() -> argparse.ArgumentParser:
         default="jev",
         help="who answers: jev, clm or laya-served over HTTP, laya and cua in process",
     )
+    fit.add_argument(
+        "--order",
+        metavar="reverse|shuffle:N",
+        help="also ask every case with its options reversed or N seeded shuffles; report the flip rate (#90)",
+    )
+    fit.add_argument("--seed", type=int, default=0, help="seed for --order shuffle:N (default 0)")
+    fit.add_argument(
+        "--json", type=Path, metavar="PATH", help="with --order: write the full summary, every order asked, here"
+    )
     return build
 
 
@@ -109,14 +118,27 @@ async def decide(args: argparse.Namespace) -> dict[str, Any]:
     return answer
 
 
-async def run_probe(cases: Path, model_name: str) -> dict[str, Any]:
+async def run_probe(
+    cases: Path, model_name: str, order: str | None = None, *, seed: int = 0, json_path: Path | None = None
+) -> dict[str, Any]:
+    """The fit probe; with ``order``, the option-order check over the same cases (verdict still from file order)."""
     read = probe.read_cases(cases)
+    if order is not None:
+        probe.parse_order(order)  # a bad --order is a usage error before any model loads
     decision_model = build_model(model_name)
     try:
-        summary = await probe.run(read, decision_model)
+        if order is None:
+            summary = await probe.run(read, decision_model)
+        else:
+            summary = await probe.run_order(read, decision_model, order, seed=seed)
     finally:
         await decision_model.close()
-    print(probe.render(summary))
+    if order is None:
+        print(probe.render(summary))
+    else:
+        print(probe.render_order(summary))
+        if json_path is not None:
+            json_path.write_text(json.dumps({"model": model_name, **summary}, ensure_ascii=False, indent=1) + "\n")
     return summary
 
 
@@ -136,7 +158,10 @@ def main(argv: list[str]) -> int:
             case "decide":
                 asyncio.run(decide(args))
             case "probe":
-                return 0 if asyncio.run(run_probe(args.cases, args.model))["verdict"] == "fits" else 1
+                summary = asyncio.run(
+                    run_probe(args.cases, args.model, args.order, seed=args.seed, json_path=args.json)
+                )
+                return 0 if summary["verdict"] == "fits" else 1
     except (agents.UnknownAgent, ValueError) as exc:  # JSONDecodeError is a ValueError
         print(exc, file=sys.stderr)
         return 2
