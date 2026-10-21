@@ -185,7 +185,11 @@ class ServedJevVLModel(DecisionModel):
             ) from exc
         if not isinstance(payload, dict):
             raise build_error(StatusCode.MODEL_CALL_FAILED, error_msg="JEV-VL returned a non-object body")
-        return payload, dict(response.headers)
+        return payload, {
+            key: value
+            for key, value in response.headers.items()
+            if key in {"server-timing", "x-request-id", "content-type", "content-length"}
+        }
 
     async def _decide(self, observation: Observation, questions: dict[str, Question]) -> Reply:
         started = time.monotonic()
@@ -222,7 +226,6 @@ class ServedJevVLModel(DecisionModel):
                 StatusCode.MODEL_SERVICE_CONFIG_ERROR, cause=exc, error_msg="JEV-VL request is not valid UTF-8 JSON"
             ) from exc
         self._remaining(deadline)
-        decision_id = uuid.uuid4().hex
         answers: dict[str, Json] = {}
         responses: list[Json] = []
         timings: Json = {}
@@ -230,13 +233,14 @@ class ServedJevVLModel(DecisionModel):
         calls = 0
         for name, question, options, body in prepared:
             self._remaining(deadline)
-            request_id = uuid.uuid4().hex
             forced = isinstance(question, ChoiceQuestion) and len(options) == 1
             if forced:
+                request_id = None
                 key = question.ids[0]
                 answers[name] = {"choice": key, "probabilities": {key: 1.0}, "confidence": 1.0}
                 payload, headers = {"forced": True, "num_model_requests": 0}, {}
             else:
+                request_id = uuid.uuid4().hex
                 payload, headers = await self._post(body, request_id, deadline)
                 answers[name] = _answer(payload, question, options)
                 sent_usage = payload.get("usage")
@@ -274,7 +278,7 @@ class ServedJevVLModel(DecisionModel):
                 "forced": calls == 0,
                 "num_model_requests": calls,
                 "url": self.url,
-                "request_id": decision_id,
+                "request_id": uuid.uuid4().hex if calls else None,
                 "server_timing": timings,
                 "served_by": {"checkpoint": MODEL_ID, "revision": None, "device": None, "source": "response"}
                 if calls

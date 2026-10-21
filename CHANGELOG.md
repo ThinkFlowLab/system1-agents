@@ -31,6 +31,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- JEV-VL browser raw traces stay scoped to `jev-vl-served`, retain only timing, request ID and content headers,
+  and use null request IDs for local forced choices instead of implying an HTTP request was sent.
 - Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.

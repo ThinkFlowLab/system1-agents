@@ -10,8 +10,11 @@ import httpx
 import pytest
 
 from test_browser_policy import _MESSAGES, _TOOLS, _slot_model
+from test_decision_models_clm import Server as ClmServer
 from test_decision_models_jev_vl_served import MODEL, PROTOCOL, image_bytes
+from test_decision_models_served import Server as LayaServer
 from s1a.decision_models.jev_vl_served import ServedJevVLModel
+from s1a.decision_models.served import ServedLayaClient, ServedLayaModel
 
 
 class Page:
@@ -64,7 +67,13 @@ def served(page, *, fail_target=False):
         probabilities[index] = 0.9
         return httpx.Response(
             200,
-            headers={"Server-Timing": "infer;dur=12", "X-Request-Id": "worker-id"},
+            headers={
+                "Server-Timing": "infer;dur=12",
+                "X-Request-Id": "worker-id",
+                "Set-Cookie": "session=private-cookie",
+                "Authorization": "Bearer private-token",
+                "X-Proxy-Secret": "private-proxy-value",
+            },
             json={
                 "model": MODEL,
                 "protocol": PROTOCOL,
@@ -105,6 +114,32 @@ async def test_two_captures_drive_distinct_controls_and_preserve_serving_trace()
         assert [r["question_id"] for r in raw["responses"]] == ["operation", "click_target"]
         assert raw["responses"][0]["payload"]["protocol"] == PROTOCOL
         assert tick["server_timing"]["operation"] == {"infer": 12.0}
+        for response in raw["responses"]:
+            assert set(response["headers"]) == {"server-timing", "x-request-id", "content-type", "content-length"}
+        assert "private-" not in json.dumps(tick)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("backend", ["laya-served", "clm"])
+async def test_existing_served_backends_keep_provenance_without_raw_payload(backend):
+    page = Page()
+    if backend == "laya-served":
+        server = LayaServer()
+        model = ServedLayaModel(ServedLayaClient(url="http://laya.test", transport=httpx.MockTransport(server.handler)))
+    else:
+        model = ClmServer().model()
+    slot = _slot_model([], runtime=page, decision_model=model, goal_value_cache=False, prefetch_values=False)
+    try:
+        page.apply(await slot.invoke(_MESSAGES, tools=_TOOLS))
+    finally:
+        await model.close()
+    assert page.completed == ["t_g0_1"]
+    assert len(slot.ticks) == 1
+    tick = slot.ticks[0]
+    assert tick["url"] == ("http://laya.test" if backend == "laya-served" else "http://clm.test")
+    assert tick["request_id"] and tick["served_by"]
+    assert "server_timing" in tick
+    assert "decision_raw" not in tick
 
 
 @pytest.mark.asyncio

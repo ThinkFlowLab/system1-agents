@@ -241,6 +241,8 @@ async def test_forced_choice_is_a_known_zero_with_no_model_request(make_model):
     assert decision.choice("forced").probabilities == {"only": 1.0}
     assert decision.usage.known and decision.usage.input_tokens == decision.usage.output_tokens == 0
     assert decision.raw["forced"] is True and decision.raw["num_model_requests"] == 0
+    assert decision.raw["request_id"] is None
+    assert decision.raw["responses"][0]["request_id"] is None
     assert not server.requests
 
 
@@ -275,6 +277,10 @@ async def test_many_questions_are_serial_and_preserve_raw_provenance(make_model)
     assert all(record["headers"]["x-request-id"] == "server-id" for record in learned)
     assert all(record["request_id"] for record in learned)
     assert len({record["request_id"] for record in learned}) == 2
+    assert [record["request_id"] for record in learned] == [
+        request.headers["x-request-id"] for request in server.requests
+    ]
+    assert records[1]["forced"] is True and records[1]["request_id"] is None
     assert decision.raw["request_id"]
     assert decision.raw["server_timing"]["pick"] == {"infer": 1.0}
     assert decision.raw["served_by"]["checkpoint"] == MODEL

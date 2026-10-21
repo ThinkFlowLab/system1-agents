@@ -87,6 +87,12 @@ does not retry HTTP requests or re-ask invalid answers. A choice with one offere
 image validation, with zero model requests and zero usage; it is not a learned choice. `latency_ms` covers the
 whole client decision, including preparation and validation, rather than GPU inference alone.
 
+Browser ticks retain `decision_raw` only for `jev-vl-served`; the existing served backends keep their
+provenance fields without adding a full response payload. JEV-VL response records keep only `server-timing`,
+`x-request-id`, `content-type` and `content-length` headers. Forced choices have a null per-response
+`request_id`, and an entirely forced decision also has a null top-level `request_id`, because no HTTP request
+was sent.
+
 For a ready frontend, a browser viewport within the image limits, and the usual browser chat-model configuration,
 the invocation is:
 

@@ -350,7 +350,7 @@ class BrowserDecisionModel(Model):
                 "candidates": candidates,
                 **decision.provenance,
             }
-            if decision.provenance:
+            if self._decision_model.name == "jev-vl-served":
                 record["decision_raw"] = decision.raw
             if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
                 record["screenshot_ms"] = screenshot_ms
