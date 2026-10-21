@@ -29,7 +29,7 @@ jobs:
             check_name: core (3.13)
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: ${{ matrix.python }}
           enable-cache: true
@@ -53,7 +53,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: "3.11"
           enable-cache: true
@@ -73,7 +73,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: "3.11"
           enable-cache: true
@@ -100,7 +100,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: "3.11"
           enable-cache: true
@@ -114,6 +114,7 @@ jobs:
     timeout-minutes: 15
     env:
       JEVBENCH_ROOT: ${{ github.workspace }}/_reference/jevbench
+      OMNI_BENCH_SOURCE: ${{ github.workspace }}/_reference/omni/benchmarks/bench.py
     steps:
       - uses: actions/checkout@v7
       - uses: actions/checkout@v7
@@ -122,7 +123,13 @@ jobs:
           ref: 7ce310c7262ed49cc85853339a8a42459298e3f3
           path: _reference/jevbench
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: actions/checkout@v7
+        with:
+          repository: ThinkFlowLab/system1-omni
+          ref: 4b9cccbde841272ff5ace6aee3cf51610fe1324f
+          path: _reference/omni
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: "3.11"
           enable-cache: true

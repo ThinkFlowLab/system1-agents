@@ -7,6 +7,10 @@ command re-scores them with the pinned upstream scorer.
 [H800 results](results/public231-h800.md) compare five open checkpoints. This is the
 public231 set, not the article's 248-question or 23-model leaderboard.
 
+The [accuracy leaderboard](accuracy-leaderboard.md) ranks that frozen run and
+defines how to add comparable results. Request latency has a separate
+[System1-Omni leaderboard](https://github.com/ThinkFlowLab/system1-omni/pull/131).
+
 ## Run
 
 Use the repository's development environment and a running service. Clone
@@ -151,3 +155,60 @@ ruff format --check benchmarks tests/benchmarks
 
 Reference-dependent tests skip if `JEVBENCH_ROOT` is absent. Mock tests
 check collection and scoring behavior; model quality and latency come from the linked real runs.
+
+## Offline quality from shared raw
+
+This consumer re-scores saved Omni requests without another model run.
+The existing `predict` and `aggregate` commands and their
+default timing basis are unchanged.
+
+For public231, provide the frozen input manifest, the independently frozen Omni
+`bench.py` interface (`5aa20a2c…`), and one `--run` path per planned round in order:
+
+```bash
+export JEVBENCH_ROOT=/absolute/path/to/pinned/jevbench
+python -m benchmarks.quality_public231 \
+  --input-manifest /absolute/path/to/input-r1/manifest.json \
+  --collector /absolute/path/to/omni-raw-interface-v2/bench.py \
+  --model-config-id open-9b \
+  --run /absolute/path/to/round-1 --run /absolute/path/to/round-2 \
+  --run /absolute/path/to/round-3 \
+  --out /absolute/path/to/new-quality-output
+```
+
+Each raw directory must contain the complete frozen `requests.jsonl`, `config.json`,
+`completion.json` and saved `responses.jsonl` when measurement started. The Omni
+interface checks file/response hashes, IDs, decoding and its saved wire verdict.
+The quality consumer checks the pinned inputs and request order, then uses the
+original JevBench scorer on the raw HTTP/typed probabilities. An Omni
+`invalid_response` can still be a valid relaxed JevBench distribution. Wire validity,
+distribution validity, strict validity, renormalization and label correctness remain
+separate. Choice/score hard labels are never substituted for missing probabilities;
+noul scalars use `{no: 1-p, yes: p}`. Accuracy uses the original argmax rule, including
+lexical tie breaking; ordinal expected value is used for MAE.
+
+Missing round directories and started requests without a saved terminal remain
+in the plan. Three rounds have 231 unique tasks and 693 planned observations.
+The ordered CLI paths define the round plan; the producer saves one directory per
+round. A saved `metadata.round`, when present, must match that ordered round;
+the remaining model/configuration metadata must agree between available rounds.
+The resulting `summary.json` and full-plan `records.jsonl` carry original raw
+pointers and hashes. Quality output uses null timestamps/latencies; it does not
+report speed. The raw clock is POST through body decoding, JSON and schema validation,
+and the saved response is decoded HTTPX text, not compressed wire bytes.
+
+Use a fresh output directory outside the repository. The tool checks archive
+consistency; it does not authenticate a coordinated rewrite of unsigned evidence.
+CPU fixtures exercise the reader and scorer, not model quality or GPU execution.
+
+The required benchmark CI job fetches the pinned JevBench reference and Omni
+collector, generates the public231 fixture, and rejects skipped tests. To run the
+same suite locally, set `JEVBENCH_ROOT` and `OMNI_BENCH_SOURCE` to those checkouts:
+
+```bash
+python -m pytest tests/benchmarks -q --confcutdir=tests/benchmarks
+```
+
+The reader accepts the original collector (`5aa20a2c…`). Each archive must match
+the exact collector supplied with `--collector`; the probability rules, input
+bytes and timing basis are unchanged.

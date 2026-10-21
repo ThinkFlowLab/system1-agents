@@ -238,6 +238,28 @@ class TestBrowserRun(TestCase):
 
 
 class TestTrial(TestCase):
+    def test_read_trial_preserves_recorded_zero_elapsed_without_timestamps(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            jev_dir, _ = _write_pair(Path(tmp))
+            result_file = jev_dir / "result.json"
+            result = json.loads(result_file.read_text(encoding="utf-8"))
+            result["agent_result"]["metadata"]["elapsed_s"] = 0
+            result["agent_execution"] = {}
+            result_file.write_text(json.dumps(result), encoding="utf-8")
+            trial = read_trial(jev_dir)
+        self.assertEqual(trial.elapsed_s, 0.0)
+
+    def test_read_trial_uses_legacy_zero_when_elapsed_and_timestamps_are_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            jev_dir, _ = _write_pair(Path(tmp))
+            result_file = jev_dir / "result.json"
+            result = json.loads(result_file.read_text(encoding="utf-8"))
+            result["agent_result"]["metadata"].pop("elapsed_s", None)
+            result["agent_execution"] = {}
+            result_file.write_text(json.dumps(result), encoding="utf-8")
+            trial = read_trial(jev_dir)
+        self.assertEqual(trial.elapsed_s, 0.0)
+
     def test_read_trial_reads_the_harbor_folder(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             jev_dir, _ = _write_pair(Path(tmp))

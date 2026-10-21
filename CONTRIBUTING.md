@@ -1,5 +1,16 @@
 # Contributing
 
+## Before implementation or a PR
+
+Complete the [human contributor-intent gate](.agents/skills/self-review/SKILL.md#human-contributor-intent-gate)
+before implementation and before submitting a PR, including a draft. It records
+the human's outcome, highest-leverage variable, why the work moves it, customer
+and actual need, then whether a PR is needed at all. Reuse explicit traceable
+answers and ask only what is missing; wait rather than filling in answers for the
+contributor. Bug fixes need linked observed failure evidence. Keep private source
+material private. This contributor gate does not block independent read-only
+reviews or change automated review selection.
+
 ## Setup
 
 ```bash

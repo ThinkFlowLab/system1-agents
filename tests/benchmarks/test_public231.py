@@ -262,7 +262,9 @@ def test_predict_cli_rejects_credentials_before_output(collect, monkeypatch, end
     with pytest.raises(ValueError, match="without credentials"):
         cli.main()
     assert not args.out.exists() and len(calls) == 1
-    assert all("DUMMY_SECRET" not in path.read_text() for path in run.parent.rglob("*") if path.is_file())
+    assert all(
+        "DUMMY_SECRET" not in path.read_text(encoding="utf-8") for path in run.parent.rglob("*") if path.is_file()
+    )
 
 
 @pytest.mark.parametrize("failure", ["mkdir", "environment.json", "run.meta.json"])
@@ -296,7 +298,7 @@ def test_collect_and_aggregate_preserve_unicode_in_error_body(collect, separator
     run, calls, _ = collect(
         warmup=0, rounds=1, limit=1, statuses=[422], response_text=dump({"detail": f"bad{separator}input"})
     )
-    with (run / "round-1/results.jsonl").open() as stream:
+    with (run / "round-1/results.jsonl").open(encoding="utf-8") as stream:
         records = [json.loads(line) for line in stream]
     assert len(calls) == len(records) == 1 and records[0]["status"] == "refused"
     assert separator in records[0]["error"]
@@ -348,7 +350,7 @@ def test_stop_policy_leaves_unattempted_in_plan(collect, statuses, attempted):
     assert len(calls) == attempted
     assert result["pooled"]["accuracy"] == 0 and result["pooled"]["planned"] == 693
     assert result["pooled"]["attempted"] == attempted and not result["sufficient"]
-    assert json.loads((run / "run.meta.json").read_text())["stop_reason"]
+    assert json.loads((run / "run.meta.json").read_text(encoding="utf-8"))["stop_reason"]
 
 
 def test_failures_and_partial_denominator_with_two_latencies(collect):
@@ -477,12 +479,12 @@ def test_raw_and_records_must_correspond(collect, directory, filename, change):
 def test_all_environment_fields_must_match(collect, field, change):
     run, _, _ = collect(warmup=0, rounds=1, limit=1)
     path = run / "run.meta.json"
-    meta = json.loads(path.read_text())
+    meta = json.loads(path.read_text(encoding="utf-8"))
     if change == "different":
         meta[field] = "fixture-contradiction"
     else:
         del meta[field]
-    path.write_text(dump(meta))
+    path.write_text(dump(meta), encoding="utf-8")
     with pytest.raises(ValueError, match="supplied environment"):
         aggregate(run)
     assert not (run / "summary.json").exists()

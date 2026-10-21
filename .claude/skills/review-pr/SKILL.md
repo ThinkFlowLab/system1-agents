@@ -33,6 +33,10 @@ If a comment cannot meet all six, omit it.
 - **Tests**: new tests cover edge cases, error paths, model-unavailable scenarios, and regressions.
 - **Performance**: token usage, latency, memory, and unnecessary model calls.
 - **Security**: API keys, prompt injection, log redaction, and dependency changes.
+- **Readability**: function and argument names that say what they do, function length that stays reviewable,
+  and this codebase's house idioms — long descriptive snake_case, sentence-named tests that state the behavior,
+  keyword-only options, module constants with a one-clause rationale, and full-sentence comments that state
+  constraints the code cannot show.
 
 ## Process
 
@@ -49,8 +53,14 @@ If a comment cannot meet all six, omit it.
    pull request, and say there is no issue.
 3. Run or inspect the relevant tests when possible.
 4. Identify only issues that CI cannot prove.
-5. Produce a short review with at most 5 high-confidence comments.
-6. If there are no blocking issues, say so explicitly.
+5. Before approving or calling a pull request ready, verify the merge gates against GitHub's current state:
+   the branch reports mergeable (an approval on a conflicting branch is an invalid signal — name the
+   conflicting files as the finding instead), the required checks ran green on the exact head commit under
+   review (a run pinned to an older commit or "no checks reported" means unverified; fork branches' workflow
+   runs sit at `action_required` until a maintainer approves them), and the diff comes from a freshly fetched
+   default branch, since a branch that has merged main makes a naive diff over-report.
+6. Produce a short review with at most 5 high-confidence comments.
+7. If there are no blocking issues, say so explicitly.
 
 ## Output format
 
@@ -71,7 +81,8 @@ If a comment cannot meet all six, omit it.
 
 ## Do not
 
-- Do not comment on formatting, naming, or style unless it causes a bug.
+- Do not comment on formatting the formatter already settles (`ruff format`). Comment on naming, function
+  length, or style only against the house idioms under **Readability** above, and never as personal preference.
 - Do not repeat CI failures.
 - Do not speculate without evidence.
 - Do not approve or request changes on behalf of a human maintainer.

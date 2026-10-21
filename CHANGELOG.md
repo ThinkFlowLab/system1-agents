@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Offline quality consumer for shared Omni public231 raw, retaining planned
+  denominators and original scoring.
+- `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
+  read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
+  `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every
+  `decide` model (`jev`, `clm`, `laya`, `laya-served`, `cua`).
+
 - Public231 decision-model benchmark with raw HTTP evidence, pinned upstream scoring,
   complete-denominator quality metrics and per-round service latency.
 
@@ -22,6 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Fixed
 
+- Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
 - Screenshot-enabled desktop recovery detects pixel changes while ignoring capture IDs and PNG metadata.
@@ -46,6 +54,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Changed
 
+- Review guidance (`self-review`, `review-pr`) now treats merge readiness as a gate: authors confirm the pull
+  request reports mergeable with CI green on the recorded head before requesting review, and reviewers do not
+  approve a conflicting branch or a run pinned to an older commit.
+- `review-pr` reads for readability as well as correctness: names that say what they do, reviewable function
+  length, and the repository's house idioms, judged against those conventions rather than personal style.
 - Core Windows CI (`core (windows, 3.11)`) runs on pushes to `main` and the weekly schedule, not on every
   pull request. Linux `core` and `full` still run on PRs.
 

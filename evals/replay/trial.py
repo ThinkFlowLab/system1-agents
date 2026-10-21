@@ -53,7 +53,7 @@ def read_trial(path: Path) -> Trial:
         model=model_label(result),
         seed=int(seed_text) if seed_text.isdigit() else 0,
         score=float(((result.get("verifier_result") or {}).get("rewards") or {}).get("reward") or 0.0),
-        elapsed_s=float(metadata.get("elapsed_s") or window_s(result)),
+        elapsed_s=float(metadata.get("elapsed_s") if metadata.get("elapsed_s") is not None else window_s(result)),
         steps=len(decisions) if steps is None else int(steps),
         cost_usd=agent_result.get("cost_usd"),
         decisions=decisions,
