@@ -349,6 +349,11 @@ class BrowserDecisionModel(Model):
                     if move.backend_confidence is not None
                     else {}
                 ),
+                **(
+                    {"backend_confidences": {name: round(v, 3) for name, v in move.backend_confidences.items()}}
+                    if move.backend_confidences
+                    else {}
+                ),
                 "elements": len(space.elements),
                 "elapsed_ms": round((time.perf_counter() - run.started_at) * 1000),
                 "probabilities": probabilities,  # the replay's bars: the settled head's top keys

@@ -70,6 +70,8 @@ class Move:
     usage: Usage
     model: str
     backend_confidence: float | None = None
+    # Every answered head's backend-native confidence (operation, target, text value), by question name.
+    backend_confidences: dict[str, float] = field(default_factory=dict)
 
 
 def submittable(item: dict[str, Any]) -> bool:
@@ -244,4 +246,9 @@ def interpret(decision: Decision, space: ActionSpace) -> Move:
         usage=decision.usage,
         model=decision.model,
         backend_confidence=operation.backend_confidence,
+        backend_confidences={
+            name: answer.backend_confidence
+            for name, answer in decision.answers.items()
+            if answer.backend_confidence is not None
+        },
     )

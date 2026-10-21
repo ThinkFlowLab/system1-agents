@@ -181,6 +181,15 @@ class TestValidation(TestCase):
             validate_answers(Reply(answers={"pick": GOOD_FIELDS}, latency_ms=0), questions)
         self.assertIn("no answer for question 'check'", str(caught.exception))
 
+    def test_a_backend_raw_backend_confidence_key_is_kept_not_overwritten(self) -> None:
+        questions = {"pick": ChoiceQuestion({"inc": "", "noop": ""})}
+        reply = Reply(answers={"pick": GOOD_FIELDS}, latency_ms=0, raw={"backend_confidence": "native-blob"})
+        decision = validate_answers(reply, questions)
+        self.assertEqual(decision.raw["backend_confidence"], {"pick": 0.7})
+        self.assertEqual(decision.raw["backend_confidence_reply"], "native-blob")
+        untouched = validate_answers(Reply(answers={"pick": GOOD_FIELDS}, latency_ms=0), questions)
+        self.assertNotIn("backend_confidence_reply", untouched.raw)
+
     def test_an_answer_of_the_wrong_shape_or_no_object_fails_on_its_fields(self) -> None:
         questions = {"pick": ChoiceQuestion({"inc": "", "noop": ""}), "check": NoulQuestion("q")}
         swapped = Reply(answers={"pick": {"noul": 0.5}, "check": GOOD_FIELDS}, latency_ms=0)

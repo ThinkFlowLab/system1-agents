@@ -630,6 +630,32 @@ class TestJevRunIsolation(IsolatedAsyncioTestCase):
         self.assertNotEqual(first.tool_calls[0].id, second.tool_calls[0].id)
 
 
+class TestInterpretBackendConfidences(TestCase):
+    def test_every_answered_heads_backend_confidence_reaches_the_move(self) -> None:
+        from s1a.decision_models import Choice, Decision
+
+        candidate = action_space.Candidate("CLICK", "3", {"label": "Go"})
+        space = action_space.ActionSpace(heads={"CLICK": {"3": candidate}})
+        decision = Decision(
+            answers={
+                "operation": Choice("CLICK", {"CLICK": 0.8, "WAIT": 0.2}, 0.8, backend_confidence=0.4),
+                "click_target": Choice("3", {"3": 1.0}, 1.0, backend_confidence=0.9),
+            },
+            latency_ms=1,
+        )
+        move = action_space.interpret(decision, space)
+        self.assertEqual(move.backend_confidence, 0.4)
+        self.assertEqual(move.backend_confidences, {"operation": 0.4, "click_target": 0.9})
+        bare = Decision(
+            answers={
+                "operation": Choice("CLICK", {"CLICK": 1.0}, 1.0),
+                "click_target": Choice("3", {"3": 1.0}, 1.0),
+            },
+            latency_ms=1,
+        )
+        self.assertEqual(action_space.interpret(bare, space).backend_confidences, {})
+
+
 class TestDecisionModelAttributeIsolation(TestCase):
     """B2: the model must not collide with the base ``Model._client`` slot."""
 

@@ -119,7 +119,9 @@ def validate_answers(reply: Reply, questions: dict[str, Question]) -> Decision:
     """Every asked question answered and valid, as a ``Decision``; answers nobody asked for are dropped.
 
     Per-question backend-native confidences are copied onto ``Decision.raw["backend_confidence"]`` (a map of
-    question name to number) so step records and probes can still read the original scale.
+    question name to number) so step records and probes can still read the original scale. If the backend's
+    own ``raw`` already carried a ``backend_confidence`` key, that value is kept as
+    ``raw["backend_confidence_reply"]`` rather than silently overwritten.
     """
     answers: dict[str, Answer] = {}
     for name, question in questions.items():
@@ -131,5 +133,7 @@ def validate_answers(reply: Reply, questions: dict[str, Question]) -> Decision:
         name: answer.backend_confidence for name, answer in answers.items() if answer.backend_confidence is not None
     }
     if native:
+        if "backend_confidence" in raw:
+            raw["backend_confidence_reply"] = raw["backend_confidence"]
         raw["backend_confidence"] = native
     return Decision(answers, reply.latency_ms, reply.usage, reply.model, raw)
