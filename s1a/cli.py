@@ -67,10 +67,13 @@ def parser() -> argparse.ArgumentParser:
     )
     fit.add_argument(
         "--order",
-        metavar="reverse|shuffle:N",
-        help="also ask every case with its options reversed or N seeded shuffles; report the flip rate (#90)",
+        metavar="reverse|shuffle:N|same:N",
+        help=(
+            "also ask every case with its options reversed, in N seeded shuffles, or N more times in file order "
+            "(same:N, the non-determinism control); report the flip rate (#90)"
+        ),
     )
-    fit.add_argument("--seed", type=int, default=0, help="seed for --order shuffle:N (default 0)")
+    fit.add_argument("--seed", type=int, default=None, help="with --order shuffle:N: the shuffle seed (default 0)")
     fit.add_argument(
         "--json", type=Path, metavar="PATH", help="with --order: write the full summary, every order asked, here"
     )
@@ -119,12 +122,15 @@ async def decide(args: argparse.Namespace) -> dict[str, Any]:
 
 
 async def run_probe(
-    cases: Path, model_name: str, order: str | None = None, *, seed: int = 0, json_path: Path | None = None
+    cases: Path, model_name: str, order: str | None = None, *, seed: int | None = None, json_path: Path | None = None
 ) -> dict[str, Any]:
     """The fit probe; with ``order``, the option-order check over the same cases (verdict still from file order)."""
+    if order is None and (seed is not None or json_path is not None):
+        raise ValueError("--seed and --json only apply with --order")  # a usage error, not silently ignored
     read = probe.read_cases(cases)
     if order is not None:
         probe.parse_order(order)  # a bad --order is a usage error before any model loads
+    seed = 0 if seed is None else seed
     decision_model = build_model(model_name)
     try:
         if order is None:

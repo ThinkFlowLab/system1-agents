@@ -111,7 +111,9 @@ It produces the module, its test and a row in the agents table, and stops at the
    `s1a probe cases.jsonl --order reverse` (or `--order shuffle:N --seed S`) re-asks every case with the same
    options in another dict order and prints the flip rate next to accuracy in each order; `--json PATH` keeps every
    order asked. The verdict and exit code still come from the file order, and nothing changes without `--order`.
-   A backend whose answer follows position rather than content shows up here, not in accuracy (#90).
+   A backend whose answer follows position rather than content shows up here, not in accuracy (#90). A flip is
+   only position bias if the backend is deterministic: run `--order same:N` too, which re-asks in file order, and
+   read the reordered flip rate against that same-order disagreement rate.
 3. Front: a tool loop for an environment that enumerates moves and scores, a browser policy for a page with visible
    controls, a rail for one question at a hook of a running agent.
 4. Scaffold from the front's template under `s1a/agents/_templates/`, with the state-design rules from the skill's

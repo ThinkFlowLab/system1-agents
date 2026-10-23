@@ -125,24 +125,30 @@ def render(summary: dict[str, Any]) -> str:
 
 
 def parse_order(text: str) -> tuple[str, int]:
-    """``reverse`` or ``shuffle:N`` (1 <= N <= ``MAX_SHUFFLES``) as ``(kind, count)``; anything else is a ValueError."""
+    """``reverse``, ``shuffle:N`` or ``same:N`` (1 <= N <= ``MAX_SHUFFLES``) as ``(kind, count)``; else a ValueError.
+
+    ``same:N`` is the control: N more asks in the file order, so a "flip" there is the backend disagreeing with
+    itself (sampling, a served model behind a load balancer, GPU non-determinism), not position bias.
+    """
     if text == "reverse":
         return "reverse", 1
     kind, sep, count = text.partition(":")
-    if kind == "shuffle" and sep and count.isdigit() and 1 <= int(count) <= MAX_SHUFFLES:
-        return "shuffle", int(count)
-    raise ValueError(f"--order must be reverse or shuffle:N with 1 <= N <= {MAX_SHUFFLES}, got {text!r}")
+    if kind in ("shuffle", "same") and sep and count.isdigit() and 1 <= int(count) <= MAX_SHUFFLES:
+        return kind, int(count)
+    raise ValueError(f"--order must be reverse, shuffle:N or same:N with 1 <= N <= {MAX_SHUFFLES}, got {text!r}")
 
 
 def reorderings(options: dict[str, str], kind: str, count: int, rng: random.Random) -> list[dict[str, str]]:
     """The reordered copies of ``options`` to ask: same keys and texts, only the dict order differs.
 
-    ``reverse`` gives one copy. ``shuffle`` gives ``count`` seeded permutations, each different from the file order
+    ``reverse`` gives one copy, ``same`` gives ``count`` copies in the file order (the control). ``shuffle`` gives ``count`` seeded permutations, each different from the file order
     when the options allow it (a one-option case has no other order, so its copy equals the original).
     """
     keys = list(options)
     if kind == "reverse":
         return [{key: options[key] for key in reversed(keys)}]
+    if kind == "same":  # the non-determinism control: the file order again, ``count`` times
+        return [dict(options) for _ in range(count)]
     out: list[dict[str, str]] = []
     for _ in range(count):
         order = keys[:]

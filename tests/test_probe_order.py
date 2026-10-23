@@ -32,6 +32,19 @@ def _cases(n: int = 8) -> list[dict[str, Any]]:
     ]
 
 
+class _AlternatingTransport(ScriptedTransport):
+    """Answers ``a`` then ``b`` then ``a``...: a stand-in for a non-deterministic backend."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._calls = 0
+
+    def _answer(self, question: Any) -> Any:
+        self._calls += 1
+        self._choose = "a" if self._calls % 2 else "b"
+        return super()._answer(question)
+
+
 def _run(transport: ScriptedTransport, order: str, cases: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     return asyncio.run(probe.run_order(cases or _cases(), JevModel(transport), order, seed=3))
 
@@ -40,7 +53,18 @@ class TestParseOrder(TestCase):
     def test_reverse_and_shuffle_parse_and_anything_else_is_a_value_error(self) -> None:
         self.assertEqual(probe.parse_order("reverse"), ("reverse", 1))
         self.assertEqual(probe.parse_order("shuffle:4"), ("shuffle", 4))
-        for bad in ("shuffle", "shuffle:0", "shuffle:x", f"shuffle:{probe.MAX_SHUFFLES + 1}", "sort", ""):
+        self.assertEqual(probe.parse_order("same:2"), ("same", 2))
+        for bad in (
+            "shuffle",
+            "shuffle:0",
+            "same",
+            "same:0",
+            f"same:{probe.MAX_SHUFFLES + 1}",
+            "shuffle:x",
+            f"shuffle:{probe.MAX_SHUFFLES + 1}",
+            "sort",
+            "",
+        ):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 probe.parse_order(bad)
 
@@ -56,6 +80,12 @@ class TestReorderings(TestCase):
         for copy in shuffled:
             self.assertEqual(copy, options)
             self.assertNotEqual(list(copy), list(options))
+
+    def test_same_repeats_the_file_order(self) -> None:
+        options = {"x": "ex", "y": "why", "z": "zed"}
+        copies = probe.reorderings(options, "same", 3, random.Random(0))
+        self.assertEqual([list(copy) for copy in copies], [["x", "y", "z"]] * 3)
+        self.assertEqual(copies, [options] * 3)
 
     def test_a_one_option_case_has_no_other_order(self) -> None:
         self.assertEqual(probe.reorderings({"only": "t"}, "shuffle", 2, random.Random(0)), [{"only": "t"}] * 2)
@@ -83,6 +113,14 @@ class TestRunOrder(TestCase):
                 self.assertEqual((summary["flips"], summary["flip_rate"]), (0, 0.0))
                 self.assertEqual((summary["accuracy"], summary["reordered_accuracy"]), (1.0, 1.0))
                 self.assertEqual(summary["verdict"], "fits")
+
+    def test_same_is_the_control_position_bias_alone_never_flips_but_noise_does(self) -> None:
+        biased = _run(ScriptedTransport(), "same:2")  # always the first key: biased, but deterministic
+        self.assertEqual((biased["flips"], biased["reordered_asks"]), (0, 16))
+        # a backend that disagrees with itself on every other call flips even though the order never changed
+        noisy = _run(_AlternatingTransport(), "same:1")
+        self.assertEqual((noisy["flips"], noisy["flip_rate"]), (8, 1.0))
+        self.assertEqual({tuple(row["asks"][1]["options"]) for row in noisy["rows"]}, {("a", "b", "c")})
 
     def test_shuffle_asks_n_reorders_per_case_and_is_seeded(self) -> None:
         a, b = _run(ScriptedTransport(), "shuffle:3"), _run(ScriptedTransport(), "shuffle:3")
@@ -147,3 +185,20 @@ class TestProbeCli(TestCase):
             code, out, err = _main(["probe", str(self._cases_file(tmp)), "--order", "sideways"])
         self.assertEqual((code, out, built), (2, "", []))
         self.assertEqual(len(err.strip().splitlines()), 1)
+
+    def test_seed_or_json_without_order_is_a_usage_error_before_any_model_loads(self) -> None:
+        built: list[str] = []
+
+        def build(name: str, **_kwargs: Any) -> JevModel:
+            built.append(name)
+            return JevModel(ScriptedTransport())
+
+        for extra in (["--seed", "1"], ["--json", "out.json"]):
+            with (
+                self.subTest(extra=extra),
+                tempfile.TemporaryDirectory() as tmp,
+                patch.object(cli, "build_model", build),
+            ):
+                code, out, err = _main(["probe", str(self._cases_file(tmp)), *extra])
+            self.assertEqual((code, out, built), (2, "", []))
+            self.assertIn("only apply with --order", err)
