@@ -10,7 +10,7 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 |:---|:---|:---|:---|
 | `TYPESAFE_API_KEY` | `jev` model | *(unset)* | API key for direct TypeSafe decisions endpoint (`https://api.typesafe.ai/v1/systemone`). |
 | `TYPESAFE_API_URL` | `jev` model | `https://openrouter.ai/api/alpha/decisions` | Endpoint URL for decisions; defaults to OpenRouter proxy, or can be overridden to a custom proxy URL. |
-| `TYPESAFE_MODEL` | `jev` model | `typesafe/jev-1.13` | Model identifier when proxying Jev decisions through OpenRouter. |
+| `TYPESAFE_MODEL` | `jev` model | `jev-1.13.0` direct, `typesafe/jev-1.13` through OpenRouter | Jev model id on either backend. Both defaults are pinned versions: no path sends the moving `jev-latest` or `jev-preview` aliases unless you set them here. On the direct path (`TYPESAFE_API_KEY` without `TYPESAFE_API_URL`) it takes a TypeSafe name such as `jev-1.14.0`; an OpenRouter id like `typesafe/jev-1.13` there is a config error. TypeSafe keeps `jev-1.13.0` available and promises 60 days' notice before deprecating it. Step records keep `model` (the id the response reports, else the one sent) and `requested_model` (the one sent). |
 | `S1A_DECISION_TIMEOUT_S` | `jev` model | `5` | Seconds one decision may take, retries included. Raise it for a slower System One server behind `TYPESAFE_API_URL` (e.g. a local OneJev-27B or CLM-8B: `30`). |
 | `OPENROUTER_API_KEY` | `jev` model (proxy), chat model fallback | *(unset)* | OpenRouter API key, used for proxying Jev decisions or as a fallback for `LLM_API_KEY`. |
 | `OPENROUTER_BASE_URL` | chat model fallback | `https://openrouter.ai/api/v1` | Fallback base URL for the chat model when `LLM_BASE_URL` or `OPENAI_BASE_URL` is unset. |

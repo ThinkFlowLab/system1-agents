@@ -4,6 +4,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Changed
+
+- The direct TypeSafe path pins `jev-1.13.0` instead of the moving `jev-latest` alias (which moved to Jev 1.14.0
+  after every published number here was recorded on 1.13), and `TYPESAFE_MODEL` now overrides the model on that
+  path too; an OpenRouter-style `typesafe/...` id there is a config error. Jev step records (tool and browser
+  ticks) keep `requested_model` next to `model`, so a saved run says which Jev was asked for and which answered.
+  The 1.13.0 vs 1.14.0 benchmark re-run is still to do. See #93.
+
 ### Added
 
 - Offline quality consumer for shared Omni public231 raw, retaining planned

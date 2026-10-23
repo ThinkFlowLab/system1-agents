@@ -142,7 +142,7 @@ Medians of the window: A 13.1 s, B 10.1 s, C 36.4 s over the two verified runs, 
 
 ### Results, direct TypeSafe backend
 
-Same task and Chrome, later the same day, decisions from `api.typesafe.ai` (`jev-latest`) instead of OpenRouter. Three runs per arm, back to back.
+Same task and Chrome, later the same day, decisions from `api.typesafe.ai` (`jev-latest`, which pointed at Jev 1.13 on that date; the direct path now pins `jev-1.13.0`, see #93) instead of OpenRouter. Three runs per arm, back to back.
 
 | run | window s | decisions | median ms | decision s | probe s | tool s | value wait s | verified |
 |---|---|---|---|---|---|---|---|---|

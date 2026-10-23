@@ -348,7 +348,10 @@ class BrowserDecisionModel(Model):
                 "elapsed_ms": round((time.perf_counter() - run.started_at) * 1000),
                 "probabilities": probabilities,  # the replay's bars: the settled head's top keys
                 "candidates": candidates,
+                "model": move.model,  # who answered: the response's model id, else the one the request named
             }
+            if "requested_model" in decision.provenance:
+                record["requested_model"] = decision.provenance["requested_model"]
             if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
                 record["screenshot_ms"] = screenshot_ms
             run.ticks.append(record)

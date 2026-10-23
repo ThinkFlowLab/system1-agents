@@ -11,7 +11,7 @@ from typing import Any, Literal, Union
 
 Json = dict[str, Any]
 QuestionType = Literal["choice", "noul"]
-PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing")
+PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing", "requested_model")
 
 
 @dataclass(frozen=True)
@@ -203,5 +203,6 @@ class Decision:
 
     @property
     def provenance(self) -> Json:
-        """Where a served answer came from, for step records: the server's identity, URL and timings; empty in process."""
+        """Where a served answer came from, for step records: the server's identity, URL and timings, and for Jev the
+        model id the request named (``model`` is the one the response reports, else that same id); empty in process."""
         return {key: self.raw[key] for key in PROVENANCE_KEYS if key in self.raw}
