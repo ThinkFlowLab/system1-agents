@@ -54,8 +54,34 @@ async def ask(spec: RailSpec, state: Json, decision_model: DecisionModel) -> Ver
     return Verdict(p=p, band=spec.thresholds.band(p), ms=decision.latency_ms, input_tokens=decision.usage.input_tokens)
 
 
+def failure_category(exc: BaseError) -> str:
+    """A decision failure as its status name, plus its cause's type when it has one (``MODEL_CALL_FAILED (ReadTimeout)``).
+
+    Never the exception's message: an endpoint's error body can quote the submitted state, and so the guarded tool
+    output, back into it.
+    """
+    category = getattr(exc.status, "name", type(exc).__name__)
+    cause = exc.__cause__
+    return f"{category} ({type(cause).__name__})" if cause is not None else category
+
+
 class DecisionModelRail(DeepAgentRail):
-    """The spec's question on the spec's hook; the spec's action runs in the act band. ``ticks`` records every verdict."""
+    """The spec's question on the spec's hook; the spec's action runs in the act band. ``ticks`` records every verdict.
+
+    Each tick names the ``handling`` the event got, so a pass on an uncertain or partly inspected event never reads as
+    a confident allow:
+
+    - ``pass``: allow band, every character inspected (or the spec tracks no coverage).
+    - ``pass_uncertain``: uncertain band, every character inspected; the model abstained and the event passes whole.
+    - ``pass_partial``: allow or uncertain band over part of the event, and the spec has no ``on_partial``.
+    - ``withhold_uninspected``: allow or uncertain band over part of the event; the spec's ``on_partial`` ran.
+    - ``act``: act band; the spec's action ran.
+    - ``act_on_failure`` / ``pass_on_failure``: the decision failed on a closed / open rail.
+
+    With ``coverage_of`` set, a tick also carries ``coverage`` (``complete`` or ``partial``), ``chars`` and
+    ``inspected_chars``. A tick holds numbers, bands and, on a failure, the error's category and code (see
+    ``failure_category``); never the event's content and never an exception's message, which can echo it.
+    """
 
     def __init__(self, spec: RailSpec, decision_model: DecisionModel) -> None:
         super().__init__()
@@ -70,22 +96,58 @@ class DecisionModelRail(DeepAgentRail):
         state = self._spec.state_of(ctx)
         if state is None:
             return
+        coverage = self._spec.coverage_of(ctx) if self._spec.coverage_of is not None else None
+        seen: dict[str, Any] = (
+            {
+                "coverage": "complete" if coverage.complete else "partial",
+                "chars": coverage.total,
+                "inspected_chars": coverage.inspected,
+            }
+            if coverage is not None
+            else {}
+        )
         try:
             verdict = await ask(self._spec, state, self._decision_model)
         except BaseError as exc:
+            error = failure_category(exc)
             logger.warning(
-                "[DecisionModelRail %s] decision failed, %s: %s", self._spec.name, self._spec.on_failure, exc
+                "[DecisionModelRail %s] decision failed, %s: %s", self._spec.name, self._spec.on_failure, error
             )
-            self.ticks.append({"error": str(exc), "failed": self._spec.on_failure})
-            if self._spec.on_failure == "closed":
+            closed = self._spec.on_failure == "closed"
+            self.ticks.append(
+                {
+                    "error": error,
+                    "error_code": exc.code,
+                    "failed": self._spec.on_failure,
+                    "handling": "act_on_failure" if closed else "pass_on_failure",
+                    **seen,
+                }
+            )
+            if closed:
                 verdict = Verdict(p=self._spec.thresholds.act, band="act", ms=0, input_tokens=0)
                 await self._spec.act(ctx, verdict)
             return
-        self.ticks.append(
-            {"p": round(verdict.p, 3), "band": verdict.band, "ms": verdict.ms, "input_tokens": verdict.input_tokens}
-        )
         if verdict.band == "act":
+            handling = "act"
+        elif coverage is not None and not coverage.complete:
+            handling = "withhold_uninspected" if self._spec.on_partial is not None else "pass_partial"
+        else:
+            handling = "pass_uncertain" if verdict.band == "uncertain" else "pass"
+        self.ticks.append(
+            {
+                "p": round(verdict.p, 3),
+                "band": verdict.band,
+                "ms": verdict.ms,
+                "input_tokens": verdict.input_tokens,
+                "handling": handling,
+                **seen,
+            }
+        )
+        if handling == "act":
             await self._spec.act(ctx, verdict)
+        elif handling == "withhold_uninspected":
+            assert self._spec.on_partial is not None and coverage is not None
+            await self._spec.on_partial(ctx, coverage)
 
 
 def read_labelled(path: Path, data: bytes | None = None) -> list[dict[str, Any]]:
