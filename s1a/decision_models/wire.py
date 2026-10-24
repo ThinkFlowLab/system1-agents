@@ -21,7 +21,9 @@ from openjiuwen.core.common.exception.errors import build_error
 DEFAULT_DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions"
 DEFAULT_MODEL = "typesafe/jev-1.13"
 TYPESAFE_DECISIONS_URL = "https://api.typesafe.ai/v1/systemone"
-TYPESAFE_DEFAULT_MODEL = "jev-latest"
+# Pinned: ``jev-latest`` is a moving alias (it moved to jev-1.14.0 around 2026-10-21) and every published number
+# here was recorded on 1.13. TypeSafe promises 60 days' notice before retiring jev-1.13.0. See #93.
+TYPESAFE_DEFAULT_MODEL = "jev-1.13.0"
 DECISIONS_BACKENDS = ("typesafe", "openrouter")
 DECISIONS_TIMEOUT_S = 5.0  # Jev answers in 0.4 to 1.3 s through the proxy; a dead connection must not stall a step
 _RETRY_STATUSES = frozenset({429, 503, 529})
@@ -60,16 +62,27 @@ def decisions_backend_from_env() -> str:
 def client_from_env(backend: str, *, timeout_s: float) -> "JevDecisionsClient":
     """Build the decisions client for one backend from the environment.
 
-    ``typesafe`` talks to TypeSafe directly with ``TYPESAFE_API_KEY`` and its own model names;
-    ``openrouter`` talks to the proxy with ``OPENROUTER_API_KEY`` (``TYPESAFE_API_URL`` / ``TYPESAFE_MODEL``
-    override the proxy URL and model).
+    ``typesafe`` talks to TypeSafe directly with ``TYPESAFE_API_KEY`` and its own model names (``TYPESAFE_MODEL``
+    overrides the pinned ``TYPESAFE_DEFAULT_MODEL``; an OpenRouter-style ``typesafe/...`` id there is a config
+    error rather than a request TypeSafe would reject); ``openrouter`` talks to the proxy with
+    ``OPENROUTER_API_KEY`` (``TYPESAFE_API_URL`` / ``TYPESAFE_MODEL`` override the proxy URL and model).
     """
     match backend:
         case "typesafe":
+            model = (os.getenv("TYPESAFE_MODEL") or "").strip() or TYPESAFE_DEFAULT_MODEL
+            if "/" in model:
+                raise build_error(
+                    StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+                    error_msg=(
+                        f"TYPESAFE_MODEL={model!r} is an OpenRouter model id, but TYPESAFE_API_KEY without "
+                        f"TYPESAFE_API_URL talks to TypeSafe directly: use a TypeSafe name such as "
+                        f"{TYPESAFE_DEFAULT_MODEL!r}, or set TYPESAFE_API_URL to use the proxy"
+                    ),
+                )
             return JevDecisionsClient(
                 api_key=os.getenv("TYPESAFE_API_KEY") or "",
                 url=TYPESAFE_DECISIONS_URL,
-                model=TYPESAFE_DEFAULT_MODEL,
+                model=model,
                 timeout_s=timeout_s,
             )
         case "openrouter":

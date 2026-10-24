@@ -344,11 +344,24 @@ class BrowserDecisionModel(Model):
                 "operation": move.operation,
                 "target": move.candidate.item.get("label") if move.candidate else None,
                 "confidence": round(move.confidence, 3),
+                **(
+                    {"backend_confidence": round(move.backend_confidence, 3)}
+                    if move.backend_confidence is not None
+                    else {}
+                ),
+                **(
+                    {"backend_confidences": {name: round(v, 3) for name, v in move.backend_confidences.items()}}
+                    if move.backend_confidences
+                    else {}
+                ),
                 "elements": len(space.elements),
                 "elapsed_ms": round((time.perf_counter() - run.started_at) * 1000),
                 "probabilities": probabilities,  # the replay's bars: the settled head's top keys
                 "candidates": candidates,
+                "model": move.model,  # who answered: the response's model id, else the one the request named
             }
+            if "requested_model" in decision.provenance:
+                record["requested_model"] = decision.provenance["requested_model"]
             if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
                 record["screenshot_ms"] = screenshot_ms
             run.ticks.append(record)

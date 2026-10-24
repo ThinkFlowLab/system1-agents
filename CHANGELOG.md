@@ -4,8 +4,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Changed
+
+- The direct TypeSafe path pins `jev-1.13.0` instead of the moving `jev-latest` alias (which moved to Jev 1.14.0
+  after every published number here was recorded on 1.13), and `TYPESAFE_MODEL` now overrides the model on that
+  path too; an OpenRouter-style `typesafe/...` id there is a config error. Jev step records (tool and browser
+  ticks) keep `requested_model` next to `model`, so a saved run says which Jev was asked for and which answered.
+  The 1.13.0 vs 1.14.0 benchmark re-run is still to do. See #93.
+
 ### Added
 
+- `s1a probe --order reverse|shuffle:N` (with `--seed` and `--json PATH`): the option-order check. Every case is
+  asked in file order and again with the same keys and texts in another dict order; the probe reports the flip
+  rate, accuracy in each order and a row per case with every order asked. Verdict and exit code are unchanged
+  without `--order`. `--order same:N` is the control: N more asks in file order, so a backend that disagrees with
+  itself (sampling, a load-balanced server, GPU non-determinism) shows its own "flip" rate next to the reordered
+  one. `--seed` or `--json` without `--order` is a usage error (exit 2) rather than silently ignored. See #90.
+- Offline quality consumer for shared Omni public231 raw, retaining planned
+  denominators and original scoring.
 - `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
   read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
   `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every
@@ -25,8 +41,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   against any `/v1/systemone` backend; `recipes/snake` documents setup,
   verification, and recorded evidence (0 deaths; playback-speed-1 GIFs).
 
+### Changed
+
+- `mcp` is bounded below 2 (`mcp>=1.26,<2`): openjiuwen's fastmcp dependency still requires the 1.x SDK.
+  `docs/architecture.md` § MCP SDK 2.x lists the 1.x-only call sites and the condition for porting.
+
 ### Fixed
 
+- `decide` rejects repeated `--option` keys before model setup instead of silently replacing an earlier choice
+  description. The usage error names the duplicate key without printing either description.
 - The injection guard no longer passes the uninspected end of a long result: below the act band, a
   `browser_snapshot` or `fetch_webpage` result longer than the 6,000 characters its decision reads reaches the
   model as those characters plus a withheld notice. Rail ticks record `handling` (`pass`, `pass_uncertain`,
@@ -58,6 +81,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   the next state no longer shows that wait as unmeasured.
 
 ### Changed
+
+- `Choice.confidence` / `Noul.confidence` now mean the same thing on every backend: `max_k p_k` for a choice and
+  `max(p, 1 - p)` for a noul, both computed in `validation.py` from the validated probabilities. Historical `conf=`
+  values from `laya` / `laya-served` (normalised entropy), `jev` / `clm` (service-reported) and `omnijev` (Jev margin)
+  are not comparable with new ones. Each backend's own number is kept as `backend_confidence` on the answer, in
+  `Decision.raw["backend_confidence"]`, and on tool/browser tick records when present (browser ticks also carry
+  `backend_confidences`, every answered head's number by question name). A backend's own `raw["backend_confidence"]`
+  is kept as `raw["backend_confidence_reply"]` instead of being overwritten. See #89.
 
 - Review guidance (`self-review`, `review-pr`) now treats merge readiness as a gate: authors confirm the pull
   request reports mergeable with CI green on the recorded head before requesting review, and reviewers do not
