@@ -63,8 +63,10 @@ class TestScriptedModel(IsolatedAsyncioTestCase):
     async def test_the_knobs_script_the_answers_and_the_calls_are_recorded(self) -> None:
         decision_model = ScriptedModel(choose="hit", noul=[0.3], latency_ms=4, model="s-1")
         decision = await decision_model.decide_many(OBSERVATION, {"pick": PICK, "check": CHECK})
-        self.assertEqual(decision.choice("pick"), Choice("hit", {"hit": 1.0, "stand": 0.0}, 1.0))
-        self.assertEqual(decision.noul("check"), Noul(0.3, 0.7))
+        self.assertEqual(
+            decision.choice("pick"), Choice("hit", {"hit": 1.0, "stand": 0.0}, 1.0, backend_confidence=1.0)
+        )
+        self.assertEqual(decision.noul("check"), Noul(0.3, 0.7))  # no backend confidence when scripted list omits it
         self.assertEqual((decision.latency_ms, decision.model), (4, "s-1"))
         self.assertEqual(decision_model.calls, [(OBSERVATION, {"pick": PICK, "check": CHECK})])
 

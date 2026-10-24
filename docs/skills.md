@@ -80,8 +80,37 @@ or `cua`; callers that omit it keep using Jev. `clm` needs `CLM_URL` (a running 
 `LAYA_SERVED_URL`. For local decisions, install the matching extra in the server's checkout (`uv sync
 --extra laya` or `uv sync --extra cua`) and pass `model="laya"` or `model="cua"`; no Jev API key is needed.
 The first local call may download the checkpoint. Each call loads and closes its model; `ms` measures the
-decision, not model loading. Agent runs and decisions are serialized, and model output stays off the stdio
-protocol stream.
+decision, not model loading. Model output stays off the stdio protocol stream.
+
+The server runs one call at a time. A `run_agent` or `decide` that arrives while another call runs fails at once
+with a tool error naming the running call and how long it has run; it does not queue. When the request carries a
+`progressToken`, `run_agent` sends `notifications/progress` once per finished episode (`episode 3/20`) or decided
+browser step (`step 7/100`), at most one a second. A cancelled call (`notifications/cancelled`) releases the slot,
+closes the browser and the decision model it started, and records the cancellation: a tool agent's job
+`result.json` has `"cancelled": true` and counts the unfinished episodes in `n_cancelled_trials`; a browser agent's
+`answer.json` has `"cancelled": true`.
+
+#### Host timeouts
+
+`flights` budgets 180 s and `allrecipes` 300 s, and a tool agent's run grows with `--episodes`. Run `uv sync` in the
+checkout once before registering the server, so the first start does not spend minutes resolving the `openjiuwen`
+git pin inside the host's startup wait.
+
+[Codex](https://developers.openai.com/codex/mcp) stops a tool call after 60 s and a server start after 10 s by
+default. Raise both for this server in `~/.codex/config.toml`
+([config reference](https://developers.openai.com/codex/config-reference)):
+
+```toml
+[mcp_servers.s1a]
+command = "uv"
+args = ["run", "--project", "/path/to/system1-agents", "s1a-mcp"]
+startup_timeout_sec = 60
+tool_timeout_sec = 600
+```
+
+[Claude Code](https://code.claude.com/docs/en/mcp) has no short tool limit by default. To set one, add
+`"timeout": 600000` (milliseconds) to the server's `.mcp.json` entry or export `MCP_TOOL_TIMEOUT=600000`; give the
+first start more room with `MCP_TIMEOUT=60000`.
 
 Each tool carries a `title` and MCP behavior hints, which hosts such as Codex (`default_tools_approval_mode =
 "writes"`) and Claude use to decide what to auto-approve. `list_agents` is read-only, idempotent and closed-world: it
@@ -108,6 +137,12 @@ It produces the module, its test and a row in the agents table, and stops at the
 2. Fit probe before any code: 8 to 12 hand-written decisions through `s1a probe cases.jsonl`. Under 80 percent
    right, or one miss that needed deduction, the verdict is "not a decision-model task". Each case needs at least
    one option and one `accept` key from its `options`; invalid cases stop before any model call.
+   `s1a probe cases.jsonl --order reverse` (or `--order shuffle:N --seed S`) re-asks every case with the same
+   options in another dict order and prints the flip rate next to accuracy in each order; `--json PATH` keeps every
+   order asked. The verdict and exit code still come from the file order, and nothing changes without `--order`.
+   A backend whose answer follows position rather than content shows up here, not in accuracy (#90). A flip is
+   only position bias if the backend is deterministic: run `--order same:N` too, which re-asks in file order, and
+   read the reordered flip rate against that same-order disagreement rate.
 3. Front: a tool loop for an environment that enumerates moves and scores, a browser policy for a page with visible
    controls, a rail for one question at a hook of a running agent.
 4. Scaffold from the front's template under `s1a/agents/_templates/`, with the state-design rules from the skill's

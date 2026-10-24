@@ -150,9 +150,10 @@ def records(rows: Sequence[tuple[str, str]], row_ids: Iterable[int], mode: str) 
 def coverage(lengths: Sequence[int], clip: int = MAX_CHARS) -> dict[str, Any]:
     """How much of each page one clipped decision inspects.
 
-    On main every page below the act band reaches the model whole while only its first ``clip`` characters were
-    inspected. Under #57's withhold-uninspected policy (PR #73) the model gets the inspected prefix only, so the
-    share of page text reaching it equals the inspected share. Both assume the page is allowed or uncertain."""
+    ``reaches_model_share["main"]`` is the pass-through behavior this sample was measured against: every page
+    below the act band reached the model whole while only its first ``clip`` characters were inspected.
+    ``withhold_uninspected`` is #57's policy, the runtime now: the model gets the inspected prefix only, so that
+    share equals the inspected share. Both assume the page is allowed or uncertain."""
     if not lengths:
         raise ValueError("no pages")
     total = sum(lengths)

@@ -89,12 +89,28 @@ def summarize(episodes: list[Episode]) -> dict[str, Any]:
     }
 
 
-def write_job(eval_name: str, episodes: list[Episode], *, results_dir: Path) -> Path:
+def write_job(
+    eval_name: str,
+    episodes: list[Episode],
+    *,
+    results_dir: Path,
+    cancelled: int = 0,
+    policy: str | None = None,
+) -> Path:
     """One Harbor job folder per run: config.json, result.json, summary.json, one trial folder per episode.
+
+    ``cancelled`` counts the planned trials a cancellation stopped before they finished; a job with any has
+    ``"cancelled": true`` in its result.json. ``n_total_trials`` (and the dataset ``n_tasks``) include those
+    cancelled trials so Harbor-style readers see a consistent total. A cancellation that finished no episode
+    still writes the job when ``cancelled`` is positive; pass ``policy`` so the folder can name the agent.
 
     The trial shape follows agent-eval's runner so Nullius reads both roots alike.
     """
-    policy = episodes[0].policy
+    if not episodes and cancelled <= 0:
+        raise ValueError("write_job needs at least one episode, or a positive cancelled count")
+    if not episodes and policy is None:
+        raise ValueError("write_job with no episodes needs policy")
+    policy = policy if policy is not None else episodes[0].policy
     agent_name = f"s1a-evals/{policy}"
     job_dir = (
         results_dir / eval_name / f"{datetime.now():%Y-%m-%d__%H-%M-%S-%f}__{policy}"
@@ -152,28 +168,32 @@ def write_job(eval_name: str, episodes: list[Episode], *, results_dir: Path) -> 
         }
         (trial_dir / "result.json").write_text(json.dumps(trial, ensure_ascii=False, indent=2), encoding="utf-8")
     finished_at = now_iso()
+    started_at = episodes[0].started_at if episodes else finished_at
     errored = sum(episode.error is not None for episode in episodes)
+    n_total = len(episodes) + cancelled
     job = {
         "id": str(uuid.uuid4()),
-        "started_at": episodes[0].started_at,
+        "started_at": started_at,
         "updated_at": finished_at,
         "finished_at": finished_at,
-        "n_total_trials": len(episodes),
+        "n_total_trials": n_total,
         "stats": {
             "n_completed_trials": len(episodes) - errored,
             "n_errored_trials": errored,
             "n_running_trials": 0,
             "n_pending_trials": 0,
-            "n_cancelled_trials": 0,
+            "n_cancelled_trials": cancelled,
             "n_retries": 0,
         },
+        "cancelled": cancelled > 0,
     }
     (job_dir / "result.json").write_text(json.dumps(job, indent=2), encoding="utf-8")
     config = {
         "job_name": job_dir.name,
         "agents": [{"name": agent_name, "model_name": policy}],
-        "datasets": [{"name": eval_name, "n_tasks": len(episodes)}],  # the dict shape Nullius's parse_job reads
+        "datasets": [{"name": eval_name, "n_tasks": n_total}],  # the dict shape Nullius's parse_job reads
     }
     (job_dir / "config.json").write_text(json.dumps(config, indent=2), encoding="utf-8")
-    (job_dir / "summary.json").write_text(json.dumps(summarize(episodes), indent=2), encoding="utf-8")
+    summary = summarize(episodes) if episodes else {"episodes": 0, "scored": 0, "errors": 0}
+    (job_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return job_dir

@@ -2,8 +2,15 @@
 """The injection guard: flags tool output that instructs the agent and quarantines it before the model reads it.
 
 ``s1a run injection_guard`` evaluates it on ``evals/labelled/injection.jsonl``; a DeepAgent takes it
-through ``create_deep_agent(rails=[rails.DecisionModelRail(SPEC, decision_model)])``. The guard fails closed: a
-decision error (endpoint down, bad key, deadline) quarantines the result as well.
+through ``create_deep_agent(rails=[rails.DecisionModelRail(SPEC, decision_model)])``. The runtime policy, one
+decision per guarded result (``docs/agents.md#injection-guard-runtime-policy``):
+
+- act band (p >= 0.7): the result is quarantined.
+- decision error (endpoint down, bad key, deadline, malformed answer): quarantined as well; the guard fails closed.
+- allow band (p <= 0.3) over the whole result: it passes unchanged.
+- uncertain band (0.3 < p < 0.7) over the whole result: it passes unchanged and the tick says ``pass_uncertain``.
+- a result longer than ``MAX_CHARS``: the decision sees the first ``MAX_CHARS`` characters; below the act band the
+  model reads only those, with a notice that the rest was withheld uninspected.
 """
 
 from __future__ import annotations
@@ -15,7 +22,7 @@ from openjiuwen.core.foundation.llm import ToolMessage
 from openjiuwen.core.single_agent.rail.base import AgentCallbackContext, AgentCallbackEvent, ToolCallInputs
 
 from s1a.config import ROOT
-from s1a.spec import Json, RailSpec, Thresholds, Verdict
+from s1a.spec import Coverage, Json, RailSpec, Thresholds, Verdict
 
 GUARDED_TOOLS = (
     "browser_snapshot",
@@ -36,14 +43,41 @@ def text_of(result: Any) -> str:
     return result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, default=str)
 
 
-def state_of(ctx: AgentCallbackContext) -> Json | None:
+def _guarded(ctx: AgentCallbackContext) -> ToolCallInputs | None:
     inputs = ctx.inputs
     if not isinstance(inputs, ToolCallInputs):
         return None
     name = inputs.tool_name
     if not any(name == tool or name.endswith("_" + tool) for tool in GUARDED_TOOLS):
         return None
-    return {"tool": name, "text": text_of(inputs.tool_result)[:MAX_CHARS]}
+    return inputs
+
+
+def state_of(ctx: AgentCallbackContext) -> Json | None:
+    inputs = _guarded(ctx)
+    if inputs is None:
+        return None
+    return {"tool": inputs.tool_name, "text": text_of(inputs.tool_result)[:MAX_CHARS]}
+
+
+def coverage_of(ctx: AgentCallbackContext) -> Coverage | None:
+    """The characters of the result text ``state_of`` shows the decision model, out of all of them."""
+    inputs = _guarded(ctx)
+    if inputs is None:
+        return None
+    total = len(text_of(inputs.tool_result))
+    return Coverage(inspected=min(total, MAX_CHARS), total=total)
+
+
+def _replace(inputs: ToolCallInputs, content: str) -> None:
+    """Put ``content`` in place of the tool result and of the tool message the model reads next."""
+    call_id = (
+        inputs.tool_msg.tool_call_id
+        if isinstance(inputs.tool_msg, ToolMessage)
+        else str(getattr(inputs.tool_call, "id", "") or "")
+    )
+    inputs.tool_result = content
+    inputs.tool_msg = ToolMessage(content=content, tool_call_id=call_id)
 
 
 def clip_state(state: Json) -> Json:
@@ -58,17 +92,24 @@ async def quarantine(ctx: AgentCallbackContext, verdict: Verdict) -> None:
     """Replace the tool result and the tool message the model reads with the notice alone."""
     inputs = ctx.inputs
     assert isinstance(inputs, ToolCallInputs)
-    notice = (
+    _replace(
+        inputs,
         f"[s1a injection guard] This tool output contained instructions addressed to the agent "
-        f"(p={verdict.p:.2f}) and was quarantined."
+        f"(p={verdict.p:.2f}) and was quarantined.",
     )
-    call_id = (
-        inputs.tool_msg.tool_call_id
-        if isinstance(inputs.tool_msg, ToolMessage)
-        else str(getattr(inputs.tool_call, "id", "") or "")
+
+
+async def withhold_uninspected(ctx: AgentCallbackContext, coverage: Coverage) -> None:
+    """Keep only the characters the decision saw; a notice stands in for the rest, which no decision checked."""
+    inputs = ctx.inputs
+    assert isinstance(inputs, ToolCallInputs)
+    withheld = coverage.total - coverage.inspected
+    _replace(
+        inputs,
+        text_of(inputs.tool_result)[: coverage.inspected]
+        + f"\n[s1a injection guard] The remaining {withheld} of {coverage.total} characters of this tool output "
+        f"were not inspected and were withheld.",
     )
-    inputs.tool_result = notice
-    inputs.tool_msg = ToolMessage(content=notice, tool_call_id=call_id)
 
 
 SPEC = RailSpec(
@@ -85,4 +126,6 @@ SPEC = RailSpec(
     on_failure="closed",
     labelled_set=ROOT / "evals" / "labelled" / "injection.jsonl",
     labelled_state=clip_state,
+    coverage_of=coverage_of,
+    on_partial=withhold_uninspected,
 )
