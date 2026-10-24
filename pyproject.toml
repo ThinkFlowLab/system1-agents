@@ -10,12 +10,13 @@ requires-python = ">=3.11"
 dependencies = [
     # Tag on the jiuwen-jev branch of the ThinkFlowLab fork; CONTRIBUTING.md § The openjiuwen pin lists what it adds over upstream develop.
     "openjiuwen @ git+https://github.com/ThinkFlowLab/agent-core@jj-0.1.0",
-    # Imported directly; openjiuwen depends on all three, so they add nothing to the install.
+    # Imported directly; openjiuwen (and mcp, for anyio) already depends on each, so they add nothing to the install.
     "httpx>=0.28",
     "python-dotenv>=1.0",
     # MCP Python SDK 1.x: openjiuwen 0.1.18 needs fastmcp, whose 3.x line requires mcp<2 (fastmcp 4.x needs mcp>=2).
     # Lift the bound with the 2.x port; docs/architecture.md § MCP SDK 2.x lists the call sites and the unblock condition.
     "mcp>=1.26,<2",
+    "anyio>=4",
     "pillow>=10",
 ]
 
