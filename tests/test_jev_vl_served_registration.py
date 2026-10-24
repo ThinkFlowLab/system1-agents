@@ -81,6 +81,7 @@ class TestJevVLServedEntrypoints(IsolatedAsyncioTestCase):
                 self.assertTrue((Path(directory) / "decision_ticks.json").is_file())
         self.assertIs(slot_class.call_args.args[2], counting.return_value)
         self.assertIs(slot_class.call_args.kwargs["decision_model"], decision_model)
+        self.assertEqual(slot_class.call_args.kwargs["max_steps"], 2)
         self.assertIs(create_agent.call_args.args[0], slot)
         run_task.assert_awaited_once()
         self.assertEqual(answer["final"], "Fixture answer")

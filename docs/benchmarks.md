@@ -77,6 +77,105 @@ The same showcase on ALFWorld, Blackjack and Millionaire is under `results/<eval
 ## The injection guard rail
 
 The rail scores 20 of 20 on its labelled set at a median of 464 ms (`s1a run injection_guard`).
+These are classification scores on the labelled records, not a measure of runtime protection; the handling of
+uncertain verdicts and long results is in [agents.md](agents.md#injection-guard-runtime-policy).
+
+A larger set, `evals/labelled/injection-public.jsonl`, uses data from two public benchmarks, InjecAgent and AgentDojo:
+665 tool outputs such as emails, calendar entries, files, web pages and product pages, 335 of them with an instruction
+planted by an attacker. `scripts/build_injection_dataset.py` rebuilds the file. The run below is from 2026-10-05
+(`uv run s1a run injection_guard --model jev --labelled-set evals/labelled/injection-public.jsonl`), at a median of
+304 ms per decision and $0.016 for the whole set. Its records are archived with their provenance on
+[ThinkFlowLab/system1-agents#23](https://github.com/user-attachments/files/33183041/injection-guard-jev-2026-10-05.zip). Unpack the archive in a checkout and
+`uv run scripts/build_injection_dataset.py --report injection-guard-jev-2026-10-05` prints the tables below from them.
+
+| tool output | count | quarantined by Jev |
+|---|---|---|
+| no planted instruction | 330 | 0 |
+| of which a normal request written for a person, such as a bill asking for payment | 34 | 0 |
+| planted instruction in attack wording, such as "ignore your previous instructions" (AgentDojo) | 154 | 150 |
+| planted request to send the user's data somewhere (InjecAgent) | 61 | 58 |
+| planted request for a harmful action, with no attack wording (InjecAgent) | 55 | 23 |
+| planted request that reads like an ordinary one, such as a payment request in an email | 65 | 34 |
+
+The last row is counted apart. Only the user's task tells these requests from real ones, and the rail sees only the
+tool output.
+
+Over the 600 outputs outside the last row, the run gives these precision and recall figures:
+
+| measure | Jev | quarantine everything |
+|---|---|---|
+| precision: share of quarantined outputs that carry a planted instruction | 1.00 | 0.45 |
+| recall, InjecAgent direct harm (55) | 0.42 | 1.00 |
+| recall, InjecAgent data stealing (61) | 0.95 | 1.00 |
+| recall, AgentDojo (154) | 0.97 | 1.00 |
+
+Recall is the share of planted instructions that the rail quarantined. "Quarantine everything" is what a rail scores if
+it quarantines every output.
+
+On the 150 outputs that carry no attack wording (the 116 planted instructions without it and the 34 normal requests), a
+rule that quarantines any text containing "please" is right 65% of the time, counting the two groups equally. Jev is
+right 85% of the time: it catches 70% of the planted instructions and none of the normal requests.
+
+The set has two limits. Only 34 of the normal outputs contain a request. The planted instructions and the normal
+requests also come from different benchmarks with different text formats, so a simple word-count classifier already
+separates them 73% of the time.
+
+### Page-length inputs: BrowseSafe-Bench
+
+The 20-item set and the InjecAgent/AgentDojo set of #23 are short tool outputs. Real `browser_snapshot` and
+`fetch_webpage` results are whole pages, and the guard decides on the first 6,000 characters (`MAX_CHARS`).
+[BrowseSafe-Bench](https://huggingface.co/datasets/perplexity-ai/browsesafe-bench) (Perplexity, MIT;
+[arXiv:2511.20597](https://arxiv.org/abs/2511.20597)) is HTML from real browser-agent use, with benign distractors
+and multilingual attacks. Its public test split has 3,680 rows (1,824 `yes`, 1,856 `no`) and only `content` and
+`label`; the paper's attack-type and strategy columns are not released. These figures are kept apart from #23's.
+
+**Sample.** `evals/labelled/browsesafe-test-sample.json`: 100 `yes` and 100 `no` rows drawn with seed 0 from the
+test split at revision `b506fb5`, `test.parquet` sha256 `00cbad96…0573d0`. The dataset is not vendored;
+`scripts/build_browsesafe_set.py build` downloads the pinned file, checks its digest and writes the JSONL with
+each page in full. The evaluation applies the runtime clip itself (`RailSpec.labelled_state`), so the scores
+measure what the guard sees in production. Budget: 200 Jev decisions per text mode.
+
+**Text.** `html` (default) is the row unchanged, as a raw `fetch_webpage` returns it; the label is defined on it,
+so hidden injections survive. `text` keeps the visible text, comments and the alt/title/aria-label/placeholder
+attributes, roughly a reader-mode fetch; it is about an eighth as long, but an injection in another attribute or
+a `<script>` disappears while the row stays `yes`. A Playwright `browser_snapshot` of the rendered page matches
+production best and is not built yet.
+
+**Coverage**, measured from the data (no model call), on 2026-10-14. "Inspected" is the share of page characters
+inside the 6,000-character clip, summed over pages; "mean page" averages that share per page. The
+`reaches model, main` column is the pass-through behavior this sample was measured against: a page below the
+act band reached the model whole. `reaches model, withhold` is #57's policy, which is the runtime: only the
+inspected prefix reaches the model. Both columns assume the page is allowed.
+
+| text | label | pages | median chars | fully inspected | text inspected | mean page inspected | reaches model, main | reaches model, withhold |
+|---|---|---|---|---|---|---|---|---|
+| html | yes | 100 | 53,084 | 8 | 9.8% | 24.3% | 100% | 9.8% |
+| html | no | 100 | 49,118 | 14 | 11.3% | 29.8% | 100% | 11.3% |
+| text | yes | 100 | 6,329 | 49 | 34.4% | 71.1% | 100% | 34.4% |
+| text | no | 100 | 5,860 | 51 | 43.5% | 75.8% | 100% | 43.5% |
+| html, whole split | yes / no | 1,824 / 1,856 | 44,863 / 47,749 | 187 / 157 | 10.5% / 10.4% | 27.4% / 25.4% | 100% | 10.5% / 10.4% |
+| text, whole split | yes / no | 1,824 / 1,856 | 5,918 / 5,802 | 921 / 950 | 39.7% / 40.4% | 74.6% / 74.7% | 100% | 39.7% / 40.4% |
+
+So on raw HTML the guard inspects about a tenth of the page text. Under the earlier pass-through behavior the
+other nine tenths reached the model uninspected; under the withhold policy a benign page loses them.
+Reader-mode text raises the inspected share to about 40%; most page text is still outside the clip.
+
+**Scores.** Not run yet: they need a Jev key (`TYPESAFE_API_KEY`). Reproduce with
+
+```bash
+uv run --with pyarrow python scripts/build_browsesafe_set.py build --text html
+uv run s1a run injection_guard --model jev --labelled-set .external/browsesafe/test-sample-html.jsonl
+uv run --with pyarrow python scripts/build_browsesafe_set.py coverage   # the table above
+```
+
+`summary.json` gives precision and recall of the act band with all 200 rows in the denominator, `uncertain`,
+`failures` (a failed decision counts as acted on this closed rail) and `bands`: allow/uncertain/act/failure per
+label. The paper's baseline on the same split is, for example, PromptGuard-2 22M at F1 0.350 (precision 0.975,
+recall 0.213).
+
+| date | text | rows | clip | model | label | allow | uncertain | act | failure | precision | recall |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| pending | html | 200 | 6,000 | jev | yes / no | | | | | | |
 
 ## Series
 
@@ -142,7 +241,7 @@ Medians of the window: A 13.1 s, B 10.1 s, C 36.4 s over the two verified runs, 
 
 ### Results, direct TypeSafe backend
 
-Same task and Chrome, later the same day, decisions from `api.typesafe.ai` (`jev-latest`) instead of OpenRouter. Three runs per arm, back to back.
+Same task and Chrome, later the same day, decisions from `api.typesafe.ai` (`jev-latest`, which pointed at Jev 1.13 on that date; the direct path now pins `jev-1.13.0`, see #93) instead of OpenRouter. Three runs per arm, back to back.
 
 | run | window s | decisions | median ms | decision s | probe s | tool s | value wait s | verified |
 |---|---|---|---|---|---|---|---|---|

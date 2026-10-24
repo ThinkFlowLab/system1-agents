@@ -107,9 +107,13 @@ async def test_two_captures_drive_distinct_controls_and_preserve_serving_trace()
     assert "Completed controls: []" in requests[0]["state"][0]
     assert "t_g0_1" in requests[2]["state"][0]
     for tick in slot.ticks:
+        assert tick["model"] == MODEL
+        assert tick["confidence"] == pytest.approx(0.9)
+        assert tick["backend_confidences"] == {"operation": pytest.approx(0.9), "click_target": pytest.approx(0.9)}
         assert tick["url"] == "http://jev.test"
         assert tick["served_by"] == {"checkpoint": MODEL, "revision": None, "device": None, "source": "response"}
         raw = tick["decision_raw"]
+        assert raw["backend_confidence"] == {"operation": pytest.approx(0.9), "click_target": pytest.approx(0.9)}
         assert raw["num_model_requests"] == 2 and raw["forced"] is False
         assert [r["question_id"] for r in raw["responses"]] == ["operation", "click_target"]
         assert raw["responses"][0]["payload"]["protocol"] == PROTOCOL

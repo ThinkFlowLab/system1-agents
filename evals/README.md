@@ -14,6 +14,8 @@ folder per episode). `uv run python -m evals.table evals/results` aggregates the
 | Desktop (Cua Driver) | clicks toward `--goal` until the window shows `--expect` | `s1a run desktop --app Calculator --goal "compute 12 times 7" --expect 84 --execute --model jev --rethink off --episodes 1` |
 | Ticket router (30 local labelled tickets) | correct routes to five queues | `s1a run ticket_router --model jev --rethink off --episodes 1` |
 | Injection guard (rail) | precision and recall on a labelled set | `s1a run injection_guard` |
+| Injection guard, public set (InjecAgent + AgentDojo) | precision and recall per source without the context-needed positives, balanced accuracy on the hard subset | `s1a run injection_guard --model jev --labelled-set evals/labelled/injection-public.jsonl`; numbers in `docs/benchmarks.md` |
+| Injection guard on page-length HTML (BrowseSafe-Bench sample) | precision, recall, failures and page coverage at the runtime clip | `s1a run injection_guard --labelled-set .external/browsesafe/test-sample-html.jsonl`, after `scripts/build_browsesafe_set.py build`; see `docs/benchmarks.md` |
 | Bounded recovery on/off (3 local form fixtures) | completion on/off in a real headless Chromium, judged by the fixture server | `python -m evals.recovery --repeat 1` |
 | Bounded recovery live (real decision/chat models, 3 local form fixtures) | completion on/off with the real models in a real headless Chromium, judged by the fixture server; cost null unless `CHAT_USD_PER_M_*` is set; optional `--validate-submission` variant | `python -m evals.recovery.live --model jev --repeat 1` |
 
@@ -195,6 +197,36 @@ without those values. The score column remains the mean with a 95% bootstrap int
 subset; `score (n)` states its count over all attempts, and `score unknown` counts non-error trials without a
 reward. ALFWorld's game files sort by task type; `--stride 11` from offset 0 takes twelve games across
 the six types. Every model plays the same tile draws because 2048 seeds the page's `Math.random`.
+
+### Planned-attempt coverage
+
+The table above can count only trials with a saved `result.json`. To include attempts that have not produced a
+result, create a version-1 JSON manifest and pass it with `--attempt-plan`:
+
+```json
+{
+  "schema_version": 1,
+  "attempts": [
+    {"id": "2048-jev-seed-0", "eval": "game2048", "model": "jev", "task_name": "game2048/0", "status": "planned"},
+    {"id": "2048-jev-seed-1", "eval": "game2048", "model": "jev", "task_name": "game2048/1", "status": "interrupted", "reason": "worker exited before result.json was written"},
+    {"id": "desktop-cua-1", "eval": "desktop", "model": "cua", "task_name": "desktop/1", "status": "unsupported", "reason": "display backend unavailable"}
+  ]
+}
+```
+
+`planned` with no artifact is reported as `missing`; explicitly declared `interrupted` and `unsupported` attempts
+remain separate. A saved exception result is an `error` and remains a recorded attempt. The report also flags
+results absent from the manifest and results that contradict an `unsupported` declaration. It matches using the
+existing result fields `(eval folder, model label, task_name)`, so that tuple must be unique in a plan. If multiple
+artifacts have the same tuple, the planned attempt is `ambiguous`; all candidate paths are shown and none is assigned
+as its outcome. The current writer repeats `task_name` when the same seed is run again in another job, so use distinct
+task names for repeats when those runs must be associated with separate planned entries. Missing artifacts alone do
+not prove that a run was interrupted. This additive report does not modify the score, error, timing, cost, or attempt
+semantics of the table.
+
+```sh
+uv run python -m evals.table evals/results --attempt-plan evals/attempt-plan.json
+```
 
 ## Showcase runs and replays
 

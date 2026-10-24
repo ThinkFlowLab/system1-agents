@@ -11,7 +11,7 @@ from typing import Any, Literal, Union
 
 Json = dict[str, Any]
 QuestionType = Literal["choice", "noul"]
-PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing")
+PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing", "requested_model")
 
 
 @dataclass(frozen=True)
@@ -94,30 +94,41 @@ Question = Union[ChoiceQuestion, NoulQuestion]
 class Choice:
     """A validated choice answer: the key, a probability per key (sum 1 within 0.02, peak at the key), a confidence.
 
-    Only ``validation.validate_choice`` builds one from a backend's answer.
+    ``confidence`` is always ``max_k p_k`` (set by ``validation.validate_choice``). ``backend_confidence`` is the
+    number the backend itself reported, when it sent one in [0, 1]; it is a different scale for Laya (normalised
+    entropy) and Jev (normalised margin) and must not be compared across backends.
     """
 
     key: str
     probabilities: dict[str, float]
     confidence: float
+    backend_confidence: float | None = None
 
     def as_dict(self) -> Json:
-        """The CLI and MCP output shape."""
-        return {"choice": self.key, "probabilities": dict(self.probabilities), "confidence": self.confidence}
+        """The CLI and MCP output shape; includes ``backend_confidence`` only when the backend sent one."""
+        out: Json = {"choice": self.key, "probabilities": dict(self.probabilities), "confidence": self.confidence}
+        if self.backend_confidence is not None:
+            out["backend_confidence"] = self.backend_confidence
+        return out
 
 
 @dataclass(frozen=True)
 class Noul:
     """A validated noul answer: the probability the statement holds and a confidence.
 
-    Only ``validation.validate_noul`` builds one from a backend's answer; a missing confidence becomes max(p, 1-p).
+    ``confidence`` is always ``max(p, 1 - p)`` (set by ``validation.validate_noul``). ``backend_confidence`` keeps
+    the backend's own number when it sent one in [0, 1].
     """
 
     p: float
     confidence: float
+    backend_confidence: float | None = None
 
     def as_dict(self) -> Json:
-        return {"noul": self.p, "confidence": self.confidence}
+        out: Json = {"noul": self.p, "confidence": self.confidence}
+        if self.backend_confidence is not None:
+            out["backend_confidence"] = self.backend_confidence
+        return out
 
 
 Answer = Union[Choice, Noul]
@@ -203,5 +214,6 @@ class Decision:
 
     @property
     def provenance(self) -> Json:
-        """Where a served answer came from, for step records: the server's identity, URL and timings; empty in process."""
+        """Where a served answer came from, for step records: the server's identity, URL and timings, and for Jev the
+        model id the request named (``model`` is the one the response reports, else that same id); empty in process."""
         return {key: self.raw[key] for key in PROVENANCE_KEYS if key in self.raw}

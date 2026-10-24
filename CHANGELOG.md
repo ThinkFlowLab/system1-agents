@@ -4,8 +4,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Changed
+
+- The direct TypeSafe path pins `jev-1.13.0` instead of the moving `jev-latest` alias (which moved to Jev 1.14.0
+  after every published number here was recorded on 1.13), and `TYPESAFE_MODEL` now overrides the model on that
+  path too; an OpenRouter-style `typesafe/...` id there is a config error. Jev step records (tool and browser
+  ticks) keep `requested_model` next to `model`, so a saved run says which Jev was asked for and which answered.
+  The 1.13.0 vs 1.14.0 benchmark re-run is still to do. See #93.
+
 ### Added
 
+- `s1a probe --order reverse|shuffle:N` (with `--seed` and `--json PATH`): the option-order check. Every case is
+  asked in file order and again with the same keys and texts in another dict order; the probe reports the flip
+  rate, accuracy in each order and a row per case with every order asked. Verdict and exit code are unchanged
+  without `--order`. `--order same:N` is the control: N more asks in file order, so a backend that disagrees with
+  itself (sampling, a load-balanced server, GPU non-determinism) shows its own "flip" rate next to the reordered
+  one. `--seed` or `--json` without `--order` is a usage error (exit 2) rather than silently ignored. See #90.
+- `scripts/build_browsesafe_set.py`: a seeded, label-stratified BrowseSafe-Bench test sample (row ids in
+  `evals/labelled/browsesafe-test-sample.json`, dataset not vendored) in the injection guard's labelled-set shape,
+  and the share of page text the guard inspects at its 6,000-character clip (`docs/benchmarks.md`). Every
+  command, including one given a local `--parquet`, refuses a file whose sha256 is not the pinned one.
+- Offline quality consumer for shared Omni public231 raw, retaining planned
+  denominators and original scoring.
 - `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
   read-only auto-approval stop prompting for them), `run_agent` is destructive and open-world. `decide` and
   `list_agents` advertise typed output schemas; the returned content is unchanged. `docs/skills.md` lists every
@@ -29,10 +49,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   against any `/v1/systemone` backend; `recipes/snake` documents setup,
   verification, and recorded evidence (0 deaths; playback-speed-1 GIFs).
 
+### Changed
+
+- `mcp` is bounded below 2 (`mcp>=1.26,<2`): openjiuwen's fastmcp dependency still requires the 1.x SDK.
+  `docs/architecture.md` § MCP SDK 2.x lists the 1.x-only call sites and the condition for porting.
+
 ### Fixed
 
 - JEV-VL browser raw traces stay scoped to `jev-vl-served`, retain only timing, request ID and content headers,
   and use null request IDs for local forced choices instead of implying an HTTP request was sent.
+- `s1a-mcp` long runs: `run_agent` reports progress per episode or browser step when the request has a
+  `progressToken`; a call made while another runs fails at once with a tool error instead of queueing past the
+  host's timeout; a cancelled run finishes its browser and model teardown (it was cut at the first `await`) and
+  records the cancellation in the job `result.json` or `answer.json` even when no episode finished; cancelled
+  seeds count in `n_total_trials`. The server instructions put serialization and the timeout advice in their
+  first 512 characters, and docs/skills.md gives the Codex and Claude Code settings.
+- `decide` rejects repeated `--option` keys before model setup instead of silently replacing an earlier choice
+  description. The usage error names the duplicate key without printing either description.
+- The injection guard no longer passes the uninspected end of a long result: below the act band, a
+  `browser_snapshot` or `fetch_webpage` result longer than the 6,000 characters its decision reads reaches the
+  model as those characters plus a withheld notice. Rail ticks record `handling` (`pass`, `pass_uncertain`,
+  `withhold_uninspected`, `act`, `act_on_failure`, ...) and coverage counts, never tool-output text; the runtime
+  policy is in `docs/agents.md`. `RailSpec` gains optional `coverage_of` and `on_partial`. A failed decision's
+  tick and warning log record the error's status and cause type (`error`, `error_code`) instead of its message,
+  which can echo an HTTP error body quoting the guarded text.
+- A rail's labelled-set evaluation sends each state through the spec's runtime clip (`RailSpec.labelled_state`;
+  the injection guard cuts text to 6,000 characters) and records a failed decision as a `failure` row instead of
+  aborting the run; the summary adds `failures` and per-label band counts.
 - Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
@@ -57,6 +100,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   the next state no longer shows that wait as unmeasured.
 
 ### Changed
+
+- `Choice.confidence` / `Noul.confidence` now mean the same thing on every backend: `max_k p_k` for a choice and
+  `max(p, 1 - p)` for a noul, both computed in `validation.py` from the validated probabilities. Historical `conf=`
+  values from `laya` / `laya-served` (normalised entropy), `jev` / `clm` (service-reported) and `omnijev` (Jev margin)
+  are not comparable with new ones. Each backend's own number is kept as `backend_confidence` on the answer, in
+  `Decision.raw["backend_confidence"]`, and on tool/browser tick records when present (browser ticks also carry
+  `backend_confidences`, every answered head's number by question name). A backend's own `raw["backend_confidence"]`
+  is kept as `raw["backend_confidence_reply"]` instead of being overwritten. See #89.
 
 - Review guidance (`self-review`, `review-pr`) now treats merge readiness as a gate: authors confirm the pull
   request reports mergeable with CI green on the recorded head before requesting review, and reviewers do not
@@ -131,6 +182,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   element name. `text_value` gets its own ask; options that shorten alike keep their key; a blocked row keeps its
   overlay's name. Browser runs want `LAYA_MAX_LEN=1536` and `LAYA_HEAD_MAX_LEN=1024`: a calendar page's target
   head measures about 900 tokens.
+- `evals/labelled/injection-public.jsonl`: 665 labelled tool outputs for the `injection_guard` rail from InjecAgent
+  and AgentDojo at pinned versions, 335 with an injected instruction. 65 of those read as an ordinary request that only
+  the user's task tells apart; their notes carry a `-u` source and they are reported on their own row. Negatives
+  include requests written for a human (`R2` in the note), which with the unmarked positives form a hard subset.
+  `uv run scripts/build_injection_dataset.py` rebuilds the file byte for byte; `--report <job>` prints precision and
+  recall per source without the `-u` positives, their own recall, and balanced accuracy on the hard subset against
+  fixed keyword baselines. The Jev run of 2026-10-05 behind `docs/benchmarks.md` is archived on #23
+  ([records](https://github.com/user-attachments/files/33183041/injection-guard-jev-2026-10-05.zip)).
 
 ### Changed
 
