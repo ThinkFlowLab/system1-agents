@@ -54,6 +54,7 @@ One Jev question at one callback hook of a DeepAgent, acted on above a threshold
 | `thresholds` | `Thresholds(allow, act)`: at or below `allow` nothing, at or above `act` the action runs |
 | `act` | `async (ctx, verdict) -> None`: quarantine a result, block a call, log, escalate |
 | `labelled_set` | JSONL of `{"state", "label"}` records; `s1a run <rail>` reports precision and recall |
+| `labelled_state` | optional `(state) -> state`: what the hook would send for a labelled record, so a set can keep pages in full and the evaluation measures the runtime clip; None sends the state as is |
 | `coverage_of` | optional `(ctx) -> Coverage(inspected, total) or None`: how much of the event `state_of` shows; ticks record it |
 | `on_partial` | optional `async (ctx, coverage) -> None`: runs instead of a pass when a verdict below the act band saw part of the event; needs `coverage_of` |
 

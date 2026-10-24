@@ -80,6 +80,14 @@ def _replace(inputs: ToolCallInputs, content: str) -> None:
     inputs.tool_msg = ToolMessage(content=content, tool_call_id=call_id)
 
 
+def clip_state(state: Json) -> Json:
+    """A labelled record's state as ``state_of`` would send it: the text cut to ``MAX_CHARS`` (a bare-text state too)."""
+    if isinstance(state, str):  # read_labelled accepts a state that is text alone
+        return state[:MAX_CHARS]
+    text = state.get("text")
+    return {**state, "text": text[:MAX_CHARS]} if isinstance(text, str) else state
+
+
 async def quarantine(ctx: AgentCallbackContext, verdict: Verdict) -> None:
     """Replace the tool result and the tool message the model reads with the notice alone."""
     inputs = ctx.inputs
@@ -117,6 +125,7 @@ SPEC = RailSpec(
     act=quarantine,
     on_failure="closed",
     labelled_set=ROOT / "evals" / "labelled" / "injection.jsonl",
+    labelled_state=clip_state,
     coverage_of=coverage_of,
     on_partial=withhold_uninspected,
 )

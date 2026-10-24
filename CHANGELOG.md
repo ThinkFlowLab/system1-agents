@@ -20,6 +20,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   without `--order`. `--order same:N` is the control: N more asks in file order, so a backend that disagrees with
   itself (sampling, a load-balanced server, GPU non-determinism) shows its own "flip" rate next to the reordered
   one. `--seed` or `--json` without `--order` is a usage error (exit 2) rather than silently ignored. See #90.
+- `scripts/build_browsesafe_set.py`: a seeded, label-stratified BrowseSafe-Bench test sample (row ids in
+  `evals/labelled/browsesafe-test-sample.json`, dataset not vendored) in the injection guard's labelled-set shape,
+  and the share of page text the guard inspects at its 6,000-character clip (`docs/benchmarks.md`). Every
+  command, including one given a local `--parquet`, refuses a file whose sha256 is not the pinned one.
 - Offline quality consumer for shared Omni public231 raw, retaining planned
   denominators and original scoring.
 - `s1a-mcp` tools carry titles and MCP behavior hints: `list_agents` and `decide` are read-only (so hosts with
@@ -63,6 +67,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   policy is in `docs/agents.md`. `RailSpec` gains optional `coverage_of` and `on_partial`. A failed decision's
   tick and warning log record the error's status and cause type (`error`, `error_code`) instead of its message,
   which can echo an HTTP error body quoting the guarded text.
+- A rail's labelled-set evaluation sends each state through the spec's runtime clip (`RailSpec.labelled_state`;
+  the injection guard cuts text to 6,000 characters) and records a failed decision as a `failure` row instead of
+  aborting the run; the summary adds `failures` and per-label band counts.
 - Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.

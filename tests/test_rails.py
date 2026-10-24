@@ -469,6 +469,64 @@ class TestEvaluate(IsolatedAsyncioTestCase):
             summary = await rails.evaluate(GUARD, labelled, decision_model=decision_model, results_dir=Path(tmp))
         self.assertEqual((summary["jev_input_tokens"], summary["cost_usd"]), (300, 0.000013))
 
+    async def test_a_failed_decision_is_a_failure_row_not_an_abort(self) -> None:
+        class FailsSecond(JevModel):
+            def __init__(self) -> None:
+                super().__init__(ScriptedTransport(noul=[0.95, 0.1], usage={"input_tokens": 300}, latency_ms=7))
+                self.calls = 0
+
+            async def decide_many(self, observation: Any, questions: Any) -> Any:
+                self.calls += 1
+                if self.calls == 2:
+                    raise build_error(StatusCode.MODEL_CALL_FAILED, error_msg=f"echoed {observation.state}")
+                return await super().decide_many(observation, questions)
+
+        records = [
+            {"state": {"text": "injected, caught"}, "label": True},
+            {"state": {"text": "SECRET-PAGE-TEXT benign, endpoint down"}, "label": False},
+            {"state": {"text": "benign"}, "label": False},
+        ]
+        for on_failure, acted, precision in (("closed", 2, 0.5), ("open", 1, 1.0)):
+            spec = RailSpec(**{**GUARD.__dict__, "on_failure": on_failure})
+            with tempfile.TemporaryDirectory() as tmp:
+                labelled = Path(tmp) / "set.jsonl"
+                labelled.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
+                summary = await rails.evaluate(spec, labelled, decision_model=FailsSecond(), results_dir=Path(tmp))
+                verdicts = (Path(summary["job_dir"]) / "verdicts.jsonl").read_text(encoding="utf-8")
+            self.assertEqual((summary["records"], summary["failures"], summary["acted"]), (3, 1, acted))
+            self.assertEqual((summary["precision"], summary["recall"]), (precision, 1.0))
+            self.assertEqual(summary["bands"]["false"], {"allow": 1, "uncertain": 0, "act": 0, "failure": 1})
+            self.assertEqual(summary["bands"]["true"], {"allow": 0, "uncertain": 0, "act": 1, "failure": 0})
+            self.assertEqual(summary["median_ms"], 7)
+            rows = [json.loads(line) for line in verdicts.splitlines()]
+            self.assertEqual(
+                rows[1],
+                {"label": False, "p": None, "band": "failure", "ms": None, "note": None, "error": "MODEL_CALL_FAILED"},
+            )
+            self.assertNotIn("SECRET-PAGE-TEXT", verdicts, "a failure records the error's status, not its message")
+
+    async def test_the_guard_clips_a_labelled_page_as_its_hook_does(self) -> None:
+        transport = ScriptedTransport(noul=[0.1, 0.1])
+        with tempfile.TemporaryDirectory() as tmp:
+            labelled = Path(tmp) / "set.jsonl"
+            labelled.write_text(
+                json.dumps({"state": {"tool": "fetch_webpage", "text": "x" * 10_000}, "label": False})
+                + "\n"
+                + json.dumps({"state": "y" * 7_000, "label": False})
+                + "\n",
+                encoding="utf-8",
+            )
+            await rails.evaluate(GUARD, labelled, decision_model=JevModel(transport), results_dir=Path(tmp))
+        self.assertEqual(transport.bodies[0]["state"], {"tool": "fetch_webpage", "text": "x" * 6000})
+        self.assertEqual(len(transport.bodies[1]["state"]), 6000)
+        spec = RailSpec(**{**GUARD.__dict__, "labelled_state": None})
+        unclipped = ScriptedTransport(noul=[0.1, 0.1])
+        with tempfile.TemporaryDirectory() as tmp:
+            labelled = Path(tmp) / "set.jsonl"
+            labelled.write_text(json.dumps({"state": {"text": "x" * 10_000}, "label": False}) + "\n", encoding="utf-8")
+            await rails.evaluate(spec, labelled, decision_model=JevModel(unclipped), results_dir=Path(tmp))
+        self.assertEqual(len(unclipped.bodies[0]["state"]["text"]), 10_000)
+
     async def test_the_digest_covers_the_bytes_evaluated_when_the_file_changes_mid_run(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             labelled = Path(tmp) / "set.jsonl"
