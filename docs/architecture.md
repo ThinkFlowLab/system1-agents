@@ -100,3 +100,27 @@ when no `pyproject.toml` sits above the package (a wheel install). Its outputs (
 the checkout too, or under `S1A_HOME` when that variable is set. The browser agents launch a Chromium through
 `@playwright/mcp` (Node). Blackjack and ALFWorld need their extras (`uv sync --extra blackjack`,
 `uv sync --extra alfworld` plus `ALFWORLD_DATA`); CONTRIBUTING.md lists every extra.
+
+### MCP SDK 2.x
+
+`mcp` is bounded `>=1.26,<2`. The [2026-07-28 MCP specification](https://blog.modelcontextprotocol.io/posts/2026-07-28/)
+and [MCP Python SDK v2.0.0](https://github.com/modelcontextprotocol/python-sdk/releases/tag/v2.0.0) make the
+protocol stateless and rename the server and client entry points; 1.x now receives security fixes only. The port is
+blocked by a transitive pin: `openjiuwen 0.1.18` depends on `fastmcp`, `fastmcp-slim 3.x` requires `mcp<2`, and
+`fastmcp-slim 4.x` requires `mcp>=2`. Start the port once an openjiuwen release (or the `jiuwen-jev` pin) resolves a
+fastmcp that allows `mcp>=2`; until then the bound keeps a lock refresh or a Dependabot group update from pulling
+2.x in. The 1.x-only names and what the [migration guide](https://py.sdk.modelcontextprotocol.io/migration/) maps
+them to:
+
+| Call site | 1.x name | 2.x |
+| --- | --- | --- |
+| `s1a/mcp_server.py` | `mcp.server.fastmcp.FastMCP` | `MCPServer` |
+| `s1a/desktop/driver.py` | `ClientSession`, `mcp.client.stdio.stdio_client`, `StdioServerParameters` | one `Client` over the stdio transport |
+| `tests/test_mcp_server.py` | `ClientSession`, `stdio_client`, `StdioServerParameters`, `mcp.shared.memory.create_connected_server_and_client_session` | `Client` over stdio and in memory |
+| `tests/test_desktop_driver.py` | `mcp.client.stdio.StdioServerParameters` | the 2.x stdio transport parameters |
+| `scripts/smoke.sh` | `mcp.shared.memory.create_connected_server_and_client_session` | `Client` in memory |
+
+`mcp.types` (`CallToolResult`, `ImageContent`, `TextContent` in `s1a/desktop/driver.py` and the desktop tests) is
+checked against 2.x during the port. `tests/test_mcp_server.py` holds what a port must preserve: the three-tool
+listing, `decide` against a scripted model, `run_agent` returning its summary, and a clean stdio stream; a test there
+also fails if the declared bound or the installed SDK leaves 1.x without this note being updated.
