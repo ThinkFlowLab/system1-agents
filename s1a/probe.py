@@ -72,7 +72,7 @@ async def pick(
 ) -> dict[str, Any]:
     """One ``choice`` question over ``options``: the chosen key, a probability per option, the confidence, the latency.
 
-    The dict the CLI prints and the MCP server returns: ``choice``, ``probabilities``, ``confidence``, ``ms``.
+    The dict the CLI prints and the MCP server returns: ``choice``, ``probabilities``, ``confidence`` (always ``max_k p_k``), ``ms``, and ``backend_confidence`` when the backend sent its own number.
     """
     decision = await decision_model.decide_many(Observation(state), {"pick": ChoiceQuestion(options, rules=rules)})
     return {**decision.choice("pick").as_dict(), "ms": decision.latency_ms}

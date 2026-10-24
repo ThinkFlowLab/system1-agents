@@ -29,7 +29,14 @@ from s1a.decision_models.types import (
     Reply,
     Usage,
 )
-from s1a.decision_models.validation import choice_faults, validate_answers, validate_choice, validate_noul
+from s1a.decision_models.validation import (
+    choice_confidence,
+    choice_faults,
+    noul_confidence,
+    validate_answers,
+    validate_choice,
+    validate_noul,
+)
 
 __all__ = [
     "DECISION_MODEL_NAMES",
@@ -57,7 +64,9 @@ __all__ = [
     "RuleModel",
     "Usage",
     "build_model",
+    "choice_confidence",
     "choice_faults",
+    "noul_confidence",
     "jev_question",
     "validate_answers",
     "validate_choice",

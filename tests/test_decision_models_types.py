@@ -70,6 +70,15 @@ class TestAnswersAndUsage(TestCase):
             GOOD.as_dict(), {"choice": "inc", "probabilities": {"inc": 0.7, "noop": 0.3}, "confidence": 0.7}
         )
         self.assertEqual(Noul(0.9, 0.9).as_dict(), {"noul": 0.9, "confidence": 0.9})
+        self.assertEqual(
+            Choice("inc", {"inc": 0.7, "noop": 0.3}, 0.7, backend_confidence=0.4).as_dict(),
+            {
+                "choice": "inc",
+                "probabilities": {"inc": 0.7, "noop": 0.3},
+                "confidence": 0.7,
+                "backend_confidence": 0.4,
+            },
+        )
 
     def test_usage_tolerates_a_missing_or_malformed_payload(self) -> None:
         self.assertEqual(Usage.from_payload({"input_tokens": 315, "output_tokens": 31}), Usage(315, 31))
@@ -101,7 +110,7 @@ class TestAnswersAndUsage(TestCase):
 class TestValidation(TestCase):
     def test_a_good_choice_passes_with_its_numbers_normalised(self) -> None:
         choice = validate_choice(_fields("inc", {"inc": 1, "noop": 0}, 1), IDS)
-        self.assertEqual(choice, Choice("inc", {"inc": 1.0, "noop": 0.0}, 1.0))
+        self.assertEqual(choice, Choice("inc", {"inc": 1.0, "noop": 0.0}, 1.0, backend_confidence=1.0))
         self.assertEqual(choice_faults(GOOD_FIELDS, IDS), [])
 
     def test_every_fault_is_named(self) -> None:
@@ -110,7 +119,6 @@ class TestValidation(TestCase):
             "cover": _fields("inc", {"inc": 1.0}, 1.0),
             "sum to": _fields("inc", {"inc": 0.3, "noop": 0.3}, 0.9),
             "not the peak": _fields("inc", {"inc": 0.3, "noop": 0.7}, 0.7),
-            "confidence": _fields("inc", {"inc": 1.0, "noop": 0.0}, 1.5),
             "not an object": _fields("inc", None, 1.0),
             "not in [0, 1]": _fields("inc", {"inc": 1.2, "noop": -0.2}, 1.0),
             "choice None": {},
@@ -126,14 +134,27 @@ class TestValidation(TestCase):
                 self.assertIn("not an offered choice", str(caught.exception))
                 self.assertIn(fragment, str(caught.exception))
 
+    def test_choice_confidence_is_always_the_peak_probability(self) -> None:
+        # Laya-like entropy 0.4 with peak 0.9 → contract confidence 0.9, backend 0.4
+        choice = validate_choice(_fields("inc", {"inc": 0.9, "noop": 0.1}, 0.4), IDS)
+        self.assertEqual(choice.confidence, 0.9)
+        self.assertEqual(choice.backend_confidence, 0.4)
+        # missing or out-of-range backend confidence is dropped, not faulted
+        self.assertIsNone(validate_choice(_fields("inc", {"inc": 1.0, "noop": 0.0}, 1.5), IDS).backend_confidence)
+        self.assertIsNone(
+            validate_choice({"choice": "inc", "probabilities": {"inc": 1.0, "noop": 0.0}}, IDS).backend_confidence
+        )
+
     def test_ties_at_the_peak_and_a_sum_within_two_percent_are_accepted(self) -> None:
         self.assertEqual(choice_faults(_fields("inc", {"inc": 0.5, "noop": 0.5}, 0.5), IDS), [])
         self.assertEqual(choice_faults(_fields("inc", {"inc": 0.6, "noop": 0.39}, 0.5), IDS), [])
 
-    def test_a_noul_needs_a_probability_and_defaults_its_confidence(self) -> None:
+    def test_a_noul_needs_a_probability_and_uses_max_p_as_confidence(self) -> None:
         self.assertEqual(validate_noul({"noul": 0.2}), Noul(0.2, 0.8))
-        self.assertEqual(validate_noul({"noul": 0.9, "confidence": 0.55}), Noul(0.9, 0.55))
+        # backend 0.55 is kept apart; contract confidence is max(0.9, 0.1) = 0.9
+        self.assertEqual(validate_noul({"noul": 0.9, "confidence": 0.55}), Noul(0.9, 0.9, backend_confidence=0.55))
         self.assertEqual(validate_noul({"noul": 0.9, "confidence": 7}).confidence, 0.9)
+        self.assertIsNone(validate_noul({"noul": 0.9, "confidence": 7}).backend_confidence)
         for bad in (1.7, -0.1, None, "0.5", True):
             with self.assertRaises(BaseError):
                 validate_noul({"noul": bad})
@@ -151,13 +172,23 @@ class TestValidation(TestCase):
         )
         decision = validate_answers(reply, questions)
         self.assertEqual(sorted(decision.answers), ["check", "pick"])
-        self.assertEqual((decision.choice("pick"), decision.noul("check")), (GOOD, Noul(0.2, 0.8)))
-        self.assertEqual(
-            (decision.latency_ms, decision.usage, decision.model, decision.raw), (3, Usage(5, 1), "m", reply.raw)
-        )
+        expected_pick = Choice("inc", {"inc": 0.7, "noop": 0.3}, 0.7, backend_confidence=0.7)
+        self.assertEqual((decision.choice("pick"), decision.noul("check")), (expected_pick, Noul(0.2, 0.8)))
+        self.assertEqual((decision.latency_ms, decision.usage, decision.model), (3, Usage(5, 1), "m"))
+        self.assertEqual(decision.raw["answers"], "whatever came")
+        self.assertEqual(decision.raw["backend_confidence"], {"pick": 0.7})
         with self.assertRaises(BaseError) as caught:
             validate_answers(Reply(answers={"pick": GOOD_FIELDS}, latency_ms=0), questions)
         self.assertIn("no answer for question 'check'", str(caught.exception))
+
+    def test_a_backend_raw_backend_confidence_key_is_kept_not_overwritten(self) -> None:
+        questions = {"pick": ChoiceQuestion({"inc": "", "noop": ""})}
+        reply = Reply(answers={"pick": GOOD_FIELDS}, latency_ms=0, raw={"backend_confidence": "native-blob"})
+        decision = validate_answers(reply, questions)
+        self.assertEqual(decision.raw["backend_confidence"], {"pick": 0.7})
+        self.assertEqual(decision.raw["backend_confidence_reply"], "native-blob")
+        untouched = validate_answers(Reply(answers={"pick": GOOD_FIELDS}, latency_ms=0), questions)
+        self.assertNotIn("backend_confidence_reply", untouched.raw)
 
     def test_an_answer_of_the_wrong_shape_or_no_object_fails_on_its_fields(self) -> None:
         questions = {"pick": ChoiceQuestion({"inc": "", "noop": ""}), "check": NoulQuestion("q")}

@@ -32,7 +32,7 @@ class RandomModel(DecisionModel):
         for name, question in questions.items():
             assert isinstance(question, ChoiceQuestion)
             ids = question.ids
-            # the entropy of a uniform pick is total, so its confidence is none
+            # backend sends 0; validation replaces Choice.confidence with max p (= 1/|ids| for uniform)
             answers[name] = _choice(self._rng.choice(ids), {key: 1.0 / len(ids) for key in ids}, 0.0)
         return Reply(answers=answers, latency_ms=0, model=self.model)
 
