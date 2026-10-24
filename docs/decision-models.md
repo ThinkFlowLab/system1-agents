@@ -22,7 +22,13 @@ Input: an `Observation(state, images=())` (a JSON object or plain text) and type
 `ChoiceQuestion(options, goal=, rules=, operation=)` picks one key among `options` (a string per key, or a dict for
 the browser's element rows); `NoulQuestion(question, criteria=)` asks whether a statement holds. Output: a
 `Decision(answers, latency_ms, usage, model, raw)` with one `Choice(key, probabilities, confidence)` or
-`Noul(p, confidence)` per question name.
+`Noul(p, confidence)` per question name. **`confidence` always means the same thing on every backend:** for a
+choice it is `max_k p_k` (the peak probability); for a noul it is `max(p, 1 - p)`. Validation computes both from
+the validated probabilities in `s1a/decision_models/validation.py`, so Laya's normalised entropy, Jev's normalised
+margin, and OmniJev's recompute never become the reported `confidence`. Each backend's own number is kept as
+`backend_confidence` on the answer and under `Decision.raw["backend_confidence"]` (a map of question name → number)
+when the backend sent one in [0, 1]. These numbers are **not** calibrated unless a backend says so; do not reuse a
+threshold across backends.
 
 `Usage.known` distinguishes reported zero tokens from missing or malformed provider usage. A local backend can
 return `Usage()` for a known zero; `Usage.from_payload` preserves tolerant counts but marks incomplete usage unknown.
@@ -41,7 +47,8 @@ decision.choice("pick").key, decision.latency_ms, decision.usage.input_tokens
 `decide_many` is the one place validation happens. It refuses, with `MODEL_SERVICE_CONFIG_ERROR`, an empty
 question set, an image on a text-only model and a question type the backend lacks. It checks every answer:
 a choice must name an offered key, its probabilities must cover exactly the offered keys, lie in [0, 1], sum to 1
-within 0.02 and peak at the key; a noul probability lies in [0, 1] and its confidence defaults to `max(p, 1 - p)`.
+within 0.02 and peak at the key; a noul probability lies in [0, 1]. After those checks, `Choice.confidence` is set
+to `max_k p_k` and `Noul.confidence` to `max(p, 1 - p)` regardless of what the backend put in its `confidence` field.
 An unusable answer is re-asked with the same request up to `attempts` times (never on a deterministic backend, never
 after a transport error) and then raises `MODEL_CALL_FAILED`. `decide`, `choose` and `ask` are one-question
 shorthands; `warm()` and `close()` open and release the backend.
@@ -56,7 +63,7 @@ shorthands; `warm()` and `close()` open and release the backend.
 | `laya-served` | `ServedLayaModel(client, model=, max_len=)` | `laya-served` | one `POST /v1/systemone` per request to `LAYA_SERVED_URL`, body built with `laya_question()` as for `laya`; one retry on a dropped connection, 502 or 504, and after `Retry-After` on 503, all within `LAYA_SERVED_TIMEOUT_S`; the same window check as `laya`; `model` is the served checkpoint and revision, and `raw` keeps `served_by`, `url`, `request_id` and `server_timing` (see [served-laya.md](served-laya.md)) |
 | `cua` | `CuaS1Model(scorer, collator, model=, context_bytes=, option_bytes=)` | `cua` | Cua-S1 Nano, one `score_elements` pass per request on a thread; choice questions only, text only, deterministic; the context is header, state and rules; the checkpoint reads its first 256 bytes, and the first overflowing request logs one warning; `from_env` reads `CUA_S1_*` (see [configuration.md](configuration.md)) |
 | `omnijev` | `OmniJevModel(agent, model=)` | `omnijev` | OmniJev (a Qwen3.5 vision-language decision model), one `MSO1.system_one` call per request on a thread; choice and noul questions over the observation's screenshot, deterministic; the text state, goal and rules go in front of each question (a browser state puts its recent actions first and caps the page text at 2,000 characters, so a long page cannot push the history out of the 6,000-character context), a browser element row becomes its label and value; a choice's probabilities, which OmniJev leaves `abstain` out of, are renormalised over the offered keys; an observation without an image is `MODEL_CALL_FAILED`; `from_env` reads `OMNIJEV_*` (see [configuration.md](configuration.md)); in process only: system1-omni has no OmniJev vision worker yet (its supported models are Laya, Open-Jev text and Cua-S1 screenshots), so there is no served `omnijev` path |
-| `random` | `RandomModel(seed)` | `random` | uniform over the offered keys, confidence 0, one seeded stream per episode; choice questions only |
+| `random` | `RandomModel(seed)` | `random` | uniform over the offered keys (contract confidence = `1/|options|`), one seeded stream per episode; choice questions only |
 | `rule` | `RuleModel(name, rule)` | the rule's name | one-hot, confidence 1; a key outside the menu raises `RuntimeError`, a bug in the rule |
 
 `name` lands in every tick's `source` and in `Episode.policy`; the eval table's columns take their labels from it.
@@ -80,7 +87,7 @@ parameters) answer the same `choice` question in process.
   reads the validated decision onto a candidate. Ticks keep `decision_ms` and `input_tokens` for the artifact readers.
 - Rails (`DecisionModelRail`): one `check` question, noul or choice, banded by the spec's thresholds.
 - `decide`, `probe` and the MCP server: one `pick` question; the printed dict stays `choice`, `probabilities`,
-  `confidence`, `ms`.
+  `confidence` (= `max_k p_k`), `ms`, and `backend_confidence` when the backend sent its own number.
 
 Three oracle tests in `tests/test_decision_models_jev.py` pin the tool, rail and browser bodies to the pre-layer JSON.
 

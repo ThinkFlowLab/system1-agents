@@ -432,6 +432,7 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
         self.assertEqual((tick["operation"], tick["target"], tick["confidence"]), ("CLICK", "Search", 0.9))
         self.assertEqual(tick["probabilities"], {"1": 0.9, "2": 0.1}, "the click head's probabilities, for the replay")
         self.assertEqual(tick["candidates"]["1"], "Search")
+        self.assertEqual((tick["model"], tick["requested_model"]), ("jev-9", "typesafe/jev-test"), "who answered (#93)")
         report = slot_model.report()
         self.assertEqual((report["decisions"], report["median_decision_ms"], report["jev_input_tokens"]), (1, 7, 315))
 
@@ -628,6 +629,32 @@ class TestJevRunIsolation(IsolatedAsyncioTestCase):
         second = await slot_model.invoke([{"role": "user", "content": "Fly to Berlin"}], tools=_TOOLS)
 
         self.assertNotEqual(first.tool_calls[0].id, second.tool_calls[0].id)
+
+
+class TestInterpretBackendConfidences(TestCase):
+    def test_every_answered_heads_backend_confidence_reaches_the_move(self) -> None:
+        from s1a.decision_models import Choice, Decision
+
+        candidate = action_space.Candidate("CLICK", "3", {"label": "Go"})
+        space = action_space.ActionSpace(heads={"CLICK": {"3": candidate}})
+        decision = Decision(
+            answers={
+                "operation": Choice("CLICK", {"CLICK": 0.8, "WAIT": 0.2}, 0.8, backend_confidence=0.4),
+                "click_target": Choice("3", {"3": 1.0}, 1.0, backend_confidence=0.9),
+            },
+            latency_ms=1,
+        )
+        move = action_space.interpret(decision, space)
+        self.assertEqual(move.backend_confidence, 0.4)
+        self.assertEqual(move.backend_confidences, {"operation": 0.4, "click_target": 0.9})
+        bare = Decision(
+            answers={
+                "operation": Choice("CLICK", {"CLICK": 1.0}, 1.0),
+                "click_target": Choice("3", {"3": 1.0}, 1.0),
+            },
+            latency_ms=1,
+        )
+        self.assertEqual(action_space.interpret(bare, space).backend_confidences, {})
 
 
 class TestDecisionModelAttributeIsolation(TestCase):
@@ -1083,6 +1110,16 @@ class TestDecisionsClientFromEnv(TestCase):
         self.assertEqual(client.url, wire.TYPESAFE_DECISIONS_URL, "the proxy URL override does not apply")
         self.assertEqual(client.model, wire.TYPESAFE_DEFAULT_MODEL)
         self.assertEqual(client._client.headers["Authorization"], "Bearer ts-key")
+
+    def test_typesafe_reads_typesafe_model_and_rejects_an_openrouter_id(self) -> None:
+        env = {"TYPESAFE_API_KEY": "ts-key", "TYPESAFE_API_URL": "", "TYPESAFE_MODEL": "jev-1.14.0"}
+        with mock.patch.dict("os.environ", env, clear=False):
+            self.assertEqual(wire.client_from_env("typesafe", timeout_s=5.0).model, "jev-1.14.0")
+        with mock.patch.dict("os.environ", {**env, "TYPESAFE_MODEL": "typesafe/jev-1.13"}, clear=False):
+            with self.assertRaises(BaseError) as caught:
+                wire.client_from_env("typesafe", timeout_s=5.0)
+        self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
+        self.assertIn("TYPESAFE_API_URL", str(caught.exception))
 
     def test_openrouter_uses_the_openrouter_key_and_honours_the_dotenv_overrides(self) -> None:
         env = {

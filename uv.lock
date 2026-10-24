@@ -5297,7 +5297,7 @@ requires-dist = [
     { name = "huggingface-hub", marker = "extra == 'omnijev'", specifier = ">=0.24" },
     { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.18" },
     { name = "laya", marker = "extra == 'laya'", specifier = ">=0.3.9" },
-    { name = "mcp", specifier = ">=1.26" },
+    { name = "mcp", specifier = ">=1.26,<2" },
     { name = "opencv-python-headless", marker = "extra == 'alfworld-visual'", specifier = ">=4.10" },
     { name = "openjiuwen", git = "https://github.com/ThinkFlowLab/agent-core?rev=jj-0.1.0" },
     { name = "peft", marker = "extra == 'cua-four-b'", specifier = ">=0.21,<1" },

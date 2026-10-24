@@ -58,7 +58,7 @@ class JevModel(DecisionModel):
             latency_ms=ms,
             usage=Usage.from_payload(fields.get("usage")),
             model=str(fields.get("model") or self.model),
-            raw=fields,
+            raw={**fields, "requested_model": self.model},  # which Jev was asked for, next to the one that answered
         )
 
     async def warm(self) -> None:

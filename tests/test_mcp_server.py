@@ -15,7 +15,9 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from collections.abc import AsyncIterator
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase, skipUnless
@@ -39,6 +41,7 @@ from support import COUNTER
 RANDOM_RUN = ["--model", "random", "--rethink", "off", "--episodes", "1", "--showcase"]
 NO_KEYS = {"TYPESAFE_API_KEY": "", "OPENROUTER_API_KEY": "", "MODEL_NAME": "", "OPENAI_API_KEY": "", "LLM_API_KEY": ""}
 HAVE_RLCARD = importlib.util.find_spec("rlcard") is not None  # the one tool agent that runs offline
+ROOT = Path(__file__).resolve().parents[1]
 HARNESS_LOG = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| ")  # the console entry routes these to files
 
 
@@ -488,6 +491,31 @@ class TestLongRuns(IsolatedAsyncioTestCase):
         self.assertEqual(job["stats"]["n_completed_trials"], 0)
         config = json.loads((job_dir / "config.json").read_text(encoding="utf-8"))
         self.assertEqual(config["datasets"], [{"name": COUNTER.name, "n_tasks": 3}])
+
+
+class TestSdkBound(TestCase):
+    """mcp stays on 1.x until openjiuwen's fastmcp allows 2.x; docs/architecture.md § MCP SDK 2.x tracks the port."""
+
+    NOTE = "### MCP SDK 2.x"
+    ONE_X_ONLY = re.compile(r"^\s*from mcp(?:\.server\.fastmcp|\.client\.stdio|\.shared\.memory)? import ", re.M)
+
+    def test_the_declared_bound_and_the_installed_sdk_stay_below_2(self) -> None:
+        declared = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["dependencies"]
+        self.assertIn("mcp>=1.26,<2", declared)
+        self.assertEqual(version("mcp").split(".")[0], "1", version("mcp"))
+
+    def test_the_migration_note_names_every_file_importing_1x_only_names(self) -> None:
+        architecture = (ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+        self.assertIn(self.NOTE, architecture)
+        note = architecture.split(self.NOTE, 1)[1]
+        sources = [*ROOT.glob("s1a/**/*.py"), *ROOT.glob("tests/**/*.py"), *ROOT.glob("scripts/*.sh")]
+        importing = sorted(
+            path.relative_to(ROOT).as_posix()
+            for path in sources
+            if self.ONE_X_ONLY.search(path.read_text(encoding="utf-8"))
+        )
+        self.assertIn("s1a/mcp_server.py", importing)
+        self.assertEqual([name for name in importing if f"`{name}`" not in note], [])
 
 
 class TestAdvertisedTools(IsolatedAsyncioTestCase):
