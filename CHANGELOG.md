@@ -27,8 +27,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   against any `/v1/systemone` backend; `recipes/snake` documents setup,
   verification, and recorded evidence (0 deaths; playback-speed-1 GIFs).
 
+### Changed
+
+- `mcp` is bounded below 2 (`mcp>=1.26,<2`): openjiuwen's fastmcp dependency still requires the 1.x SDK.
+  `docs/architecture.md` § MCP SDK 2.x lists the 1.x-only call sites and the condition for porting.
+
 ### Fixed
 
+- `decide` rejects repeated `--option` keys before model setup instead of silently replacing an earlier choice
+  description. The usage error names the duplicate key without printing either description.
 - Malformed ticket-router JSONL now names the dataset, physical line and JSON column without printing ticket contents.
 - Laya browser-state compaction preserves the recovery plan for the next decision.
 - Desktop recovery resets its detection window on observed progress without resetting its cumulative budget.
