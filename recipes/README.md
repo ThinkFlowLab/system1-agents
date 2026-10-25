@@ -10,6 +10,7 @@ backend, and the required application + System1-Agents + System1-Omni video for 
 | Use case | Agent / front | Execution profile | Validation |
 |---|---|---|---|
 | [Route support tickets](ticket-routing/README.md) | `ticket_router` / tool | Local CPU rule baseline; Laya/Jev alternatives, System1-Omni served Laya, or CLM over HTTP | Baseline smoke run; this fixture's required served-model video remains pending, and CLM measured 18/90 under this loop's framing ([evidence](../evals/ticket_router/CLM.md)) |
+| [Screen a news desk](content-workflow/README.md) | `s1a.content` orchestration, not a tool-loop agent | Local CPU lexical rule; optional draft StartLux/PPLX `/v1/systemone` workers | Fixture smoke run with human pick and publish files; nothing is posted. Served-worker video remains pending |
 | [Play Snake](snake/README.md) | snake game client (`evals/snake`) / tool-style loop | System1-Omni native worker (H800); MPS dev path | 3×2400-step (0 deaths) and 16×600-step multigrid (0 deaths) recorded runs, playback-1 GIFs |
 
 The recipe's validation section identifies what was actually run. A supported model or a passing unit test

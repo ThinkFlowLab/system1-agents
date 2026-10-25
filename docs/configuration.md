@@ -44,6 +44,13 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `LAYA_SERVED_API_KEY` | `laya-served` model | *(unset)* | Bearer token, the server's `LAYA_API_KEY` when it sets one. |
 | `LAYA_SERVED_TIMEOUT_S` | `laya-served` model | `5` | Deadline per decision in seconds, the one retry and any `/health` refresh included. A finite number above 0: `nan`, `inf` and `0` are configuration errors. |
 | `LAYA_SERVED_MAX_LEN` | `laya-served` model | `512` | The served checkpoint's token window per question (`english` 512, `multilingual` 1024); a request that fills it raises. The server takes the window from the checkpoint, so set this to match and nothing higher. |
+| `OMNI_BASE_URL` | content desk, screen (and fact-check unless a second URL is set) | *(unset)* | Base URL of a draft System1-Omni worker, with no path or query. The client appends `/v1/systemone` and `/health`. Unset, `python -m s1a.content run --backend auto` uses the lexical rule and does not open a decision socket. |
+| `OMNI_MODEL` | content desk screen | `StartLux-Decision-v1.1-4B-Instant` | Model alias sent to the screen worker. The default is the StartLux Instant 4B draft (system1-omni pull request 164). The thinking flag stays `think_mode: never`. |
+| `OMNI_API_KEY` | content desk | *(unset)* | Bearer token for `OMNI_BASE_URL`, sent only when non-empty. |
+| `OMNI_TIMEOUT_S` | content desk | `30` | Per-request timeout in seconds. A finite number above 0. There is no retry, so the latency hook can read one wall time. |
+| `OMNI_FACTCHECK_BASE_URL` | content desk fact-check | *(same as `OMNI_BASE_URL` for StartLux)* | Required when `--fact-check-worker pplx`. PPLX (system1-omni pull request 166) is not assumed to share the StartLux port. |
+| `OMNI_FACTCHECK_MODEL` | content desk fact-check | StartLux alias, or `perplexity-ai/pplx-decider-v1.1-27b` for PPLX | Model alias for the fact-check worker. |
+| `OMNI_FACTCHECK_API_KEY` | content desk fact-check | `OMNI_API_KEY` | Bearer token for the fact-check URL when it differs. |
 | `CUA_S1_CHECKPOINT` | `cua` model | `cua-ai/cua-s1-nano-0.1` | Hugging Face checkpoint ID or local directory for Cua-S1 Nano option scorer. |
 | `CUA_S1_SUBFOLDER` | `cua` model | `text` | Subfolder within checkpoint directory containing text option scoring weights. |
 | `CUA_S1_DEVICE` | `cua` model | `auto` | PyTorch device used for Cua-S1 Nano evaluation (`auto`, `cpu`, `cuda`, or `mps`). |
