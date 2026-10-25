@@ -4,6 +4,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- Content desk workflow (`python -m s1a.content`): RSS and fixture ingest, an optional X fixture or adapter
+  hook, a keep/drop screen with a relevance score, a human pick of 3–5 items, a fact-check choice and score,
+  and a human publish decision. Nothing is posted. `OMNI_BASE_URL` sends short `/v1/systemone` prefills to a
+  draft StartLux Instant 4B worker (system1-omni #164); fact-check can switch to draft PPLX (#166) on
+  `OMNI_FACTCHECK_BASE_URL`. Clef (#165) is refused. With the URL unset, a lexical rule runs offline.
+  `--allow-unsafe-skip-gates` is unsafe and still does not publish. `latency-report` is the unattached hook
+  for a later Public231-C1-style ceiling. Recipe: `recipes/content-workflow`.
+
 ## 0.3.0 - 2026-10-30
 
 ### Added

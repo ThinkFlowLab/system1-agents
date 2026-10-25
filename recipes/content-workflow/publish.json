@@ -1,0 +1,8 @@
+{
+  "decisions": {
+    "n01": "publish",
+    "n02": "publish",
+    "n03": "hold",
+    "n04": "hold"
+  }
+}
