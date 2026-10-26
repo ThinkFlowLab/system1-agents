@@ -37,6 +37,14 @@ class JevTransport(Protocol):
     async def close(self) -> None: ...
 
 
+class JevImageTransport(JevTransport, Protocol):
+    """A transport that can carry screenshots (``images`` True): image bodies pass per-request ``headers``."""
+
+    images: bool
+
+    async def decide(self, body: Json, *, headers: dict[str, str] | None = None) -> tuple[Json, int]: ...
+
+
 class DecisionModel(ABC):
     """A model that reads an observation and a discrete action space and returns a distribution over it."""
 

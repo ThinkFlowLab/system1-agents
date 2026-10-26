@@ -11,7 +11,7 @@ from typing import Any, Literal, Union
 
 Json = dict[str, Any]
 QuestionType = Literal["choice", "noul"]
-PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing", "requested_model")
+PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing", "requested_model", "sent_image")
 
 
 @dataclass(frozen=True)

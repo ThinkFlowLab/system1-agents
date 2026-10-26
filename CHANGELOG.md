@@ -14,6 +14,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Experimental (TypeSafe danger zone): `S1A_JEV_IMAGES=1` lets `--model jev` on the direct TypeSafe backend read one
+  current screenshot (TypeSafe `assets` plus the `TypeSafe-Danger-Zone-Images` header), resized or rejected to the
+  documented limits before sending, and enables `--pixel-target` for `--model jev`. Off by default; the proxy
+  backend refuses it. Step records gain `sent_image`. No live comparison is recorded yet (#97).
 - `s1a probe --order reverse|shuffle:N` (with `--seed` and `--json PATH`): the option-order check. Every case is
   asked in file order and again with the same keys and texts in another dict order; the probe reports the flip
   rate, accuracy in each order and a row per case with every order asked. Verdict and exit code are unchanged
