@@ -8,6 +8,7 @@ Every front that asks "which one" (the tool loop, the browser policy, the rails,
 talks only to `DecisionModel`; the wire client is private to `s1a/decision_models/`. A decision model is a classifier over options the caller enumerates. It
 reads a state and returns a distribution over the offered keys. Hugging Face writes "System 1 decision model" and
 TypeSafe "System One model". This repository uses the terms interchangeably. `--model` picks the backend: `jev` (TypeSafe Jev over HTTP),
+`jev-vl-served` (JEV-27B-VL over System1-Omni's native flat HTTP protocol, browser path only),
 `clm` (CLM's `clm-serve` over HTTP, see [clm.md](clm.md)),
 `laya` (in process, behind `uv sync --extra laya`), `laya-served` (Laya served over HTTP by system1-omni, see
 [served-laya.md](served-laya.md)), `cua` (Cua-S1 Nano in process, behind `uv sync --extra cua`),
@@ -58,6 +59,7 @@ shorthands; `warm()` and `close()` open and release the backend.
 | `--model` | class | `name` | notes |
 |---|---|---|---|
 | `jev` | `JevModel(transport)` | `jev` | the request body every front sent before the layer existed, byte for byte; `from_env` picks TypeSafe or the OpenRouter proxy (see [configuration.md](configuration.md)) |
+| `jev-vl-served` | `ServedJevVLModel(url=, timeout_s=)` | `jev-vl-served` | `autotrust/JEV-27B-VL` through native flat `POST /v1/systemone`; exactly one current PNG/JPEG, choice and noul only; sequential questions share one deadline, with no HTTP retry or answer re-ask. Browser and direct factory paths; local tests use mocks, with separate [bounded R3 GPU/browser validation](#served-jev-vl). |
 | `clm` | `ClmModel(client, model=)` | `clm` | CLM behind `/v1/systemone`: a frozen Qwen3-8B encoder and two projection heads, scored by an engine that owns everything after the encoder. One POST per decision; `MODEL_SERVICE_CONFIG_ERROR` without `CLM_URL`, `MODEL_CALL_FAILED` when nothing is listening, on an error status, or on a body with no `answers`. Records `url`, the `X-Request-Id` it sent and `served_by` (the served names, read once — by `warm()` on the agent fronts, or on the first decision for `decide`/`probe`); choice and noul ([docs/clm.md](clm.md)) |
 | `laya` | `LayaModel(agent, model=)` | `laya` | one forward pass per call on a thread; `MODEL_SERVICE_CONFIG_ERROR` when `input_tokens` fills the window (Laya cuts the state silently; see `LAYA_MAX_LEN` and `LAYA_HEAD_MAX_LEN` in [configuration.md](configuration.md)); `ValueError` and `RuntimeError` from the library become `MODEL_CALL_FAILED` |
 | `laya-served` | `ServedLayaModel(client, model=, max_len=)` | `laya-served` | one `POST /v1/systemone` per request to `LAYA_SERVED_URL`, body built with `laya_question()` as for `laya`; one retry on a dropped connection, 502 or 504, and after `Retry-After` on 503, all within `LAYA_SERVED_TIMEOUT_S`; the same window check as `laya`; `model` is the served checkpoint and revision, and `raw` keeps `served_by`, `url`, `request_id` and `server_timing` (see [served-laya.md](served-laya.md)) |
@@ -77,6 +79,54 @@ statement holds, `score` places the state on an ordered rubric. Input is capped 
 and API keys are referenced in [configuration.md](configuration.md). Latency and
 price: `benchmarks.md`. Laya (Convai Innovations, open weights, 0.4B parameters) and Cua-S1 Nano (Cua, 855K
 parameters) answer the same `choice` question in process.
+
+### Served JEV-VL
+
+`jev-vl-served` is registered in the browser front and `build_model()`. It sends the observation's text state,
+goal, operation and rules with exactly one current PNG/JPEG to a native System1-Omni frontend serving
+`autotrust/JEV-27B-VL`. The original image bytes are sent without resizing or truncation. Limits are 4 MiB per
+image, 2,048 pixels per side, 1,048,576 pixels in total, and 8 MiB for each complete UTF-8 JSON body.
+A missing, invalid or oversized screenshot fails the decision instead of falling back to text.
+
+Choice and noul questions are sent sequentially under one `S1A_DECISION_TIMEOUT_S` deadline (5 s by default).
+HTTP errors and invalid flat responses fail the whole decision. No partial action is executed, and the adapter
+does not retry HTTP requests or re-ask invalid answers. A choice with one offered key is forced locally after
+image validation, with zero model requests and zero usage; it is not a learned choice. `latency_ms` covers the
+whole client decision, including preparation and validation, rather than GPU inference alone.
+
+Browser ticks retain `decision_raw` only for `jev-vl-served`; the existing served backends keep their
+provenance fields without adding a full response payload. JEV-VL response records keep only `server-timing`,
+`x-request-id`, `content-type` and `content-length` headers. Forced choices have a null per-response
+`request_id`, and an entirely forced decision also has a null top-level `request_id`, because no HTTP request
+was sent.
+
+For a ready frontend, a browser viewport within the image limits, and the usual browser chat-model configuration,
+the invocation is:
+
+```bash
+JEV_VL_URL=http://127.0.0.1:8080 S1A_DECISION_TIMEOUT_S=30 uv run s1a run flights --model jev-vl-served --rethink off
+```
+
+This is a setup example; the validation below does not establish Flights task completion. Other agent fronts
+are not registered for this image-required backend. This path is separate from the in-process `omnijev` adapter.
+
+Bounded R3 validation (2026-10-14) used frozen Agents `0def92771746ec94adc38bf41be9720bccfbf19d`
+and Omni `26dc76bf65c544815e7b285866791da1e703816d` on one NVIDIA H800. Native correctness
+(612 requests), cache eviction (36 requests), and the full 60-episode paired HTTP replay (1,080 timed requests)
+passed their checks. The [RECOVERABLE fixture](../evals/recovery/fixture.py), run through the
+[live browser evaluator](../evals/recovery/live.py) with recovery off, completed three actions and a verified
+`hello world` POST. Four operation choices were non-forced; six forced targets do not count as learned choices.
+A separate chat/value model supplied text; JEV-VL selected the operations. The same-trial application video
+and Agents/Omni evidence replay contain 294 frames over 11.76 seconds. R1 failed in transport; R2 completed
+the task but had an empty recording; R3 passed the complete evidence checks. All three attempts are retained.
+This is a single-fixture smoke check, not broad task-quality evidence or an end-to-end browser speedup claim.
+
+Run-local audit records remain outside this repository:
+`20261012T114800Z-online-vision-agents/revisions/26dc76b-agents-0def927`, browser job `419202`.
+The same-trial [evidence replay](https://github.com/linear3735/system1-agents/releases/download/jevvl-r3-419202-evidence/evidence-replay.mp4)
+and [sanitized R3 records](https://github.com/linear3735/system1-agents/releases/download/jevvl-r3-419202-evidence/jevvl-r3-evidence.zip)
+are public; the full GPU raw records are not published. The evidence replay SHA-256 is
+`58550ee293bbfb9c5b1f563c03e8cbdb6f6ac2a3ef23080f73ec3435b932a9e4`.
 
 ## What each front sends
 
@@ -105,10 +155,11 @@ real servers in `tests/data/served_laya/`. Nothing patches `httpx`.
    `supports_images`, `question_types`, `deterministic`; implement `model` and `_decide`, which translates the
    questions and returns a `Reply` whose `answers` are the backend's own dicts; `decide_many` validates them into
    a `Decision`. Keep any heavy import inside `from_env()`.
-2. A `case` in `factory.build_model` and the name in `DECISION_MODEL_NAMES`, `tool/loop.py::MODEL_NAMES`,
-   `browser/browse.py::BROWSER_MODEL_NAMES`, `rails.RAIL_MODEL_NAMES`, `cli.DECIDE_MODEL_NAMES` and the
-   `mcp_server.decide` `Literal`, plus the `match` in `tool/loop.py` and `browser/browse.py` when the backend is
-   a decision model; `tests/test_served_laya_registration.py` finds a list that has `laya` without `laya-served`.
+2. A `case` in `factory.build_model` and the name in `DECISION_MODEL_NAMES`, then register only fronts that
+   provide the backend's required input. Update their model-name list and dispatch `match`, with registration
+   tests. Text backends may also need `tool/loop.py::MODEL_NAMES`, `rails.RAIL_MODEL_NAMES`,
+   `cli.DECIDE_MODEL_NAMES` and the `mcp_server.decide` `Literal`; image-required backends need an actual image
+   path. `tests/test_served_laya_registration.py` checks Laya's registrations across its supported fronts.
 3. `tests/test_decision_models_<backend>.py` with `Test<Backend>Contract(DecisionModelContract, IsolatedAsyncioTestCase)`
    plus the backend's mapping tests; a fake for its SDK lives in that file.
 4. An optional extra in `pyproject.toml` and an env block in `.env.example` when it needs a dependency.

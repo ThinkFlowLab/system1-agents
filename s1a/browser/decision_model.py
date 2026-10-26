@@ -363,9 +363,10 @@ class BrowserDecisionModel(Model):
                 "probabilities": probabilities,  # the replay's bars: the settled head's top keys
                 "candidates": candidates,
                 "model": move.model,  # who answered: the response's model id, else the one the request named
+                **decision.provenance,
             }
-            if "requested_model" in decision.provenance:
-                record["requested_model"] = decision.provenance["requested_model"]
+            if self._decision_model.name == "jev-vl-served":
+                record["decision_raw"] = decision.raw
             if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
                 record["screenshot_ms"] = screenshot_ms
             run.ticks.append(record)
