@@ -118,3 +118,15 @@ shipped set is 30 tickets in `s1a/agents/_data/ticket_router_eval.jsonl`, each w
 order status; the label is read by the scorer alone. `--dataset` points the agent at a
 JSONL of your own with the same fields, and `--batch-size` caps the tickets per episode. The rules text the model
 reads is `RULES` in `s1a/agents/ticket_router.py`.
+
+## The content desk
+
+The news desk is not a row in the table above. It is a five-stage command, `python -m s1a.content run`, because
+the human pick and the human publish decision have to stop the run. The shared tool loop would act on every
+choice. Screen and fact-check are still enumerated decisions: `keep`/`drop` plus a relevance score, then
+`supported`/`unsupported`/`needs_human` plus a support score. With `OMNI_BASE_URL` unset, a lexical rule
+answers, the same kind of baseline as the ticket router's keywords. With the variable set, a draft
+System1-Omni worker answers over `POST /v1/systemone`. The default worker is StartLux Instant 4B. Fact-check
+can switch to PPLX on `OMNI_FACTCHECK_BASE_URL`. Clef is refused. The run records a publish decision and
+does not post. Details: [content-workflow.md](content-workflow.md) and the
+[recipe](../recipes/content-workflow/README.md).

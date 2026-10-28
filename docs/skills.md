@@ -58,6 +58,9 @@ runs `s1a run flights --model jev --goal "..."` and reads the answer from `final
 - Keep arithmetic, constraint deduction, search over move trees, free-text generation and any value the page never
   shows with the chat model. The three probe misses, Minesweeper, Wordle and a severity rubric, needed deduction. A
   plain page fetch needs no agent; use `curl`.
+- A news desk is `python -m s1a.content run`, not a chat draft and not `run_agent`. Jev or a draft Omni worker
+  screens and fact-checks. A person picks 3 to 5 items and decides publish or hold. The command does not post.
+  See [content-workflow.md](content-workflow.md).
 
 ### What comes back
 
