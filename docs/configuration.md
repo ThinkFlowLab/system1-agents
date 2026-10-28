@@ -53,6 +53,10 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `OMNIJEV_REVISION` | `omnijev` model | `v1.1` | Revision of a Hugging Face `OMNIJEV_CHECKPOINT`. |
 | `OMNIJEV_BASE` | `omnijev` model | `Qwen/Qwen3.5-0.8B` | Hugging Face ID or local directory of the Qwen3.5 backbone of the same size as the checkpoint. |
 | `OMNIJEV_PROMPT` | `omnijev` model | `full` | `full` sends the text state, goal and rules with each question; `short` sends the goal and the ask only, the screenshot carrying the page. |
+| `ONEJEV_URL` | `onejev` model | *(unset, required)* | Base URL of a served OneJev (`qev`/`flide`), e.g. `http://127.0.0.1:8000`. Browser and `build_model` only; requires a screenshot in the observation. |
+| `ONEJEV_MODEL` | `onejev` model | `OmniJev/OneJev1.6-4B` | Model id sent in the `/v1/systemone` body (checkpoint the server loaded, e.g. `OmniJev/OneJev1.6-0.8B`). |
+| `ONEJEV_API_KEY` | `onejev` model | *(unset)* | Bearer token when the server expects one; loopback `qev`/`flide` usually needs none. |
+| `ONEJEV_TIMEOUT_S` | `onejev` model | `30` | Deadline per decision in seconds, the one refused-connection / 502 / 504 retry included. A finite number above 0. Raise for large checkpoints or a cold load. |
 | `CUA_DRIVER_BIN` | `desktop` agent | `cua-driver` | Path to the `cua-driver` executable on Windows or macOS when not located on `PATH`. |
 | `CUA_DRIVER_PERMISSION_MODE` | `desktop` agent | `standard` | Permission mode passed to `cua-driver mcp` (`standard`, or `bounded` for restricted capability manifests). |
 | `HF_HOME` | Hugging Face runtime | `~/.cache/huggingface` | Cache directory where Laya and Cua-S1 checkpoints are downloaded on first run. |

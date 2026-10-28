@@ -14,6 +14,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `--model onejev`: [OneJev](https://github.com/OmniJev/OneJev) (Apache-2.0) as a **served** multimodal System One
+  client against `qev`/`flide` (`ONEJEV_URL`, optional `ONEJEV_MODEL` / `ONEJEV_API_KEY` / `ONEJEV_TIMEOUT_S`). Posts
+  choice/noul with TypeSafe-compatible `media` and `<image:N>` state markers; refuses an observation without a
+  screenshot (OmniJev policy). Contract tests use a fake HTTP server; live GPU validation is not claimed. Browser
+  and `build_model` only (#88).
+
 - `s1a probe --order reverse|shuffle:N` (with `--seed` and `--json PATH`): the option-order check. Every case is
   asked in file order and again with the same keys and texts in another dict order; the probe reports the flip
   rate, accuracy in each order and a row per case with every order asked. Verdict and exit code are unchanged

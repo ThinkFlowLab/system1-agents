@@ -12,7 +12,7 @@ TypeSafe "System One model". This repository uses the terms interchangeably. `--
 `clm` (CLM's `clm-serve` over HTTP, see [clm.md](clm.md)),
 `laya` (in process, behind `uv sync --extra laya`), `laya-served` (Laya served over HTTP by system1-omni, see
 [served-laya.md](served-laya.md)), `cua` (Cua-S1 Nano in process, behind `uv sync --extra cua`),
-`random` and `rule` (the tool front's baselines).
+`onejev` (OneJev over HTTP via `qev`/`flide` with a screenshot), `random` and `rule` (the tool front's baselines).
 `build_model(model_name, seed=, rule=)` builds one from the environment; `llm` names the chat model, which `build_model` does not build.
 
 The registered paths, input modalities and question types are summarized in the [decision-model capability matrix](capabilities.md), separately from run evidence and hardware validation.
@@ -65,6 +65,7 @@ shorthands; `warm()` and `close()` open and release the backend.
 | `laya-served` | `ServedLayaModel(client, model=, max_len=)` | `laya-served` | one `POST /v1/systemone` per request to `LAYA_SERVED_URL`, body built with `laya_question()` as for `laya`; one retry on a dropped connection, 502 or 504, and after `Retry-After` on 503, all within `LAYA_SERVED_TIMEOUT_S`; the same window check as `laya`; `model` is the served checkpoint and revision, and `raw` keeps `served_by`, `url`, `request_id` and `server_timing` (see [served-laya.md](served-laya.md)) |
 | `cua` | `CuaS1Model(scorer, collator, model=, context_bytes=, option_bytes=)` | `cua` | Cua-S1 Nano, one `score_elements` pass per request on a thread; choice questions only, text only, deterministic; the context is header, state and rules; the checkpoint reads its first 256 bytes, and the first overflowing request logs one warning; `from_env` reads `CUA_S1_*` (see [configuration.md](configuration.md)) |
 | `omnijev` | `OmniJevModel(agent, model=)` | `omnijev` | OmniJev (a Qwen3.5 vision-language decision model), one `MSO1.system_one` call per request on a thread; choice and noul questions over the observation's screenshot, deterministic; the text state, goal and rules go in front of each question (a browser state puts its recent actions first and caps the page text at 2,000 characters, so a long page cannot push the history out of the 6,000-character context), a browser element row becomes its label and value; a choice's probabilities, which OmniJev leaves `abstain` out of, are renormalised over the offered keys; an observation without an image is `MODEL_CALL_FAILED`; `from_env` reads `OMNIJEV_*` (see [configuration.md](configuration.md)); in process only: system1-omni has no OmniJev vision worker yet (its supported models are Laya, Open-Jev text and Cua-S1 screenshots), so there is no served `omnijev` path |
+| `onejev` | `OneJevModel(client, model=)` | `onejev` | OneJev (OmniJev org, Apache-2.0) served by `qev`/`flide` over TypeSafe-compatible `POST /v1/systemone` plus a `media` field; choice and noul over the observation's screenshot(s), deterministic; state carries `<image:N>` markers and each screenshot is a PNG/JPEG/WebP data URL in `media` (digest and size in `raw.sent_images`, never the bytes); an observation without an image is `MODEL_CALL_FAILED` (same policy as `omnijev`); one refused-connection / 502 / 504 retry within `ONEJEV_TIMEOUT_S`; `raw` keeps `served_by`, `url`, `request_id` and `server_timing`; `from_env` reads `ONEJEV_*` (see [configuration.md](configuration.md)); browser and `build_model` only — not tool/rails/`decide`. Local tests use a stub server; live GPU validation is **not recorded** in this checkout |
 | `random` | `RandomModel(seed)` | `random` | uniform over the offered keys (contract confidence = `1/|options|`), one seeded stream per episode; choice questions only |
 | `rule` | `RuleModel(name, rule)` | the rule's name | one-hot, confidence 1; a key outside the menu raises `RuntimeError`, a bug in the rule |
 
@@ -79,6 +80,26 @@ statement holds, `score` places the state on an ordered rubric. Input is capped 
 and API keys are referenced in [configuration.md](configuration.md). Latency and
 price: `benchmarks.md`. Laya (Convai Innovations, open weights, 0.4B parameters) and Cua-S1 Nano (Cua, 855K
 parameters) answer the same `choice` question in process.
+
+
+### Served OneJev
+
+`onejev` is registered in the browser front and `build_model()`. Point `ONEJEV_URL` at a local
+[`qev`](https://github.com/OmniJev/OneJev) or [`flide`](https://github.com/OmniJev/Flide) server that speaks
+`/v1/systemone` with `media`. Example smoke (not run in CI; needs a GPU or GGUF build):
+
+```bash
+# terminal 1 — install from the OneJev repo (pip install qev is a different package)
+qev serve --model OmniJev/OneJev1.6-4B --port 8000
+# or: flide serve --model OmniJev/OneJev1.6-4B --port 8000
+
+# terminal 2
+ONEJEV_URL=http://127.0.0.1:8000 ONEJEV_TIMEOUT_S=60 \
+  uv run s1a run flights --model onejev --rethink off
+```
+
+This is a setup recipe only. Capability registration and stub-server contract tests do **not** establish task
+success rates or hardware validation; see [capabilities.md](capabilities.md).
 
 ### Served JEV-VL
 

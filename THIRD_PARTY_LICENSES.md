@@ -116,3 +116,13 @@ TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONIN
 THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+
+## OneJev / qev
+
+The `--model onejev` adapter (`s1a/decision_models/onejev.py`) talks to a locally served
+[OneJev](https://github.com/OmniJev/OneJev) checkpoint through the project's `qev` or
+[Flide](https://github.com/OmniJev/Flide) HTTP server (`POST /v1/systemone` with a `media` field).
+OneJev and its serving code are Apache License 2.0 (Copyright OmniJev Team). This repository does not
+vendor OneJev weights, training code, or the `qev`/`flide` packages; install and run them separately
+per the model card. The unrelated PyPI package named `qev` is not the OneJev server — install from the
+OneJev GitHub repository as the model card instructs.
