@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+from types import SimpleNamespace
 from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase, mock
 
@@ -87,11 +88,11 @@ def _answer(choice: str, ids: list[str], confidence: float = 0.9) -> dict[str, A
     return {"choice": choice, "confidence": confidence, "probabilities": probabilities}
 
 
-def _answers(operation: str, value: str) -> dict[str, Any]:
+def _answers(operation: str, value: str, confidence: float = 0.9) -> dict[str, Any]:
     """A payload answering every head, as Jev does; ``decide_many`` validates them all, ``interpret`` uses one."""
     return {
         "answers": {
-            "operation": _answer(operation, _OPERATIONS),
+            "operation": _answer(operation, _OPERATIONS, confidence),
             "type_text_target": _answer("2", ["2"]),
             "click_target": _answer("1", ["1", "2"]),
             "select_target": _answer("3:1", ["3:1", "3:2"]),
@@ -377,12 +378,19 @@ def _slot_model(
     decision_model: DecisionModel | None = None,
     runtime: Any = None,
     batch_actions: bool = False,
+    defer_below: float | None = None,
+    fallback: Any = None,
 ) -> BrowserDecisionModel:
     with mock.patch.object(Model, "__init__", _fake_model_init):
         slot_model = BrowserDecisionModel(
             _spec(),
-            _policy(goal_value_cache=goal_value_cache, prefetch_values=prefetch_values, batch_actions=batch_actions),
-            _fallback(),
+            BrowserPolicy(
+                prefetch_values=prefetch_values,
+                batch_actions=batch_actions,
+                goal_value_cache=goal_value_cache,
+                defer_below=defer_below,
+            ),
+            fallback or _fallback(),
             decision_model=decision_model or JevModel(_Wire(scripted)),
             value_model=None,
         )
@@ -402,6 +410,76 @@ _MESSAGES = [{"role": "user", "content": "Fly to London"}]
 
 
 class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
+    async def test_low_confidence_defers_to_a_choice_in_the_current_action_space(self) -> None:
+        fallback = _fallback()
+
+        async def choose(messages: list[dict[str, str]], **_kwargs: Any) -> Any:
+            fallback.asked.append(messages)
+            return SimpleNamespace(
+                content='{"operation": "CLICK", "target": "1"}',
+                usage_metadata=SimpleNamespace(input_tokens=12, output_tokens=3),
+            )
+
+        fallback.invoke = choose
+        slot_model = _slot_model(
+            [_answers("CLICK", "none", confidence=0.2)],
+            goal_value_cache=False,
+            prefetch_values=False,
+            defer_below=0.5,
+            fallback=fallback,
+        )
+
+        message = await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+
+        self.assertEqual(message.tool_calls[0].name, "browser_click")
+        tick = slot_model.ticks[0]
+        self.assertTrue(tick["deferred"])
+        self.assertEqual(tick["decision_choice"]["operation"], "CLICK")
+        self.assertEqual(tick["fallback_choice"], {"operation": "CLICK", "target": "1"})
+        self.assertTrue(tick["fallback_usage_known"])
+        self.assertEqual((tick["fallback_input_tokens"], tick["fallback_output_tokens"]), (12, 3))
+        self.assertEqual(len(fallback.asked), 1)
+        self.assertEqual(slot_model.report()["deferred_steps"], 1)
+
+    async def test_high_confidence_does_not_call_the_fallback(self) -> None:
+        fallback = _fallback()
+        slot_model = _slot_model(
+            [_answers("CLICK", "none", confidence=0.9)],
+            goal_value_cache=False,
+            prefetch_values=False,
+            defer_below=0.5,
+            fallback=fallback,
+        )
+
+        await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+
+        self.assertFalse(slot_model.ticks[0]["deferred"])
+        self.assertEqual(fallback.asked, [])
+
+    async def test_invalid_or_failed_fallback_blocks_without_an_action(self) -> None:
+        for response in ('{"operation": "CLICK", "target": "999"}', RuntimeError("unavailable")):
+            with self.subTest(response=response):
+                fallback = _fallback()
+
+                async def choose(_messages: list[dict[str, str]], **_kwargs: Any) -> Any:
+                    if isinstance(response, Exception):
+                        raise response
+                    return mock.MagicMock(content=response)
+
+                fallback.invoke = choose
+                slot_model = _slot_model(
+                    [_answers("CLICK", "none", confidence=0.2)],
+                    goal_value_cache=False,
+                    prefetch_values=False,
+                    defer_below=0.5,
+                    fallback=fallback,
+                )
+                terminal = await slot_model.invoke(_MESSAGES, tools=_TOOLS)
+                self.assertIsNone(terminal.tool_calls)
+                summary = json.loads(terminal.content)
+                self.assertEqual(summary["status"], "BLOCKED")
+                self.assertIn("deferred choice failed", summary["reason"])
+
     async def test_first_tick_types_the_prefetched_value_then_done(self) -> None:
         slot_model = _slot_model([_answers("TYPE_TEXT", "none"), _answers("DONE", "none")])
 
@@ -520,6 +598,9 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
                 "interactions": 0,
                 "waits": 0,
                 "median_decision_ms": 0,
+                "deferred_steps": 0,
+                "deferred_rate": 0.0,
+                "fallback_ms": 0,
                 "jev_input_tokens": 0,
                 "median_probe_ms": 0,
                 "settle_probes": 0,
