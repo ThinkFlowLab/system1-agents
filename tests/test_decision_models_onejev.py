@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import os
@@ -174,6 +175,83 @@ class TestFailures(IsolatedAsyncioTestCase):
             await make_model(server).decide_many(PICTURED, {"pick": contract.PICK})
         self.assertEqual(caught.exception.status, StatusCode.MODEL_CALL_FAILED)
         self.assertIn("500", str(caught.exception))
+
+
+class TestDecisionDeadline(IsolatedAsyncioTestCase):
+    async def test_retry_uses_remaining_budget_for_httpx_and_wait_for(self) -> None:
+        for failure in (httpx.ConnectError("refused"), httpx.Response(502), httpx.Response(504)):
+            with self.subTest(failure=failure):
+                now = 0.0
+                requests = []
+
+                def handler(request: httpx.Request) -> httpx.Response:
+                    nonlocal now
+                    requests.append(request)
+                    if len(requests) == 1:
+                        now += 1.25
+                        if isinstance(failure, Exception):
+                            raise failure
+                        return failure
+                    return httpx.Response(200, json={"answers": {}})
+
+                client = OneJevClient(url=URL, timeout_s=2.0, transport=httpx.MockTransport(handler), clock=lambda: now)
+                self.addAsyncCleanup(client.close)
+                with patch("s1a.decision_models.onejev.asyncio.wait_for", wraps=asyncio.wait_for) as wait_for:
+                    await client.decide({"questions": {}}, "same-request")
+                self.assertEqual([call.args[1] for call in wait_for.call_args_list], [2.0, 0.75])
+                for request, timeout in zip(requests, (2.0, 0.75), strict=True):
+                    self.assertEqual(set(request.extensions["timeout"].values()), {timeout})
+                    self.assertEqual(request.headers["X-Request-Id"], "same-request")
+
+    async def test_exhausted_budget_prevents_retry(self) -> None:
+        for failure in (httpx.ConnectError("refused"), httpx.Response(502), httpx.Response(504)):
+            with self.subTest(failure=failure):
+                now = 0.0
+                requests = []
+
+                def handler(request: httpx.Request) -> httpx.Response:
+                    nonlocal now
+                    requests.append(request)
+                    now += 2.0
+                    if isinstance(failure, Exception):
+                        raise failure
+                    return failure
+
+                client = OneJevClient(url=URL, timeout_s=2.0, transport=httpx.MockTransport(handler), clock=lambda: now)
+                self.addAsyncCleanup(client.close)
+                with self.assertRaises(BaseError) as caught:
+                    await client.decide({"questions": {}}, "exhausted")
+                self.assertEqual(caught.exception.status, StatusCode.MODEL_CALL_FAILED)
+                self.assertIn("within 2 s", str(caught.exception))
+                self.assertEqual(len(requests), 1)
+
+    async def test_stalled_retry_is_cancelled_at_remaining_deadline(self) -> None:
+        now = 0.0
+        attempts = 0
+        stopped = asyncio.Event()
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal now, attempts
+            attempts += 1
+            if attempts == 1:
+                now = 0.99
+                raise httpx.ConnectError("refused", request=request)
+            try:
+                await asyncio.Event().wait()
+            finally:
+                stopped.set()
+            raise AssertionError("stalled retry was not cancelled")
+
+        client = OneJevClient(url=URL, timeout_s=1.0, transport=httpx.MockTransport(handler), clock=lambda: now)
+        self.addAsyncCleanup(client.close)
+        with patch("s1a.decision_models.onejev.asyncio.wait_for", wraps=asyncio.wait_for) as wait_for:
+            with self.assertRaises(BaseError) as caught:
+                await client.decide({"questions": {}}, "stalled")
+        self.assertEqual(caught.exception.status, StatusCode.MODEL_CALL_FAILED)
+        self.assertIsInstance(caught.exception.__cause__, TimeoutError)
+        self.assertAlmostEqual(wait_for.call_args_list[1].args[1], 0.01)
+        self.assertEqual(attempts, 2)
+        self.assertTrue(stopped.is_set())
 
 
 class TestMappingHelpers(TestCase):

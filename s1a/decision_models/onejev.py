@@ -135,12 +135,16 @@ class OneJevClient:
     async def decide(self, body: Json, request_id: str) -> tuple[Json, int, dict[str, str]]:
         """One decision: the payload, its round trip in ms and the response headers."""
         headers = {"X-Request-Id": request_id}
+        deadline = self._clock() + self._timeout_s
         retried = False
         while True:
+            remaining = deadline - self._clock()
+            if remaining <= 0:
+                raise self._no_answer(None)
             started = time.perf_counter()
-            post = self._client.post(f"{self.url}/v1/systemone", json=body, headers=headers, timeout=self._timeout_s)
+            post = self._client.post(f"{self.url}/v1/systemone", json=body, headers=headers, timeout=remaining)
             try:
-                response = await asyncio.wait_for(post, self._timeout_s)
+                response = await asyncio.wait_for(post, remaining)
             except TimeoutError as exc:
                 raise self._no_answer(exc) from exc
             except _RETRIED_TRANSPORT as exc:
@@ -183,7 +187,7 @@ class OneJevClient:
                 raise build_error(StatusCode.MODEL_CALL_FAILED, error_msg="served OneJev returned no answers object")
             return payload, ms, dict(response.headers)
 
-    def _no_answer(self, cause: Exception) -> Exception:
+    def _no_answer(self, cause: Exception | None) -> Exception:
         return build_error(
             StatusCode.MODEL_CALL_FAILED,
             cause=cause,

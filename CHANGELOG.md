@@ -4,6 +4,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Fixed
+
+- Served OneJev uses one HTTP decision deadline across its permitted retry. A retry receives only the remaining
+  `ONEJEV_TIMEOUT_S` budget, and an exhausted budget fails without sending another request.
+
 ### Changed
 
 - The direct TypeSafe path pins `jev-1.13.0` instead of the moving `jev-latest` alias (which moved to Jev 1.14.0
