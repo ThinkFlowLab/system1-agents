@@ -336,11 +336,13 @@ class BrowserDecisionModel(Model):
                 return await self._final(run, "BLOCKED", snapshot, f"decision failed: {exc}")
             move = interpret(decision, space)
             deferred = self._defer_below is not None and move.confidence < self._defer_below
-            fallback_record: dict[str, Any] = {
-                "fallback_choice": None,
-                "fallback_ms": None,
-                "fallback_usage_known": False,
-            }
+            fallback_record: dict[str, Any] = {}
+            if self._defer_below is not None:
+                fallback_record = {
+                    "fallback_choice": None,
+                    "fallback_ms": None,
+                    "fallback_usage_known": False,
+                }
             if deferred:
                 try:
                     move, fallback_record = await self._defer_move(run, space, observation, move)
@@ -363,13 +365,6 @@ class BrowserDecisionModel(Model):
                 "operation": move.operation,
                 "target": move.candidate.item.get("label") if move.candidate else None,
                 "confidence": round(move.confidence, 3),
-                "deferred": deferred,
-                "decision_choice": {
-                    "operation": decision.choice("operation").key,
-                    "target": self._decision_target_key(decision),
-                },
-                "decision_confidence": round(decision.choice("operation").confidence, 3),
-                **fallback_record,
                 **(
                     {"backend_confidence": round(move.backend_confidence, 3)}
                     if move.backend_confidence is not None
@@ -387,6 +382,18 @@ class BrowserDecisionModel(Model):
                 "model": move.model,  # who answered: the response's model id, else the one the request named
                 **decision.provenance,
             }
+            if self._defer_below is not None:
+                record.update(
+                    {
+                        "deferred": deferred,
+                        "decision_choice": {
+                            "operation": decision.choice("operation").key,
+                            "target": self._decision_target_key(decision),
+                        },
+                        "decision_confidence": round(decision.choice("operation").confidence, 3),
+                        **fallback_record,
+                    }
+                )
             if self._decision_model.name == "jev-vl-served":
                 record["decision_raw"] = decision.raw
             if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
@@ -1213,15 +1220,12 @@ class BrowserDecisionModel(Model):
         """
         run = self._run
         if run is None:
-            return {
+            report = {
                 "elapsed_ms": 0,
                 "decisions": 0,
                 "interactions": 0,
                 "waits": 0,
                 "median_decision_ms": 0,
-                "deferred_steps": 0,
-                "deferred_rate": 0.0,
-                "fallback_ms": 0,
                 "jev_input_tokens": 0,
                 "median_probe_ms": 0,
                 "settle_probes": 0,
@@ -1242,17 +1246,16 @@ class BrowserDecisionModel(Model):
                     "events": [],
                 },
             }
+            if self._defer_below is not None:
+                report.update({"deferred_steps": 0, "deferred_rate": 0.0, "fallback_ms": 0})
+            return report
         jev = [t["decision_ms"] for t in run.ticks]
-        deferred = [t for t in run.ticks if t.get("deferred")]
-        return {
+        report = {
             "elapsed_ms": round((time.perf_counter() - run.started_at) * 1000) if run.started_at else 0,
             "decisions": len(jev),
             "interactions": len([h for h in run.history if h["kind"] != "wait"]),
             "waits": len([h for h in run.history if h["kind"] == "wait"]),
             "median_decision_ms": int(statistics.median(jev)) if jev else 0,
-            "deferred_steps": len(deferred),
-            "deferred_rate": round(len(deferred) / len(jev), 3) if jev else 0.0,
-            "fallback_ms": sum(int(t.get("fallback_ms") or 0) for t in deferred),
             "jev_input_tokens": (
                 sum(int(t.get("input_tokens") or 0) for t in run.ticks)
                 if self._decision_model.bills_input_tokens
@@ -1268,6 +1271,16 @@ class BrowserDecisionModel(Model):
             "history": run.history,
             "recovery": self._recovery_summary(run),
         }
+        if self._defer_below is not None:
+            deferred = [t for t in run.ticks if t["deferred"]]
+            report.update(
+                {
+                    "deferred_steps": len(deferred),
+                    "deferred_rate": round(len(deferred) / len(jev), 3) if jev else 0.0,
+                    "fallback_ms": sum(int(t["fallback_ms"] or 0) for t in deferred),
+                }
+            )
+        return report
 
 
 def _probe_failed(snapshot: dict[str, Any]) -> bool:

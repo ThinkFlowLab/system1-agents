@@ -456,8 +456,8 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
         self.assertFalse(slot_model.ticks[0]["deferred"])
         self.assertEqual(fallback.asked, [])
 
-    async def test_invalid_or_failed_fallback_blocks_without_an_action(self) -> None:
-        for response in ('{"operation": "CLICK", "target": "999"}', RuntimeError("unavailable")):
+    async def test_invalid_malformed_or_failed_fallback_blocks_without_an_action(self) -> None:
+        for response in ('{"operation": "CLICK", "target": "999"}', "not JSON", RuntimeError("unavailable")):
             with self.subTest(response=response):
                 fallback = _fallback()
 
@@ -511,8 +511,16 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
         self.assertEqual(tick["probabilities"], {"1": 0.9, "2": 0.1}, "the click head's probabilities, for the replay")
         self.assertEqual(tick["candidates"]["1"], "Search")
         self.assertEqual((tick["model"], tick["requested_model"]), ("jev-9", "typesafe/jev-test"), "who answered (#93)")
+        self.assertTrue(
+            {"deferred", "decision_choice", "decision_confidence", "fallback_choice", "fallback_ms"}.isdisjoint(tick),
+            "the opt-in gate must not alter tick records while unset",
+        )
         report = slot_model.report()
         self.assertEqual((report["decisions"], report["median_decision_ms"], report["jev_input_tokens"]), (1, 7, 315))
+        self.assertTrue(
+            {"deferred_steps", "deferred_rate", "fallback_ms"}.isdisjoint(report),
+            "the opt-in gate must not alter reports while unset",
+        )
 
     async def test_a_tick_marks_usage_unknown_when_the_backend_did_not_report_it(self) -> None:
         from s1a.decision_models import ScriptedModel
@@ -598,9 +606,6 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
                 "interactions": 0,
                 "waits": 0,
                 "median_decision_ms": 0,
-                "deferred_steps": 0,
-                "deferred_rate": 0.0,
-                "fallback_ms": 0,
                 "jev_input_tokens": 0,
                 "median_probe_ms": 0,
                 "settle_probes": 0,
@@ -624,6 +629,14 @@ class TestBrowserDecisionModel(IsolatedAsyncioTestCase):
         )
         self.assertEqual(slot_model.ticks, [])
         self.assertEqual(slot_model.started_at, 0.0)
+
+    async def test_enabled_gate_adds_zeroed_report_fields_before_any_turn(self) -> None:
+        slot_model = _slot_model([], defer_below=0.5)
+        report = slot_model.report()
+        self.assertEqual(
+            (report["deferred_steps"], report["deferred_rate"], report["fallback_ms"]),
+            (0, 0.0, 0),
+        )
 
 
 class TestJevRunIsolation(IsolatedAsyncioTestCase):
