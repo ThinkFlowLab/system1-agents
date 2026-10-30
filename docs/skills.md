@@ -90,6 +90,25 @@ closes the browser and the decision model it started, and records the cancellati
 `result.json` has `"cancelled": true` and counts the unfinished episodes in `n_cancelled_trials`; a browser agent's
 `answer.json` has `"cancelled": true`.
 
+#### Long runs as MCP tasks
+
+`run_agent` (and only it) also accepts a task-augmented call: `tools/list` marks it `execution.taskSupport:
+"optional"` and the server declares the `tasks` capability. When a host sends `tools/call` with a `task` field, the
+call returns a task id at once and the run continues on the server. `tasks/get` reports `working` with the latest
+`episode N/M` or `step N/M` as the `statusMessage` (also sent as `notifications/tasks/status`, at most once a second),
+`tasks/result` returns the same object a plain call returns, and `tasks/cancel` stops the run through the cancellation
+path above: the slot is freed, the browser is closed and the cancellation is recorded. The busy refusal and bad flags
+complete the task with an `isError` result, as they are the result of a plain call. A task-augmented call of
+`decide` or `list_agents` is a protocol error (`-32601`). Without a `task` field nothing changes.
+
+This is the experimental task API of the 2025-11-25 specification (SEP-1686) as the 1.x Python SDK implements it.
+The SDK marks that API deprecated: tasks left the core specification in the 2026-07-28 revision and are expected
+back as a separate extension, which 1.x does not provide. A host that speaks only the extension form will not see
+task support here and keeps the plain call. Tasks are kept in memory for the server process, so they outlive the
+request but not a server restart; a task's `ttl` is raised to at least one hour, because the store counts it from
+creation and a shorter one could drop a run part-way. No host has been verified against this path yet, so keep the
+raised tool timeout below either way.
+
 #### Host timeouts
 
 `flights` budgets 180 s and `allrecipes` 300 s, and a tool agent's run grows with `--episodes`. Run `uv sync` in the

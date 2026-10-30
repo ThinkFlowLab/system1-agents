@@ -19,6 +19,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- `s1a-mcp`: `run_agent` can be called as an MCP task (opt-in by the client, 2025-11-25 experimental tasks in the
+  1.x SDK). The call returns a task id at once; `tasks/get` reports the latest episode or step, `tasks/result` the
+  usual result, and `tasks/cancel` stops the run through the existing cancellation path. Plain calls are unchanged;
+  `decide` and `list_agents` refuse task calls. The SDK marks this API deprecated (tasks become an extension in the
+  2026-07-28 spec), and no host has been verified against it yet. See #102.
 - `--model onejev`: [OneJev](https://github.com/OmniJev/OneJev) (Apache-2.0) as a **served** multimodal System One
   client against `qev`/`flide` (`ONEJEV_URL`, optional `ONEJEV_MODEL` / `ONEJEV_API_KEY` / `ONEJEV_TIMEOUT_S`). Posts
   choice/noul with TypeSafe-compatible `media` and `<image:N>` state markers; refuses an observation without a
