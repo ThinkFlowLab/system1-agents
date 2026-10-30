@@ -19,7 +19,7 @@ hook of a running agent. The injection guard rail fails closed: a decision error
 
 Every tool agent takes `--model jev|clm|laya|laya-served|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
 `--max-steps` and `--timeout`, and writes a Harbor-shaped job folder under `evals/results/<agent>/`. A browser agent
-takes `--model jev|clm|laya|laya-served|cua|omnijev|llm`, `--goal` and the same `--rethink` flag.
+takes `--model jev|clm|laya|laya-served|cua|omnijev|onejev|llm`, `--goal` and the same `--rethink` flag.
 The desktop agent adds `--rethink-attempts` and `--rethink-timeout` and stalls after 3 actions without observed
 progress. The browser front takes the same three names; `docs/browser-front.md` decision 19 describes its branch. A rail takes
 `--model jev|clm|laya|laya-served`, the models that answer `noul`.

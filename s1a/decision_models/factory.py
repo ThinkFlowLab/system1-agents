@@ -14,6 +14,7 @@ from s1a.decision_models.jev import JevModel
 from s1a.decision_models.jev_vl_served import ServedJevVLModel
 from s1a.decision_models.laya import LayaModel
 from s1a.decision_models.omnijev import OmniJevModel
+from s1a.decision_models.onejev import OneJevModel
 from s1a.decision_models.served import ServedLayaModel
 
 DECISION_MODEL_NAMES = (
@@ -24,6 +25,7 @@ DECISION_MODEL_NAMES = (
     "laya-served",
     "cua",
     "omnijev",
+    "onejev",
     "random",
     "rule",
 )  # the names that build a decision model; ``llm`` is not one
@@ -51,6 +53,8 @@ def build_model(model_name: str, *, seed: int = 0, rule: tuple[str, Rule] | None
             return CuaS1Model.from_env()  # the cua_s1 import happens inside
         case "omnijev":
             return OmniJevModel.from_env()  # the OmniJev import happens inside; it decides over a screenshot
+        case "onejev":
+            return OneJevModel.from_env()  # OneJev/qev over HTTP with media; screenshot required
         case "random":
             return RandomModel(seed)
         case "rule":

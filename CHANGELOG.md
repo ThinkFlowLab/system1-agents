@@ -4,6 +4,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Fixed
+
+- Served OneJev uses one HTTP decision deadline across its permitted retry. A retry receives only the remaining
+  `ONEJEV_TIMEOUT_S` budget, and an exhausted budget fails without sending another request.
+
 ### Changed
 
 - The direct TypeSafe path pins `jev-1.13.0` instead of the moving `jev-latest` alias (which moved to Jev 1.14.0
@@ -18,6 +23,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   current screenshot (TypeSafe `assets` plus the `TypeSafe-Danger-Zone-Images` header), resized or rejected to the
   documented limits before sending, and enables `--pixel-target` for `--model jev`. Off by default; the proxy
   backend refuses it. Step records gain `sent_image`. No live comparison is recorded yet (#97).
+- `--model onejev`: [OneJev](https://github.com/OmniJev/OneJev) (Apache-2.0) as a **served** multimodal System One
+  client against `qev`/`flide` (`ONEJEV_URL`, optional `ONEJEV_MODEL` / `ONEJEV_API_KEY` / `ONEJEV_TIMEOUT_S`). Posts
+  choice/noul with TypeSafe-compatible `media` and `<image:N>` state markers; refuses an observation without a
+  screenshot (OmniJev policy). Contract tests use a fake HTTP server; live GPU validation is not claimed. Browser
+  and `build_model` only (#88).
+
 - `s1a probe --order reverse|shuffle:N` (with `--seed` and `--json PATH`): the option-order check. Every case is
   asked in file order and again with the same keys and texts in another dict order; the probe reports the flip
   rate, accuracy in each order and a row per case with every order asked. Verdict and exit code are unchanged

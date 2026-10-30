@@ -46,7 +46,7 @@ class TestBuildModel(TestCase):
         self.assertEqual(rule.name, "always-inc")
         self.assertEqual(
             DECISION_MODEL_NAMES,
-            ("jev", "jev-vl-served", "clm", "laya", "laya-served", "cua", "omnijev", "random", "rule"),
+            ("jev", "jev-vl-served", "clm", "laya", "laya-served", "cua", "omnijev", "onejev", "random", "rule"),
         )
 
     def test_the_errors(self) -> None:
