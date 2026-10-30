@@ -12,7 +12,7 @@ score, seconds, steps and dollars.
 sequenceDiagram
     participant A as openJiuwen agent
     participant E as page or environment
-    participant S1 as Jev, Laya, Cua-S1 Nano or OmniJev (System 1)
+    participant S1 as Jev, Laya, Cua-S1 Nano, OmniJev or OneJev (System 1)
     participant C as chat model (System 2)
     A->>E: observe
     E-->>A: state + enumerated options
@@ -35,7 +35,7 @@ the description, the rules text the model reads, a budget, and the front-specifi
 - Rail front (`RailSpec`, `s1a/rails.py`): `DecisionModelRail` asks one question at one DeepAgent callback hook,
   acts on it above a threshold, and is evaluated on a labelled set. Agent: `injection_guard`.
 
-Shared: `s1a/decision_models/` (the decision-model interface, the Jev, Laya, Cua-S1 and OmniJev adapters, the baselines, the answer
+Shared: `s1a/decision_models/` (the decision-model interface, the Jev, Laya, Cua-S1, OmniJev and OneJev adapters, the baselines, the answer
 validation; `docs/decision-models.md`), `s1a/decision_models/wire.py` (the HTTP transport and its two backends),
 `s1a/config.py` (env loading, the chat model, the browser launch flags),
 `s1a/tool/rethink.py` (a rail that blocks repeats and asks for a plan on a stall), `s1a/jobs.py`
@@ -50,6 +50,7 @@ validation; `docs/decision-models.md`), `s1a/decision_models/wire.py` (the HTTP 
 | `laya` | [Laya](https://huggingface.co/convaiinnovations/laya) (`convaiinnovations/laya`, 0.4B) | in process, `uv sync --extra laya`; no key | a 512 to 1024 token window |
 | `cua` | [Cua-S1 Nano](https://huggingface.co/cua-ai/cua-s1-nano-0.1) (`cua-ai/cua-s1-nano-0.1`, 855K) | in process, `uv sync --extra cua`; no key | a 256-byte context (header, goal, state, then rules), 96 bytes per option |
 | `omnijev` | [OmniJev](https://github.com/tinnel123666888/OmniJev) (Qwen3.5 VL, 0.8B by default, 2B or 4B) | in process, browser agents only, `uv sync --extra omnijev` and a clone named by `OMNIJEV_REPO`; no key; a GPU for useful speed | a viewport screenshot per tick, plus the text state (recent actions first, page text capped at 2,000 characters) |
+| `onejev` | [OneJev](https://github.com/OmniJev/OneJev) (0.8B–27B, Apache-2.0) via `qev`/`flide` | served HTTP, browser agents only; `ONEJEV_URL`; no cloud key | a viewport screenshot per tick as `media` with `<image:N>` in state |
 | `random`, `rule` | the tool front's two baselines | in process | the candidates |
 | `llm` | the chat model | for the comparison columns | the transcript |
 
@@ -63,7 +64,7 @@ the first import of both, routes the harness logs to files under `runs/logs` bef
 MCP stdio protocol only.
 
 Every `run` prints one JSON object on stdout: a tool agent's series summary with its `job_dir`, a browser agent's
-answer, a rail's evaluation. A browser agent takes `--model jev|laya|cua|omnijev|llm`; its policy switches are run-time flags:
+answer, a rail's evaluation. A browser agent takes `--model jev|laya|cua|omnijev|onejev|llm`; its policy switches are run-time flags:
 `--batch on|off`, `--prefetch on|off`, `--goal-values on|off`. `s1a-mcp` serves the same agents to an MCP host over stdio,
 one Runner for the server's lifetime and one run at a time. `uv run python -m evals.table evals/results`
 aggregates every job folder per eval and model into one table. `scripts/showcase.sh` plays one visual episode per
@@ -72,7 +73,7 @@ eval and model outside the matrix and `python -m evals.replay` renders a pair si
 
 Every tool agent, `desktop` included, takes `--model jev|laya|cua|llm|random|rule`, `--rethink on|off`,
 `--episodes N`, `--seed S`, `--max-steps`, `--timeout` and `--headed`, and writes a Harbor-shaped job folder under
-`evals/results/<agent>/`. Every browser agent takes `--model jev|laya|cua|omnijev|llm` and `--goal`. A rail takes
+`evals/results/<agent>/`. Every browser agent takes `--model jev|laya|cua|omnijev|onejev|llm` and `--goal`. A rail takes
 `--model jev|laya`, the two models that answer `noul`. `decide` and `probe` take `--model jev|laya|cua`. On a browser
 agent `laya` needs `LAYA_MAX_LEN` raised to the page's size; `cua` reads a 256-byte context (header, goal, state,
 then rules) and 96 bytes per option, a baseline on any page. Exit codes: 0 for a finished run, including one whose
