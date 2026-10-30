@@ -26,6 +26,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
 
+from s1a.decision_models.wire import decisions_backend_from_env, jev_images_from_env
 from s1a.desktop.driver import CuaDriver, DriverError, Snapshot, driver_from_env, opened
 from s1a.desktop.env import ABSTAIN, WindowEnv, clickable, observable
 from s1a.spec import Budget, Series, ToolAgentSpec, positive_float, positive_int
@@ -119,10 +120,14 @@ def make_series(flags: argparse.Namespace) -> Series:
         and os.getenv("CUA_S1_VARIANT", "nano") == "4b"
         and os.getenv("CUA_S1_MODALITY", "multimodal") == "multimodal"
     )
+    if pixel_targets and flags.model == "jev":
+        # experimental hosted Jev screenshots (#97): a config error on the proxy backend, False when unset
+        visual_model = jev_images_from_env(decisions_backend_from_env())
     if pixel_targets and flags.model not in {"rule", "random"} and not visual_model:
         raise ValueError(
             "--pixel-target requires a screenshot model: use --model cua with CUA_S1_VARIANT=4b and "
-            "CUA_S1_MODALITY=multimodal, or an explicit rule/random baseline"
+            "CUA_S1_MODALITY=multimodal, --model jev with S1A_JEV_IMAGES=1 on the direct TypeSafe backend "
+            "(experimental), or an explicit rule/random baseline"
         )
     plan = parse_plan(flags.plan) if flags.plan else ()
     if flags.verify_file and not flags.text:

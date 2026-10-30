@@ -16,6 +16,7 @@ class ScriptedTransport:
     """
 
     model = "typesafe/jev-test"
+    images = False  # set True to stand in for a TypeSafe client with S1A_JEV_IMAGES on
 
     def __init__(
         self,
@@ -34,12 +35,14 @@ class ScriptedTransport:
         self._usage = usage or {"input_tokens": 0, "output_tokens": 0}
         self._latency_ms = latency_ms
         self.bodies: list[Json] = []
+        self.headers: list[dict[str, str]] = []  # per call; empty when the call passed none
 
     async def warm(self) -> None:
         return None
 
-    async def decide(self, body: Json) -> tuple[Json, int]:
+    async def decide(self, body: Json, *, headers: dict[str, str] | None = None) -> tuple[Json, int]:
         self.bodies.append(body)
+        self.headers.append(dict(headers or {}))
         if self._error is not None:
             raise self._error
         if self._answers:

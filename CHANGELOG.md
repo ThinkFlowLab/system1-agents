@@ -19,6 +19,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ### Added
 
+- Experimental (TypeSafe danger zone): `S1A_JEV_IMAGES=1` lets `--model jev` on the direct TypeSafe backend read one
+  current screenshot (TypeSafe `assets` plus the `TypeSafe-Danger-Zone-Images` header), resized or rejected to the
+  documented limits before sending, and enables `--pixel-target` for `--model jev`. Off by default; the proxy
+  backend refuses it. Step records gain `sent_image`. No live comparison is recorded yet (#97).
 - `--model onejev`: [OneJev](https://github.com/OmniJev/OneJev) (Apache-2.0) as a **served** multimodal System One
   client against `qev`/`flide` (`ONEJEV_URL`, optional `ONEJEV_MODEL` / `ONEJEV_API_KEY` / `ONEJEV_TIMEOUT_S`). Posts
   choice/noul with TypeSafe-compatible `media` and `<image:N>` state markers; refuses an observation without a
