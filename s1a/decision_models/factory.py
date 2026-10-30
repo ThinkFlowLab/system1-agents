@@ -16,6 +16,7 @@ from s1a.decision_models.laya import LayaModel
 from s1a.decision_models.omnijev import OmniJevModel
 from s1a.decision_models.onejev import OneJevModel
 from s1a.decision_models.served import ServedLayaModel
+from s1a.decision_models.served_cua import ServedCuaFourBModel
 
 DECISION_MODEL_NAMES = (
     "jev",
@@ -47,9 +48,12 @@ def build_model(model_name: str, *, seed: int = 0, rule: tuple[str, Rule] | None
         case "cua":
             variant = os.getenv("CUA_S1_VARIANT", "nano")
             if variant == "4b":
-                return CuaFourBModel.from_env()
+                # CUA_S1_URL: the multimodal adapter on system1-omni's worker; no torch or weights here
+                return ServedCuaFourBModel.from_env() if os.getenv("CUA_S1_URL") else CuaFourBModel.from_env()
             if variant != "nano":
                 raise ValueError("CUA_S1_VARIANT must be nano or 4b")
+            if os.getenv("CUA_S1_URL"):
+                raise ValueError("CUA_S1_URL serves Cua-S1 4B only; set CUA_S1_VARIANT=4b")
             return CuaS1Model.from_env()  # the cua_s1 import happens inside
         case "omnijev":
             return OmniJevModel.from_env()  # the OmniJev import happens inside; it decides over a screenshot
