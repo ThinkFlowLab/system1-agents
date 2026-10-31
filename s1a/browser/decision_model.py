@@ -21,7 +21,7 @@ import re
 import statistics
 import time
 from collections.abc import Awaitable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, AsyncIterator
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -120,6 +120,8 @@ class BrowserPolicy:
     goal_value_cache: bool  # offer values extracted from the goal to Jev as a choice head
     rethink_on: bool = False  # bounded recovery: refresh plus plan under a per-task budget, never a wider tool set
     recovery_limits: RecoveryLimits = field(default_factory=RecoveryLimits)  # attempts and active seconds, never reset
+    # An opt-in confidence gate.  ``None`` retains the historic decision-model-only path.
+    defer_below: float | None = None
 
 
 @dataclass
@@ -193,6 +195,7 @@ class BrowserDecisionModel(Model):
         self._batch_actions = policy.batch_actions
         self._rethink_on = policy.rethink_on
         self._recovery_limits = policy.recovery_limits
+        self._defer_below = policy.defer_below
         self._max_steps = max_steps
         self._language = spec.language
         self._decision_model = decision_model
@@ -332,6 +335,20 @@ class BrowserDecisionModel(Model):
                 logger.warning("[BrowserDecisionModel] decision failed: %s", exc, exc_info=True)
                 return await self._final(run, "BLOCKED", snapshot, f"decision failed: {exc}")
             move = interpret(decision, space)
+            deferred = self._defer_below is not None and move.confidence < self._defer_below
+            fallback_record: dict[str, Any] = {}
+            if self._defer_below is not None:
+                fallback_record = {
+                    "fallback_choice": None,
+                    "fallback_ms": None,
+                    "fallback_usage_known": False,
+                }
+            if deferred:
+                try:
+                    move, fallback_record = await self._defer_move(run, space, observation, move)
+                except Exception as exc:  # noqa: BLE001 - a failed escalation must never execute the weak choice
+                    logger.warning("[BrowserDecisionModel] deferred choice failed", exc_info=True)
+                    return await self._final(run, "BLOCKED", snapshot, f"deferred choice failed: {type(exc).__name__}")
             probabilities, candidates = top_probabilities(decision, move, space, TOP_CANDIDATES)
             run.tick += 1
             record = {
@@ -365,6 +382,18 @@ class BrowserDecisionModel(Model):
                 "model": move.model,  # who answered: the response's model id, else the one the request named
                 **decision.provenance,
             }
+            if self._defer_below is not None:
+                record.update(
+                    {
+                        "deferred": deferred,
+                        "decision_choice": {
+                            "operation": decision.choice("operation").key,
+                            "target": self._decision_target_key(decision),
+                        },
+                        "decision_confidence": round(decision.choice("operation").confidence, 3),
+                        **fallback_record,
+                    }
+                )
             if self._decision_model.name == "jev-vl-served":
                 record["decision_raw"] = decision.raw
             if screenshot_ms is not None:  # an image-reading model: the capture is part of the step's cost
@@ -408,6 +437,76 @@ class BrowserDecisionModel(Model):
             if move.operation == "BLOCKED":
                 return await self._final(run, "BLOCKED", snapshot, "")
             return await self._act(run, move, snapshot, record)
+
+    @staticmethod
+    def _decision_target_key(decision: Any) -> str | None:
+        """The first-stage target key, retained even when a fallback replaces its move."""
+        operation = decision.choice("operation").key
+        name = f"{operation.lower()}_target"
+        return decision.choice(name).key if name in decision.answers else None
+
+    async def _defer_move(
+        self, run: _Run, space: Any, observation: Observation, move: Move
+    ) -> tuple[Move, dict[str, Any]]:
+        """Ask the chat fallback to choose one *existing* action-space entry.
+
+        The model receives identifiers rather than browser tool arguments.  Its response is decoded back through
+        ``space`` here, so an invented operation or target is a terminal failure rather than an executable action.
+        """
+        choices = {
+            "operations": space.operations,
+            "targets": {operation: sorted(head) for operation, head in space.heads.items()},
+        }
+        state = observation.state if isinstance(observation.state, dict) else {}
+        prompt = {
+            "goal": run.goal,
+            "page": state.get("page", {}),
+            "choices": choices,
+            "response": {"operation": "one item from choices.operations", "target": "target id or null"},
+        }
+        started_at = time.perf_counter()
+        response = await self._fallback.invoke(
+            [
+                {
+                    "role": "system",
+                    "content": "Choose exactly one offered browser action. Return only JSON; never invent an operation or target.",
+                },
+                {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
+            ]
+        )
+        elapsed_ms = round((time.perf_counter() - started_at) * 1000)
+        payload = json.loads(str(getattr(response, "content", "")))
+        operation = payload.get("operation")
+        target = payload.get("target")
+        if operation not in space.operations:
+            raise ValueError("fallback operation is not offered")
+        candidate = None
+        if operation in space.heads:
+            if not isinstance(target, str) or target not in space.heads[operation]:
+                raise ValueError("fallback target is not offered")
+            candidate = space.heads[operation][target]
+        elif target is not None:
+            raise ValueError("control operation must not name a target")
+        # OpenJiuwen chat replies expose token accounting as ``usage_metadata``.  CountingModel independently
+        # records the call for the run-level total, while this copies the same evidence into the deferred tick.
+        usage = getattr(response, "usage_metadata", None)
+        usage_known = usage is not None
+        return (
+            replace(move, operation=operation, candidate=candidate),
+            {
+                "fallback_choice": {"operation": operation, "target": target},
+                "fallback_ms": elapsed_ms,
+                "fallback_usage_known": usage_known,
+                **(
+                    {
+                        "fallback_input_tokens": int(getattr(usage, "input_tokens", 0)),
+                        "fallback_output_tokens": int(getattr(usage, "output_tokens", 0)),
+                    }
+                    if usage_known
+                    else {}
+                ),
+            },
+        )
 
     # -- bounded recovery ---------------------------------------------------
 
@@ -1121,7 +1220,7 @@ class BrowserDecisionModel(Model):
         """
         run = self._run
         if run is None:
-            return {
+            report = {
                 "elapsed_ms": 0,
                 "decisions": 0,
                 "interactions": 0,
@@ -1147,8 +1246,11 @@ class BrowserDecisionModel(Model):
                     "events": [],
                 },
             }
+            if self._defer_below is not None:
+                report.update({"deferred_steps": 0, "deferred_rate": 0.0, "fallback_ms": 0})
+            return report
         jev = [t["decision_ms"] for t in run.ticks]
-        return {
+        report = {
             "elapsed_ms": round((time.perf_counter() - run.started_at) * 1000) if run.started_at else 0,
             "decisions": len(jev),
             "interactions": len([h for h in run.history if h["kind"] != "wait"]),
@@ -1169,6 +1271,16 @@ class BrowserDecisionModel(Model):
             "history": run.history,
             "recovery": self._recovery_summary(run),
         }
+        if self._defer_below is not None:
+            deferred = [t for t in run.ticks if t["deferred"]]
+            report.update(
+                {
+                    "deferred_steps": len(deferred),
+                    "deferred_rate": round(len(deferred) / len(jev), 3) if jev else 0.0,
+                    "fallback_ms": sum(int(t["fallback_ms"] or 0) for t in deferred),
+                }
+            )
+        return report
 
 
 def _probe_failed(snapshot: dict[str, Any]) -> bool:
