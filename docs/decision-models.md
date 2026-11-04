@@ -21,9 +21,11 @@ The registered paths, input modalities and question types are summarized in the 
 
 Input: an `Observation(state, images=())` (a JSON object or plain text) and typed questions by name:
 `ChoiceQuestion(options, goal=, rules=, operation=)` picks one key among `options` (a string per key, or a dict for
-the browser's element rows); `NoulQuestion(question, criteria=)` asks whether a statement holds. Output: a
-`Decision(answers, latency_ms, usage, model, raw)` with one `Choice(key, probabilities, confidence)` or
-`Noul(p, confidence)` per question name. **`confidence` always means the same thing on every backend:** for a
+the browser's element rows); `NoulQuestion(question, criteria=)` asks whether a statement holds;
+`BoxQuestion(target)` (experimental, hosted Jev 1.14+ with images) asks where something is and returns a
+`Box(top, bottom, left, right, confidence)` as image fractions. Output: a
+`Decision(answers, latency_ms, usage, model, raw)` with one `Choice(key, probabilities, confidence)`,
+`Noul(p, confidence)` or `Box(...)` per question name. **`confidence` always means the same thing on every backend:** for a
 choice it is `max_k p_k` (the peak probability); for a noul it is `max(p, 1 - p)`. Validation computes both from
 the validated probabilities in `s1a/decision_models/validation.py`, so Laya's normalised entropy, Jev's normalised
 margin, and OmniJev's recompute never become the reported `confidence`. Each backend's own number is kept as
@@ -58,7 +60,7 @@ shorthands; `warm()` and `close()` open and release the backend.
 
 | `--model` | class | `name` | notes |
 |---|---|---|---|
-| `jev` | `JevModel(transport)` | `jev` | the request body every front sent before the layer existed, byte for byte; `from_env` picks TypeSafe or the OpenRouter proxy (see [configuration.md](configuration.md)). Text only unless `S1A_JEV_IMAGES=1` on the direct TypeSafe backend (**experimental, TypeSafe danger zone**, #97): then one current screenshot rides in `assets`, referenced from `state.screenshot`, with the danger-zone header; no quality result is claimed for it yet |
+| `jev` | `JevModel(transport)` | `jev` | the request body every front sent before the layer existed, byte for byte; `from_env` picks TypeSafe or the OpenRouter proxy (see [configuration.md](configuration.md)). Text only unless `S1A_JEV_IMAGES=1` on the direct TypeSafe backend (**experimental, TypeSafe danger zone**, #97): then one current screenshot rides in `assets`, referenced from `state.screenshot`, with the danger-zone header; with images on, `box` questions are accepted too (#98, Jev 1.14+); no quality result is claimed for screenshots or Box yet |
 | `jev-vl-served` | `ServedJevVLModel(url=, timeout_s=)` | `jev-vl-served` | `autotrust/JEV-27B-VL` through native flat `POST /v1/systemone`; exactly one current PNG/JPEG, choice and noul only; sequential questions share one deadline, with no HTTP retry or answer re-ask. Browser and direct factory paths; local tests use mocks, with separate [bounded R3 GPU/browser validation](#served-jev-vl). |
 | `clm` | `ClmModel(client, model=)` | `clm` | CLM behind `/v1/systemone`: a frozen Qwen3-8B encoder and two projection heads, scored by an engine that owns everything after the encoder. One POST per decision; `MODEL_SERVICE_CONFIG_ERROR` without `CLM_URL`, `MODEL_CALL_FAILED` when nothing is listening, on an error status, or on a body with no `answers`. Records `url`, the `X-Request-Id` it sent and `served_by` (the served names, read once — by `warm()` on the agent fronts, or on the first decision for `decide`/`probe`); choice and noul ([docs/clm.md](clm.md)) |
 | `laya` | `LayaModel(agent, model=)` | `laya` | one forward pass per call on a thread; `MODEL_SERVICE_CONFIG_ERROR` when `input_tokens` fills the window (Laya cuts the state silently; see `LAYA_MAX_LEN` and `LAYA_HEAD_MAX_LEN` in [configuration.md](configuration.md)); `ValueError` and `RuntimeError` from the library become `MODEL_CALL_FAILED` |

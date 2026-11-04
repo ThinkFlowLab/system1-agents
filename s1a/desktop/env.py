@@ -6,11 +6,13 @@ from __future__ import annotations
 import hashlib
 import io
 from collections import Counter
+from dataclasses import dataclass
 from typing import Any, Callable
 
 from PIL import Image as PILImage
 
-from s1a.decision_models.types import Image
+from s1a.decision_models.base import DecisionModel
+from s1a.decision_models.types import Box, BoxQuestion, Image, NoulQuestion, Observation, Question
 from s1a.desktop.driver import Capture, Driver, DriverError, Element, Snapshot, Window
 
 DONE = "done"
@@ -21,6 +23,36 @@ RESERVED = {
 _CLICKABLE_ROLES = ("button", "checkbox", "radiobutton", "menubutton", "link", "popupbutton", "disclosuretriangle")
 _EDITABLE_ROLES = ("textfield", "textarea", "textview", "searchfield", "combobox", "editabletext")
 _MENU_ROLES = frozenset({"menu", "menubar", "menubaritem", "menuitem"})
+
+# Uncalibrated defaults for --box-target gating (#98); tune on your own captures (see scripts/measure_box_targets.py).
+DEFAULT_BOX_PRESENCE_THRESHOLD = 0.5
+DEFAULT_BOX_CONFIDENCE_THRESHOLD = 0.5
+
+
+@dataclass(frozen=True)
+class BoxHit:
+    """One box target that passed presence and confidence gates for the current capture."""
+
+    key: str
+    description: str
+    box: Box
+    presence: float
+    capture_id: str
+
+    @property
+    def centre(self) -> tuple[float, float]:
+        return self.box.centre
+
+    def record(self) -> dict[str, Any]:
+        return {
+            "key": self.key,
+            "description": self.description,
+            "box": {"top": self.box.top, "bottom": self.box.bottom, "left": self.box.left, "right": self.box.right},
+            "presence": self.presence,
+            "box_confidence": self.box.confidence,
+            "capture_id": self.capture_id,
+            "centre": list(self.centre),
+        }
 
 
 def clickable(element: Element) -> bool:
@@ -77,6 +109,9 @@ class WindowEnv:
         text_target: str = "",
         text_mode: str = "insert",
         pixel_targets: dict[str, tuple[float, float]] | None = None,
+        box_targets: dict[str, str] | None = None,
+        presence_threshold: float = DEFAULT_BOX_PRESENCE_THRESHOLD,
+        box_confidence_threshold: float = DEFAULT_BOX_CONFIDENCE_THRESHOLD,
         screenshot: bool = False,
     ) -> None:
         self._driver = driver
@@ -94,7 +129,11 @@ class WindowEnv:
         self._verified_value: str | None = None
         self._text_field: tuple[int, int, str, str] | None = None
         self._pixel_targets = dict(pixel_targets or {})
-        self._screenshot = screenshot or bool(self._pixel_targets)
+        self._box_targets = dict(box_targets or {})
+        self._presence_threshold = presence_threshold
+        self._box_confidence_threshold = box_confidence_threshold
+        self._box_hits: dict[str, BoxHit] = {}
+        self._screenshot = screenshot or bool(self._pixel_targets) or bool(self._box_targets)
         self._window: Window | None = None
         self._snapshot: Snapshot | None = None
         self._visual: dict[str, Any] | None = None
@@ -144,6 +183,7 @@ class WindowEnv:
         if self._screenshot and self._snapshot.capture is None:
             raise DriverError("visual observations require a valid screenshot capture")
         self._visual = None
+        self._box_hits = {}  # a new capture invalidates prior box centres
         if self._screenshot:
             capture = self._snapshot.capture
             assert capture is not None
@@ -216,6 +256,11 @@ class WindowEnv:
                 for key, (x, y) in self._pixel_targets.items()
             }
         )
+        for key, hit in self._box_hits.items():
+            x, y = hit.centre
+            offered[f"box:{key}"] = (
+                f'Click {key} ("{hit.description}"), at box centre {x:.0%} across and {y:.0%} down the attached screenshot'
+            )
         return {**offered, **RESERVED}
 
     async def images(self) -> tuple[Image, ...]:
@@ -234,6 +279,8 @@ class WindowEnv:
             self._planned = {"key": key}
             if element is not None:
                 self._planned.update(role=element.role, label=element.label, token=element.token)
+            elif key.startswith("box:") and key.removeprefix("box:") in self._box_hits:
+                self._planned["box"] = self._box_hits[key.removeprefix("box:")].record()
             self._ended = "planned"
             return
         completion_before_action = self._done_when(self._require_snapshot())
@@ -268,10 +315,20 @@ class WindowEnv:
             self._presses.append(key)
             self._update_candidates()
             return
-        else:
+        elif key.startswith("pixel:"):
             x, y = self._pixel_targets[key.removeprefix("pixel:")]
             capture = self._require_snapshot().capture
             assert capture is not None
+            await self._driver.click_at(window, capture, x * capture.width, y * capture.height)
+            self._presses.append(key)
+        else:
+            hit = self._box_hits[key.removeprefix("box:")]
+            x, y = hit.centre
+            capture = self._require_snapshot().capture
+            assert capture is not None
+            if capture.capture_id != hit.capture_id:
+                raise DriverError(f"stale box target {key!r}: capture changed since locate")
+            # same window binding / bounds check as pixel targets (click_at rejects out-of-bounds)
             await self._driver.click_at(window, capture, x * capture.width, y * capture.height)
             self._presses.append(key)
         await self._refresh()
@@ -292,6 +349,74 @@ class WindowEnv:
         if (self._text and not self._typed) or self._completion_stale:
             return 0.0
         return 1.0 if self._snapshot is not None and self._done_when(self._snapshot) else 0.0
+
+    @property
+    def box_targets(self) -> dict[str, str]:
+        return dict(self._box_targets)
+
+    def box_hit(self, key: str) -> BoxHit | None:
+        """The resolved hit for ``box:KEY`` or ``KEY``, if still offered for the current capture."""
+        name = key.removeprefix("box:")
+        return self._box_hits.get(name)
+
+    async def locate_box_targets(self, model: DecisionModel) -> dict[str, Any] | None:
+        """One request: per configured target, a presence ``noul`` and a ``box``; offer those that pass thresholds.
+
+        Targets with presence below ``presence_threshold``, box confidence below ``box_confidence_threshold``, or a
+        centre outside the capture (fractions not in ``[0, 1)``) are not offered. Returns a locate record for the
+        step log, or ``None`` when no box targets are configured.
+        """
+        self._box_hits = {}
+        if not self._box_targets:
+            return None
+        capture = self._require_snapshot().capture
+        if capture is None:
+            raise DriverError("box targets require a valid screenshot capture")
+        questions: dict[str, Question] = {}
+        for key, description in self._box_targets.items():
+            questions[f"present:{key}"] = NoulQuestion(f"Is {description} visible in `screenshot`?")
+            questions[f"box:{key}"] = BoxQuestion(f"{description} in `screenshot`")
+        decision = await model.decide_many(Observation(await self.observe(), await self.images()), questions)
+        offered: dict[str, BoxHit] = {}
+        rejected: list[dict[str, Any]] = []
+        for key, description in self._box_targets.items():
+            presence = decision.noul(f"present:{key}").p
+            box = decision.box(f"box:{key}")
+            cx, cy = box.centre
+            reason = None
+            if presence < self._presence_threshold:
+                reason = "low_presence"
+            elif box.confidence < self._box_confidence_threshold:
+                reason = "low_box_confidence"
+            elif not (0 <= cx < 1 and 0 <= cy < 1):
+                reason = "centre_outside_capture"
+            if reason is not None:
+                rejected.append(
+                    {
+                        "key": key,
+                        "reason": reason,
+                        "presence": presence,
+                        "box_confidence": box.confidence,
+                        "centre": [cx, cy],
+                    }
+                )
+                continue
+            offered[key] = BoxHit(
+                key=key, description=description, box=box, presence=presence, capture_id=capture.capture_id
+            )
+        self._box_hits = offered
+        return {
+            "offered": {key: hit.record() for key, hit in offered.items()},
+            "rejected": rejected,
+            "presence_threshold": self._presence_threshold,
+            "box_confidence_threshold": self._box_confidence_threshold,
+            "model": decision.model,
+            "ms": decision.latency_ms,
+            "input_tokens": decision.usage.input_tokens,
+            "output_tokens": decision.usage.output_tokens,
+            "usage_known": decision.usage.known,
+            **decision.provenance,
+        }
 
     @staticmethod
     def _token(element: Element) -> str:

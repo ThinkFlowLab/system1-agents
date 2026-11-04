@@ -22,7 +22,7 @@ from openjiuwen.core.common.exception.codes import StatusCode
 from openjiuwen.core.common.exception.errors import build_error
 
 from s1a.decision_models.base import DecisionModel
-from s1a.decision_models.types import ChoiceQuestion, Image, Json, Observation, Question, Reply
+from s1a.decision_models.types import ChoiceQuestion, Image, Json, NoulQuestion, Observation, Question, Reply
 
 OMNIJEV_DEFAULT_CHECKPOINT = "tinnel123/OmniJev-0.8B"
 OMNIJEV_DEFAULT_REVISION = "v1.1"
@@ -87,6 +87,8 @@ def omnijev_question(question: Question, context: str, *, prompt: str = "full") 
         )
         criteria = {key: omnijev_option(description) for key, description in question.options.items()}
         return {"type": "choice", "instructions": "\n".join(lines), "criteria": criteria}
+    if not isinstance(question, NoulQuestion):
+        raise TypeError(f"omnijev answers no {question.type} question")
     lines.append(question.question)
     for verdict, text in (question.criteria or {}).items():
         lines.append(f"{verdict}: {text}")

@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from s1a.decision_models.base import DecisionModel
-from s1a.decision_models.types import ChoiceQuestion, Json, Observation, Question, Reply, Usage
+from s1a.decision_models.types import BoxQuestion, ChoiceQuestion, Json, Observation, Question, Reply, Usage
 
 
 class ScriptedTransport:
@@ -57,6 +57,13 @@ class ScriptedTransport:
     def _answer(self, question: Json) -> Json:
         if question["type"] == "noul":
             return {"noul": self._noul.pop(0) if self._noul else 0.5}
+        if question["type"] == "box":
+            # a centred half-size box with high confidence; override via answers= for specific cases
+            return {
+                "type": "box",
+                "box": {"top": 0.25, "bottom": 0.75, "left": 0.25, "right": 0.75},
+                "confidence": 0.9,
+            }
         ids = list(question["criteria"])
         key = self._choose or ids[0]
         return {"choice": key, "probabilities": {i: 1.0 if i == key else 0.0 for i in ids}, "confidence": 1.0}
@@ -69,6 +76,7 @@ class ScriptedModel(DecisionModel):
     name = "scripted"
     bills_input_tokens = False
     supports_images = True
+    question_types = frozenset({"choice", "noul", "box"})
 
     def __init__(
         self,
@@ -105,6 +113,12 @@ class ScriptedModel(DecisionModel):
         return Reply(answers=answers, latency_ms=self._latency_ms, usage=self._usage, model=self._model)
 
     def _answer(self, question: Question) -> Json:
+        if isinstance(question, BoxQuestion):
+            return {
+                "type": "box",
+                "box": {"top": 0.25, "bottom": 0.75, "left": 0.25, "right": 0.75},
+                "confidence": 0.9,
+            }
         if not isinstance(question, ChoiceQuestion):
             return {"noul": self._noul.pop(0) if self._noul else 0.5}
         key = self._choose or question.ids[0]

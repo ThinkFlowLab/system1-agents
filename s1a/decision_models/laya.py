@@ -17,7 +17,7 @@ from openjiuwen.core.common.exception.errors import build_error
 
 from s1a.decision_models.base import DecisionModel
 from s1a.decision_models.jev import jev_question
-from s1a.decision_models.types import ChoiceQuestion, Json, Observation, Question, Reply, Usage
+from s1a.decision_models.types import ChoiceQuestion, Json, NoulQuestion, Observation, Question, Reply, Usage
 
 LAYA_DEFAULT_MODEL = "convaiinnovations/laya"
 LAYA_DEFAULT_MAX_LEN = 512  # the window Laya assumes when a checkpoint config names none
@@ -44,6 +44,8 @@ def laya_question(question: Question) -> Json:
     question needs a string instruction, and its true/false criteria are native."""
     if isinstance(question, ChoiceQuestion):
         return jev_question(question)
+    if not isinstance(question, NoulQuestion):
+        raise TypeError(f"laya answers no {question.type} question")
     criteria = {"criteria": dict(question.criteria)} if question.criteria else {}
     return {"type": "noul", "instructions": question.question, **criteria}
 

@@ -43,3 +43,11 @@ of the captured window. Every click carries its capture ID so the driver can rej
 
 The temporary selection file and ignored run outputs are generated locally. Screenshot bytes are passed
 to the model separately from the serialized observation state.
+
+## Experimental: `--box-target` instead of `--pixel-target`
+
+Requires hosted Jev 1.14+ with `S1A_JEV_IMAGES=1` (see #97 / PR #99) and a TypeSafe key. Replace the two
+`--pixel-target` flags with e.g. `--box-target left=the tile labelled Save` / `--box-target right=the tile labelled Cancel`
+only after measuring on this fixture; defaults for `S1A_BOX_*_THRESHOLD` are uncalibrated. This checkout has no
+recorded live Box fixture run (no TypeSafe image key / GPU on the agent box) — keep any such PR draft until one lands.
+
