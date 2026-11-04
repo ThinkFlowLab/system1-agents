@@ -11,6 +11,10 @@ The [accuracy leaderboard](accuracy-leaderboard.md) ranks that frozen run and
 defines how to add comparable results. Request latency has a separate
 [System1-Omni leaderboard](https://github.com/ThinkFlowLab/system1-omni/pull/131).
 
+Browser decision backends are scored step by step, offline, on myjev-browser-decisions
+with `python -m benchmarks.legs.browser_steps`; see
+[docs/results/browser-steps](../docs/results/browser-steps/README.md).
+
 ## Run
 
 Use the repository's development environment and a running service. Clone
