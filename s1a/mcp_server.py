@@ -6,16 +6,40 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import contextvars
+import json
 import logging
 import sys
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import Any, Literal
 
+import anyio
+
 import s1a.console  # first: routes the harness logs to files before openjiuwen loads and logs to the console
+from mcp.server.experimental.task_context import ServerTaskContext
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
-from mcp.types import ToolAnnotations
+from mcp.shared.exceptions import McpError
+from mcp.shared.experimental.tasks.in_memory_task_store import InMemoryTaskStore
+from mcp.types import (
+    METHOD_NOT_FOUND,
+    TASK_OPTIONAL,
+    TASK_STATUS_CANCELLED,
+    CallToolRequest,
+    CallToolResult,
+    CancelTaskRequest,
+    ContentBlock,
+    ErrorData,
+    Result,
+    ServerResult,
+    Task,
+    TaskStatus,
+    TextContent,
+    Tool,
+    ToolAnnotations,
+    ToolExecution,
+)
 from typing_extensions import NotRequired, TypedDict  # pydantic, under mcp, needs this TypedDict before Python 3.12
 
 from s1a import config, probe, progress
@@ -33,7 +57,9 @@ INSTRUCTIONS = (
     "(TYPESAFE_API_KEY or OPENROUTER_API_KEY) and Node for @playwright/mcp; a tool agent takes --model, --rethink and "
     "--episodes; a rail takes --labelled-set. decide accepts model jev (default), clm, laya, cua or laya-served; local models "
     "need their optional extra and no Jev key, laya-served needs LAYA_SERVED_URL. run_agent reports progress per "
-    "episode or browser step when the request carries a progressToken."
+    "episode or browser step when the request carries a progressToken. A client that supports MCP tasks may call "
+    "run_agent as a task: the call returns a task id at once, tasks/get reports the latest step and tasks/cancel "
+    "stops the run."
 )
 
 
@@ -44,7 +70,123 @@ async def lifespan(_server: FastMCP) -> AsyncIterator[None]:
         yield
 
 
-server = FastMCP("s1a", instructions=INSTRUCTIONS, lifespan=lifespan)
+TASK_TOOLS = frozenset({"run_agent"})  # the one long call; list_agents and decide stay plain requests (#102)
+TASK_TTL_MS = 3_600_000  # the shortest task ttl granted: longer than any run's budget, reported back to the client
+_TASK_REPORTER: contextvars.ContextVar[progress.Reporter | None] = contextvars.ContextVar(
+    "s1a_task_reporter", default=None
+)
+_TASK_SCOPES: dict[str, anyio.CancelScope] = {}  # task id: the scope tasks/cancel cancels
+
+
+class _TaskServer(FastMCP):
+    """FastMCP with ``run_agent`` callable as an MCP task (2025-11-25 experimental tasks in the 1.x SDK, #102).
+
+    A request without task metadata takes the unchanged synchronous path. A task-augmented ``run_agent`` returns a
+    ``CreateTaskResult`` at once; the run continues in the session's task group, its progress messages become the
+    task's ``statusMessage``, and ``tasks/cancel`` cancels it through the same path as ``notifications/cancelled``.
+    A tool error, the busy refusal included, completes the task with an ``isError`` result, as it is the result of
+    the synchronous call.
+    Tasks live in memory: they outlive the request, not the server process or the session."""
+
+    async def list_tools(self) -> list[Tool]:
+        tools = await super().list_tools()
+        return [
+            tool.model_copy(update={"execution": ToolExecution(taskSupport=TASK_OPTIONAL)})
+            if tool.name in TASK_TOOLS
+            else tool
+            for tool in tools
+        ]
+
+    async def call_tool(self, name: str, arguments: dict[str, Any]) -> Sequence[ContentBlock] | dict[str, Any]:
+        experimental = self.get_context().request_context.experimental
+        if not experimental.is_task:
+            return await super().call_tool(name, arguments)
+        metadata = experimental.task_metadata
+        if metadata is not None:  # the store counts ttl from creation, so a shorter one would drop a run mid-way
+            metadata.ttl = max(metadata.ttl or 0, TASK_TTL_MS)
+        created = await experimental.run_task(lambda task: self._run_as_task(task, name, arguments))
+        return created  # the low-level handler passes a CreateTaskResult through
+
+    async def _run_as_task(self, task: ServerTaskContext, name: str, arguments: dict[str, Any]) -> CallToolResult:
+        async def status(done: float, total: float | None, message: str) -> None:
+            await task.update_status(message)  # the task's statusMessage, and notifications/tasks/status
+
+        token = _TASK_REPORTER.set(_rate_bounded(status))
+        with anyio.CancelScope() as scope:
+            _TASK_SCOPES[task.task_id] = scope
+            try:
+                converted = await FastMCP.call_tool(self, name, arguments)
+            except Exception as exc:  # a tool error is the task's result, as it is the synchronous call's
+                return CallToolResult(content=[TextContent(type="text", text=str(exc))], isError=True)
+            finally:
+                _TASK_SCOPES.pop(task.task_id, None)
+                _TASK_REPORTER.reset(token)
+        if scope.cancelled_caught:  # tasks/cancel already set the status; this result is never delivered
+            return CallToolResult(content=[TextContent(type="text", text=f"{name} cancelled")], isError=True)
+        return _call_tool_result(converted)
+
+
+def _call_tool_result(converted: Any) -> CallToolResult:
+    """What the low-level handler would have built from FastMCP's converted result."""
+    if isinstance(converted, CallToolResult):
+        return converted
+    if isinstance(converted, tuple):
+        content, structured = converted
+        return CallToolResult(content=list(content), structuredContent=structured)
+    if isinstance(converted, dict):
+        return CallToolResult(
+            content=[TextContent(type="text", text=json.dumps(converted, indent=2))], structuredContent=converted
+        )
+    return CallToolResult(content=list(converted))
+
+
+class _TaskStore(InMemoryTaskStore):
+    """A cancelled task stays cancelled: a status or result the run writes while it unwinds is dropped, not raised."""
+
+    async def update_task(
+        self, task_id: str, status: TaskStatus | None = None, status_message: str | None = None
+    ) -> Task:
+        current = await self.get_task(task_id)
+        if current is not None and current.status == TASK_STATUS_CANCELLED:
+            return current
+        return await super().update_task(task_id, status=status, status_message=status_message)
+
+    async def store_result(self, task_id: str, result: Result) -> None:
+        current = await self.get_task(task_id)
+        if current is None or current.status != TASK_STATUS_CANCELLED:
+            await super().store_result(task_id, result)
+
+
+server = _TaskServer("s1a", instructions=INSTRUCTIONS, lifespan=lifespan)
+# In memory, one store per server process; registers tasks/get, tasks/result, tasks/list and tasks/cancel.
+# Deprecated with SEP-1686 leaving the spec for an extension; the only task API 1.x has (docs/architecture.md).
+_TASKS = server._mcp_server.experimental.enable_tasks(store=_TaskStore())  # ty: ignore[deprecated]
+_default_cancel = server._mcp_server.request_handlers[CancelTaskRequest]
+
+
+async def _cancel_task(req: CancelTaskRequest) -> ServerResult:
+    """The SDK's tasks/cancel (scope check, terminal-state check, status) and then stop the run itself."""
+    result = await _default_cancel(req)
+    scope = _TASK_SCOPES.get(req.params.taskId)
+    if scope is not None:
+        scope.cancel()
+    return result
+
+
+server._mcp_server.request_handlers[CancelTaskRequest] = _cancel_task
+_call_tool_handler = server._mcp_server.request_handlers[CallToolRequest]
+
+
+async def _call_tool_request(req: CallToolRequest) -> ServerResult:
+    """A task-augmented call of a tool that takes none is a protocol error (-32601), not a tool result."""
+    if req.params.task is not None and req.params.name not in TASK_TOOLS:
+        raise McpError(
+            ErrorData(code=METHOD_NOT_FOUND, message=f"{req.params.name} does not support task-augmented calls")
+        )
+    return await _call_tool_handler(req)
+
+
+server._mcp_server.request_handlers[CallToolRequest] = _call_tool_request
 # FastMCP puts a RichHandler on the root logger and the harness loggers propagate to it; only warnings pass.
 for _handler in logging.getLogger().handlers:
     _handler.setLevel(logging.WARNING)
@@ -56,6 +198,16 @@ PROGRESS_INTERVAL_S = 1.0  # at most one progress notification per second, the l
 log = logging.getLogger(__name__)
 
 
+def _refuse_if_busy(label: str) -> None:
+    """A tool error naming the call that holds the run slot, if one does."""
+    if _ONE_RUN.locked():
+        running, started = _RUNNING[-1] if _RUNNING else ("another call", time.monotonic())
+        raise ToolError(
+            f"{label} refused: {running} has been running for {time.monotonic() - started:.0f} s and this server "
+            "runs one call at a time; call again when it finishes, or cancel it"
+        )
+
+
 @contextlib.asynccontextmanager
 async def _one_at_a_time(label: str) -> AsyncIterator[None]:
     """Hold the server's one run slot, or fail at once with a tool error naming the call that holds it.
@@ -63,12 +215,7 @@ async def _one_at_a_time(label: str) -> AsyncIterator[None]:
     Queueing would outlast a host's tool timeout (Codex's default is 60 s) while the earlier run kept going, so a
     second call is refused instead of waiting. Checking and taking the lock happen without a suspension point
     between them, so two calls cannot both pass the check."""
-    if _ONE_RUN.locked():
-        running, started = _RUNNING[-1] if _RUNNING else ("another call", time.monotonic())
-        raise ToolError(
-            f"{label} refused: {running} has been running for {time.monotonic() - started:.0f} s and this server "
-            "runs one call at a time; call again when it finishes, or cancel it"
-        )
+    _refuse_if_busy(label)
     async with _ONE_RUN:
         _RUNNING.append((label, time.monotonic()))
         try:
@@ -85,6 +232,11 @@ def _progress_reporter(ctx: Context) -> progress.Reporter | None:
     meta = ctx.request_context.meta
     if meta is None or meta.progressToken is None:
         return None
+    return _rate_bounded(ctx.report_progress)
+
+
+def _rate_bounded(report: progress.Reporter) -> progress.Reporter:
+    """Increasing values only, at most one per PROGRESS_INTERVAL_S, the final point always passed on."""
     last: list[float] = [float("-inf"), float("-inf")]  # the last value sent and when
 
     async def send(done: float, total: float | None, message: str) -> None:
@@ -93,7 +245,7 @@ def _progress_reporter(ctx: Context) -> progress.Reporter | None:
         if done <= last[0] or (not final and now - last[1] < PROGRESS_INTERVAL_S):
             return  # the spec wants increasing values; a burst of fast steps sends one notification per second
         last[0], last[1] = done, now
-        await ctx.report_progress(done, total, message)
+        await report(done, total, message)
 
     return send
 
@@ -163,8 +315,9 @@ async def run_agent(name: str, flags: list[str], ctx: Context) -> dict[str, Any]
     evaluation summary. The result stays an untyped object because its shape depends on the agent's front. A run can
     take minutes: progress goes out per episode or browser step when the request has a progressToken, a call made
     while another runs is refused at once, and a cancelled run releases its browser and records the cancellation.
+    A client with MCP task support may call it as a task and poll tasks/get instead of holding the request open.
     """
-    reporter = _progress_reporter(ctx)
+    reporter = _TASK_REPORTER.get() or _progress_reporter(ctx)
     # argparse writes help to stdout and any stray print would too; under the stdio transport that stream is the protocol
     async with _one_at_a_time(f"run_agent {name}"):
         with (
