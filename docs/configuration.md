@@ -48,6 +48,9 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `CUA_S1_CHECKPOINT` | `cua` model | `cua-ai/cua-s1-nano-0.1` | Hugging Face checkpoint ID or local directory for Cua-S1 Nano option scorer. |
 | `CUA_S1_SUBFOLDER` | `cua` model | `text` | Subfolder within checkpoint directory containing text option scoring weights. |
 | `CUA_S1_DEVICE` | `cua` model | `auto` | PyTorch device used for Cua-S1 Nano evaluation (`auto`, `cpu`, `cuda`, or `mps`). |
+| `CUA_S1_URL` | `cua` model, `CUA_S1_VARIANT=4b` | *(unset)* | Base URL of system1-omni's Cua-S1 4B 0.2 multimodal worker (`src/frontend/cua_s1.py`, `http://127.0.0.1:8000`). Set, the screenshot decisions go over HTTP and nothing loads locally; `CUA_S1_MODALITY`, when set, must be `multimodal`. Set with the `nano` variant it is a configuration error. |
+| `CUA_S1_API_KEY` | served Cua-S1 4B | *(unset)* | Bearer token, for a frontend in front of the worker that expects one; the loopback worker reads none. |
+| `CUA_S1_TIMEOUT_S` | served Cua-S1 4B | `15` | Deadline per decision in seconds, the one retry (dropped connection, 502/504, a busy worker's 503) and any `/health` refresh included. A finite number above 0. |
 | `OMNIJEV_REPO` | `omnijev` model | *(unset, required)* | Local clone of the OmniJev repository; its `mso` package is imported from there. |
 | `OMNIJEV_CHECKPOINT` | `omnijev` model | `tinnel123/OmniJev-0.8B` | Hugging Face ID or local directory of the OmniJev adapter and heads (`OmniJev-2B`, `OmniJev` for 4B). |
 | `OMNIJEV_REVISION` | `omnijev` model | `v1.1` | Revision of a Hugging Face `OMNIJEV_CHECKPOINT`. |

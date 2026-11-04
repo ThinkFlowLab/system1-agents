@@ -99,13 +99,21 @@ class ServedLayaClient:
         transport: httpx.AsyncBaseTransport | None = None,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        label: str = "served Laya",
+        tag: str = "laya-served",
+        not_up: str = _NOT_UP,
+        slow: str = _SLOW,
+        token_hint: str = "set LAYA_SERVED_API_KEY to the worker's LAYA_API_KEY",
     ) -> None:
+        """``label``, ``tag``, ``not_up``, ``slow`` and ``token_hint`` word the errors and warnings for the model
+        behind the URL; the defaults are Laya's, and the served Cua-S1 4B client passes its own."""
         if not math.isfinite(timeout_s) or timeout_s <= 0:
             raise build_error(
                 StatusCode.MODEL_SERVICE_CONFIG_ERROR,
                 error_msg=f"timeout_s must be a finite number above 0, not {timeout_s!r}",
             )
         self.url = url.rstrip("/")
+        self._label, self._tag, self._not_up, self._slow, self._token_hint = label, tag, not_up, slow, token_hint
         self._timeout_s = timeout_s
         self._clock = clock
         self._sleep = sleep
@@ -126,22 +134,22 @@ class ServedLayaClient:
         try:
             response = await asyncio.wait_for(self._client.get(f"{self.url}/health", timeout=timeout), timeout)
         except TimeoutError:
-            logger.warning("[laya-served] /health at %s took longer than %.1f s", self.url, timeout)
+            logger.warning("[%s] /health at %s took longer than %.1f s", self._tag, self.url, timeout)
             return {}
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
             raise build_error(
-                StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"no served Laya at {self.url}: {_NOT_UP}"
+                StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"no {self._label} at {self.url}: {self._not_up}"
             ) from exc
         except httpx.HTTPError as exc:
-            logger.warning("[laya-served] /health at %s failed: %s", self.url, exc)
+            logger.warning("[%s] /health at %s failed: %s", self._tag, self.url, exc)
             return {}
         if response.status_code != 200:
-            logger.warning("[laya-served] /health at %s returned HTTP %s", self.url, response.status_code)
+            logger.warning("[%s] /health at %s returned HTTP %s", self._tag, self.url, response.status_code)
             return {}
         try:
             body = response.json()
         except ValueError:
-            logger.warning("[laya-served] /health at %s returned a body that is not JSON", self.url)
+            logger.warning("[%s] /health at %s returned a body that is not JSON", self._tag, self.url)
             return {}
         return body if isinstance(body, dict) else {}
 
@@ -176,14 +184,16 @@ class ServedLayaClient:
                     continue
                 if isinstance(exc, httpx.ConnectError):
                     raise build_error(
-                        StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"no served Laya at {self.url}: {_NOT_UP}"
+                        StatusCode.MODEL_CALL_FAILED,
+                        cause=exc,
+                        error_msg=f"no {self._label} at {self.url}: {self._not_up}",
                     ) from exc
                 raise build_error(
-                    StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"served Laya unreachable at {self.url}: {exc}"
+                    StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"{self._label} unreachable at {self.url}: {exc}"
                 ) from exc
             except httpx.HTTPError as exc:
                 raise build_error(
-                    StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"served Laya call failed at {self.url}: {exc}"
+                    StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"{self._label} call failed at {self.url}: {exc}"
                 ) from exc
             ms = round((time.perf_counter() - started) * 1000)
             status = response.status_code
@@ -199,43 +209,43 @@ class ServedLayaClient:
             if status == 401:
                 raise build_error(
                     StatusCode.MODEL_SERVICE_CONFIG_ERROR,
-                    error_msg=f"served Laya at {self.url} refused the token: set LAYA_SERVED_API_KEY to the worker's LAYA_API_KEY",
+                    error_msg=f"{self._label} at {self.url} refused the token: {self._token_hint}",
                 )
             if status in _REQUEST_ERRORS:
                 raise build_error(
                     StatusCode.MODEL_CALL_FAILED,
-                    error_msg=f"served Laya rejected the request (HTTP {status}): {_reason(response)}",
+                    error_msg=f"{self._label} rejected the request (HTTP {status}): {_reason(response)}",
                 )
             if status == 503:
                 raise build_error(
                     StatusCode.MODEL_CALL_FAILED,
-                    error_msg=f"served Laya at {self.url} is overloaded: {_reason(response)}",
+                    error_msg=f"{self._label} at {self.url} is overloaded: {_reason(response)}",
                 )
             if status in _RETRIED_STATUSES:
                 raise build_error(
                     StatusCode.MODEL_CALL_FAILED,
-                    error_msg=f"served Laya unreachable behind {self.url} (HTTP {status}): {_reason(response)}",
+                    error_msg=f"{self._label} unreachable behind {self.url} (HTTP {status}): {_reason(response)}",
                 )
             if response.is_error:
                 raise build_error(
                     StatusCode.MODEL_CALL_FAILED,
-                    error_msg=f"served Laya failed (HTTP {status}): {_reason(response)}",
+                    error_msg=f"{self._label} failed (HTTP {status}): {_reason(response)}",
                 )
             try:
                 payload = response.json()
             except ValueError as exc:
                 raise build_error(
-                    StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg="served Laya returned a malformed body"
+                    StatusCode.MODEL_CALL_FAILED, cause=exc, error_msg=f"{self._label} returned a malformed body"
                 ) from exc
             if not isinstance(payload, dict) or not isinstance(payload.get("answers"), dict):
-                raise build_error(StatusCode.MODEL_CALL_FAILED, error_msg="served Laya returned no answers object")
+                raise build_error(StatusCode.MODEL_CALL_FAILED, error_msg=f"{self._label} returned no answers object")
             return payload, dict(response.headers), ms
 
     def _no_answer(self, cause: Exception | None) -> Exception:
         return build_error(
             StatusCode.MODEL_CALL_FAILED,
             cause=cause,
-            error_msg=f"no answer from served Laya at {self.url} within {self._timeout_s:g} s; {_SLOW}",
+            error_msg=f"no answer from {self._label} at {self.url} within {self._timeout_s:g} s; {self._slow}",
         )
 
     async def close(self) -> None:
