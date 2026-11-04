@@ -39,6 +39,7 @@ class TestParser(TestCase):
         args = browse.parser(SPEC).parse_args(GOAL)
         self.assertEqual((args.max_steps, args.timeout, args.profile_out), (100, 180.0, None))
         self.assertEqual((args.batch, args.prefetch, args.goal_values), ("off", "on", "off"))
+        self.assertIsNone(args.defer_below)
         self.assertEqual(
             browse.policy_from_args(args),
             BrowserPolicy(prefetch_values=True, batch_actions=False, goal_value_cache=False),
@@ -51,6 +52,15 @@ class TestParser(TestCase):
             browse.policy_from_args(args),
             BrowserPolicy(prefetch_values=False, batch_actions=True, goal_value_cache=False),
         )
+
+    def test_defer_below_is_opt_in_and_rejects_invalid_thresholds(self) -> None:
+        args = browse.parser(SPEC).parse_args([*GOAL, "--defer-below", "0.5"])
+        self.assertEqual(browse.policy_from_args(args).defer_below, 0.5)
+        for value in ("-0.01", "1.01", "nan", "inf"):
+            with self.subTest(value=value):
+                args = browse.parser(SPEC).parse_args([*GOAL, "--defer-below", value])
+                with self.assertRaises(ValueError):
+                    browse.policy_from_args(args)
 
     def test_a_timeout_or_max_steps_at_or_below_zero_is_a_usage_error(self) -> None:
         for flags in (["--timeout", "0"], ["--timeout", "-1"], ["--max-steps", "0"], ["--max-steps", "-3"]):
