@@ -18,6 +18,8 @@ from s1a.decision_models.omnijev import OmniJevModel
 from s1a.decision_models.onejev import OneJevModel
 from s1a.decision_models.types import (
     Answer,
+    Box,
+    BoxQuestion,
     Choice,
     ChoiceQuestion,
     Decision,
@@ -35,6 +37,7 @@ from s1a.decision_models.validation import (
     choice_faults,
     noul_confidence,
     validate_answers,
+    validate_box,
     validate_choice,
     validate_noul,
 )
@@ -42,6 +45,8 @@ from s1a.decision_models.validation import (
 __all__ = [
     "DECISION_MODEL_NAMES",
     "Answer",
+    "BoxQuestion",
+    "Box",
     "DecisionModel",
     "JevTransport",
     "ScriptedModel",
@@ -71,6 +76,7 @@ __all__ = [
     "noul_confidence",
     "jev_question",
     "validate_answers",
+    "validate_box",
     "validate_choice",
     "validate_noul",
 ]

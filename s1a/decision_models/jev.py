@@ -16,6 +16,7 @@ from openjiuwen.core.common.exception.errors import build_error
 
 from s1a.decision_models.base import DecisionModel, JevImageTransport, JevTransport
 from s1a.decision_models.types import (
+    BoxQuestion,
     ChoiceQuestion,
     Image,
     Json,
@@ -61,6 +62,8 @@ def jev_question(question: Question) -> Json:
         case NoulQuestion():
             criteria = {"criteria": dict(question.criteria)} if question.criteria else {}
             return {"type": "noul", **criteria, "instructions": {"question": question.question}}
+        case BoxQuestion():
+            return {"type": "box", "instructions": question.target}
     raise TypeError(f"not a question: {question!r}")
 
 
@@ -141,12 +144,22 @@ class JevModel(DecisionModel):
         self._transport = transport
         # experimental: only a direct TypeSafe client built with S1A_JEV_IMAGES on carries screenshots (#97)
         self.supports_images = bool(getattr(transport, "images", False))
+        # Box needs an image and the danger-zone header (Jev 1.14+, #98)
+        if self.supports_images:
+            self.question_types = frozenset({"choice", "noul", "box"})
 
     @property
     def model(self) -> str:
         return self._transport.model
 
     async def _decide(self, observation: Observation, questions: dict[str, Question]) -> Reply:
+        if any(isinstance(q, BoxQuestion) for q in questions.values()) and not (
+            self.supports_images and observation.images
+        ):
+            raise build_error(
+                StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+                error_msg="a box question needs hosted Jev images (S1A_JEV_IMAGES=1 on the direct TypeSafe backend)",
+            )
         body = {
             "model": self.model,
             "state": observation.state,

@@ -26,7 +26,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
 
-from s1a.decision_models.wire import decisions_backend_from_env, jev_images_from_env
+from s1a.decision_models.wire import TYPESAFE_DEFAULT_MODEL, decisions_backend_from_env, jev_images_from_env
+from s1a.desktop.env import DEFAULT_BOX_CONFIDENCE_THRESHOLD, DEFAULT_BOX_PRESENCE_THRESHOLD
 from s1a.desktop.driver import CuaDriver, DriverError, Snapshot, driver_from_env, opened
 from s1a.desktop.env import ABSTAIN, WindowEnv, clickable, observable
 from s1a.spec import Budget, Series, ToolAgentSpec, positive_float, positive_int
@@ -71,6 +72,51 @@ def parse_pixel_targets(entries: list[str]) -> dict[str, tuple[float, float]]:
     return points
 
 
+def parse_box_targets(entries: list[str]) -> dict[str, str]:
+    """Task-defined visual targets located each step by Jev Box; ``KEY=description`` (description may contain spaces)."""
+    targets: dict[str, str] = {}
+    for entry in entries:
+        key, sep, description = entry.partition("=")
+        if not sep or not key.strip() or not description.strip() or key in targets:
+            raise ValueError('--box-target requires unique KEY="description" entries')
+        targets[key] = description.strip()
+    return targets
+
+
+def box_thresholds_from_env() -> tuple[float, float]:
+    """Presence (noul) and box-confidence gates; defaults are uncalibrated (see configuration.md)."""
+
+    def one(name: str, default: float) -> float:
+        raw = (os.getenv(name) or "").strip()
+        if not raw:
+            return default
+        try:
+            value = float(raw)
+        except ValueError as exc:
+            raise ValueError(f"{name} must be a finite number in [0, 1], not {raw!r}") from exc
+        if not math.isfinite(value) or not 0 <= value <= 1:
+            raise ValueError(f"{name} must be a finite number in [0, 1], not {raw!r}")
+        return value
+
+    return (
+        one("S1A_BOX_PRESENCE_THRESHOLD", DEFAULT_BOX_PRESENCE_THRESHOLD),
+        one("S1A_BOX_CONFIDENCE_THRESHOLD", DEFAULT_BOX_CONFIDENCE_THRESHOLD),
+    )
+
+
+def _jev_supports_box(model: str) -> bool:
+    """True for Jev 1.14+ (Box question type) and the moving ``jev-latest`` / ``jev-preview`` aliases."""
+    name = model.rsplit("/", 1)[-1].strip().lower()
+    if name in {"jev-latest", "jev-preview"}:
+        return True
+    parts = name.removeprefix("jev-").split(".")
+    try:
+        major, minor = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+    except (ValueError, IndexError):
+        return False
+    return (major, minor) >= (1, 14)
+
+
 def plan_rule(plan: tuple[tuple[str, ...], ...]) -> Any:
     """The baseline: the next action of the plan by how many actions were made."""
 
@@ -78,7 +124,10 @@ def plan_rule(plan: tuple[tuple[str, ...], ...]) -> Any:
         step = len(state["presses"])
         if step >= len(plan):
             return ABSTAIN
-        keys = (label if label.startswith(("click:", "type:", "pixel:")) else f"click:{label}" for label in plan[step])
+        keys = (
+            label if label.startswith(("click:", "type:", "pixel:", "box:")) else f"click:{label}"
+            for label in plan[step]
+        )
         return next((key for key in keys if key in candidates), ABSTAIN)
 
     return rule
@@ -115,12 +164,14 @@ def make_series(flags: argparse.Namespace) -> Series:
     if flags.app_path and sys.platform != "darwin":
         raise ValueError("--app-path is supported only on macOS")
     pixel_targets = parse_pixel_targets(flags.pixel_target)
+    box_targets = parse_box_targets(flags.box_target)
+    presence_threshold, box_confidence_threshold = box_thresholds_from_env()
     visual_model = (
         flags.model == "cua"
         and os.getenv("CUA_S1_VARIANT", "nano") == "4b"
         and os.getenv("CUA_S1_MODALITY", "multimodal") == "multimodal"
     )
-    if pixel_targets and flags.model == "jev":
+    if (pixel_targets or box_targets) and flags.model == "jev":
         # experimental hosted Jev screenshots (#97): a config error on the proxy backend, False when unset
         visual_model = jev_images_from_env(decisions_backend_from_env())
     if pixel_targets and flags.model not in {"rule", "random"} and not visual_model:
@@ -129,6 +180,17 @@ def make_series(flags: argparse.Namespace) -> Series:
             "CUA_S1_MODALITY=multimodal, --model jev with S1A_JEV_IMAGES=1 on the direct TypeSafe backend "
             "(experimental), or an explicit rule/random baseline"
         )
+    if box_targets:
+        if flags.model != "jev" or not visual_model:
+            raise ValueError(
+                "--box-target requires --model jev with S1A_JEV_IMAGES=1 on the direct TypeSafe backend "
+                "(experimental; Jev Box needs an image and the danger-zone header)"
+            )
+        jev_model = (os.getenv("TYPESAFE_MODEL") or "").strip() or TYPESAFE_DEFAULT_MODEL
+        if not _jev_supports_box(jev_model):
+            raise ValueError(
+                f"--box-target requires Jev 1.14.0 or newer with Box (set TYPESAFE_MODEL=jev-1.14.0); got {jev_model!r}"
+            )
     plan = parse_plan(flags.plan) if flags.plan else ()
     if flags.verify_file and not flags.text:
         raise ValueError("--verify-file requires --text")
@@ -166,7 +228,10 @@ def make_series(flags: argparse.Namespace) -> Series:
             text_target=flags.text_target,
             text_mode=flags.text_mode,
             pixel_targets=pixel_targets,
-            screenshot=visual_model,
+            box_targets=box_targets,
+            presence_threshold=presence_threshold,
+            box_confidence_threshold=box_confidence_threshold,
+            screenshot=visual_model or bool(box_targets),
         )
 
     return Series(
@@ -218,6 +283,16 @@ def flags(parser: argparse.ArgumentParser) -> None:
         default=[],
         metavar="KEY=X,Y",
         help="task-defined screenshot point (fractions in [0,1)); repeat for closed visual choices",
+    )
+    parser.add_argument(
+        "--box-target",
+        action="append",
+        default=[],
+        metavar="KEY=DESCRIPTION",
+        help=(
+            "experimental: locate KEY each step with Jev Box (noul presence + box); "
+            "requires --model jev, S1A_JEV_IMAGES=1, TYPESAFE_MODEL=jev-1.14.0+"
+        ),
     )
 
 

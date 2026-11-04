@@ -4,6 +4,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- Experimental desktop `--box-target KEY=description` (#98): each step asks hosted Jev (1.14+, `S1A_JEV_IMAGES`) a
+  presence `noul` and a `box` per target, offers only those above uncalibrated `S1A_BOX_PRESENCE_THRESHOLD` /
+  `S1A_BOX_CONFIDENCE_THRESHOLD` (defaults 0.5), and clicks the box centre with the same capture binding as
+  `--pixel-target`. Decision-model layer gains `BoxQuestion` / `Box`. Offline tests use a fake transport; live
+  fixture measurement needs TypeSafe images. Helper: `scripts/measure_box_targets.py`. Depends on #97 / PR #99.
+
 ### Fixed
 
 - Served OneJev uses one HTTP decision deadline across its permitted retry. A retry receives only the remaining

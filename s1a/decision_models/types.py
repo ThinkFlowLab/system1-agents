@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, Union
 
 Json = dict[str, Any]
-QuestionType = Literal["choice", "noul"]
+QuestionType = Literal["choice", "noul", "box"]
 PROVENANCE_KEYS = ("served_by", "url", "request_id", "server_timing", "requested_model", "sent_image")
 
 
@@ -87,7 +87,26 @@ class NoulQuestion:
         return "noul"
 
 
-Question = Union[ChoiceQuestion, NoulQuestion]
+@dataclass(frozen=True)
+class BoxQuestion:
+    """Where is ``target`` in the observation's image? Edges are fractions of width/height from the top-left.
+
+    TypeSafe's Box always returns a box (there is no "not found"); pair it with a ``NoulQuestion`` presence check
+    and ignore the box when presence is low. Needs an image and the danger-zone header (Jev 1.14+, experimental).
+    """
+
+    target: str
+
+    def __post_init__(self) -> None:
+        if not self.target.strip():
+            raise ValueError("a box question needs a target description")
+
+    @property
+    def type(self) -> QuestionType:
+        return "box"
+
+
+Question = Union[ChoiceQuestion, NoulQuestion, BoxQuestion]
 
 
 @dataclass(frozen=True)
@@ -131,7 +150,34 @@ class Noul:
         return out
 
 
-Answer = Union[Choice, Noul]
+@dataclass(frozen=True)
+class Box:
+    """A validated box answer: four edges in [0, 1] (left < right, top < bottom) and a confidence in [0, 1].
+
+    ``confidence`` is the backend's own number (TypeSafe's Box confidence); there is no separate contract rescale.
+    The centre ``((left + right) / 2, (top + bottom) / 2)`` is the natural click point in screenshot fractions.
+    """
+
+    top: float
+    bottom: float
+    left: float
+    right: float
+    confidence: float
+    backend_confidence: float | None = None  # Box.confidence is already the backend's; kept None for Answer parity
+
+    @property
+    def centre(self) -> tuple[float, float]:
+        return ((self.left + self.right) / 2.0, (self.top + self.bottom) / 2.0)
+
+    def as_dict(self) -> Json:
+        return {
+            "type": "box",
+            "box": {"top": self.top, "bottom": self.bottom, "left": self.left, "right": self.right},
+            "confidence": self.confidence,
+        }
+
+
+Answer = Union[Choice, Noul, Box]
 
 
 @dataclass(frozen=True)
@@ -210,6 +256,12 @@ class Decision:
         answer = self.answers[name]
         if not isinstance(answer, Noul):
             raise TypeError(f"{name!r} is a choice answer, not a noul")
+        return answer
+
+    def box(self, name: str) -> Box:
+        answer = self.answers[name]
+        if not isinstance(answer, Box):
+            raise TypeError(f"{name!r} is not a box answer")
         return answer
 
     @property
