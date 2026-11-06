@@ -1,0 +1,16 @@
+{
+ "dataset": "perplexity-ai/browsesafe-plus-plus",
+ "revision": "7674843074bf3b36c0a0209dfd06e03cf47743dd",
+ "split": "train",
+ "seed": 0,
+ "per_pair": 50,
+ "view_default": "markdown",
+ "gated": true,
+ "labels": {
+  "yes": 50,
+  "no": 50
+ },
+ "pair_ids": null,
+ "status": "awaiting_gated_hf_access",
+ "note": "BrowseSafe++ train is CC BY 4.0 but gated on Hugging Face. Request access at https://huggingface.co/datasets/perplexity-ai/browsesafe-plus-plus, set HF_TOKEN, then run: uv run --with pyarrow --with huggingface-hub python scripts/build_browsesafe_plus_set.py sample --per-pair 50 --seed 0  and commit the resulting pair_ids. Do not sample or vendor the hidden test split."
+}

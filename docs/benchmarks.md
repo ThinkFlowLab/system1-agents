@@ -177,6 +177,57 @@ recall 0.213).
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | pending | html | 200 | 6,000 | jev | yes / no | | | | | | |
 
+### Matched pairs: BrowseSafe++
+
+This is **not** BrowseSafe-Bench (#75 / #77). [BrowseSafe++](https://huggingface.co/datasets/perplexity-ai/browsesafe-plus-plus)
+(Perplexity, train split [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
+[arXiv:2610.17457](https://arxiv.org/abs/2610.17457), site [browsesafe.perplexity.ai](https://browsesafe.perplexity.ai/))
+holds **38,675 attack/control pairs** (29,500 train / 9,175 test). Each pair is the same page with and without the
+injection, with a legitimate user task and expected outcome, in HTML, Markdown, accessibility tree and screenshot.
+Most injections were observed on production browser-agent traffic; surrounding page content is rewritten. The
+**test** inputs are leaderboard-only (labels withheld) — this eval uses the public **train** split only and does
+not vendor or scrape the hidden test set.
+
+The Hugging Face dataset is **gated**: request access on the dataset page, accept the terms, then
+`HF_TOKEN` / `hf auth login`. Without that token the converter cannot download the train shards (~tens of GB of
+parquet). Offline unit tests cover the converter on tiny local fixtures.
+
+**Sample.** `evals/labelled/browsesafe-plus-train-sample.json`: 50 pairs (50 attack + 50 control pages) with seed 0
+from the train split at revision `7674843`, once gated access is available. Until then `pair_ids` is null and
+`status` is `awaiting_gated_hf_access`; run `sample` after obtaining a token and commit the filled ids. The dataset
+is not vendored; `scripts/build_browsesafe_plus_set.py build` downloads the pinned revision and writes JSONL with
+each chosen view in full. The evaluation applies the runtime 6,000-character clip (`RailSpec.labelled_state`).
+Budget: 100 Jev decisions per text view (50 attack + 50 control).
+
+**Views.** `markdown` (default) is the published Markdown rendering — closer to a reader-mode `fetch_webpage` than
+raw HTML. `accessibility` is the accessibility-tree YAML and maps to `browser_snapshot`. `html` is the full markup
+as `fetch_webpage`. Screenshot detection is a follow-up: `injection_guard` has no multimodal path today.
+
+**Coverage.** Run after a successful `sample` + local or downloaded shards:
+
+```bash
+HF_TOKEN=… uv run --with pyarrow --with huggingface-hub \
+  python scripts/build_browsesafe_plus_set.py sample --per-pair 50 --seed 0
+HF_TOKEN=… uv run --with pyarrow --with huggingface-hub \
+  python scripts/build_browsesafe_plus_set.py build --view markdown
+uv run --with pyarrow python scripts/build_browsesafe_plus_set.py coverage
+```
+
+**Scores.** Not run yet: they need gated HF access to build the labelled set and a Jev key (`TYPESAFE_API_KEY`).
+Reproduce with the commands above, then:
+
+```bash
+uv run s1a run injection_guard --model jev --labelled-set .external/browsesafe-plus/train-sample-markdown.jsonl
+```
+
+Report precision/recall/uncertain/failures with all 100 planned rows in the denominator, **separately for attack
+vs control** (`bands` in `summary.json`). Do not invent numbers.
+
+| date | view | pairs | pages | clip | model | label | allow | uncertain | act | failure | precision | recall |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| pending | markdown | 50 | 100 | 6,000 | jev | yes (attack) / no (control) | N/A | N/A | N/A | N/A | N/A | N/A |
+
+
 ## Series
 
 The protocol in `evals/README.md` quotes nothing under ten episodes and asks for 500 Blackjack hands. The series of
