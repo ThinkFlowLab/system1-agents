@@ -11,7 +11,7 @@ Without a token the download commands fail clearly; offline unit tests use tiny 
 
     # after HF access: pick pairs (writes evals/labelled/browsesafe-plus-train-sample.json; commit it)
     HF_TOKEN=… uv run --with pyarrow --with huggingface-hub \\
-        python scripts/build_browsesafe_plus_set.py sample --per-pair 50 --seed 0
+        python scripts/build_browsesafe_plus_set.py sample --pairs 50 --seed 0
     # rebuild JSONL from committed pair ids (dataset not vendored)
     HF_TOKEN=… uv run --with pyarrow --with huggingface-hub \\
         python scripts/build_browsesafe_plus_set.py build --view markdown
@@ -74,6 +74,26 @@ def arm_of(entry_id: str) -> str:
     return "attack" if match.group(2) == "malicious" else "control"
 
 
+ARM_ALIASES = {
+    "attack": "attack",
+    "malicious": "attack",
+    "injected": "attack",
+    "control": "control",
+    "benign": "control",
+    "clean": "control",
+}
+
+
+def normalise_arm(value: Any) -> str | None:
+    """Map an ``arm`` column value onto ``attack`` / ``control``; ``None`` when the column is absent or empty."""
+    if value is None or value == "":
+        return None
+    key = str(value).strip().lower()
+    if key not in ARM_ALIASES:
+        raise ValueError(f"unknown arm value {value!r}; expected one of {sorted(ARM_ALIASES)}")
+    return ARM_ALIASES[key]
+
+
 def page_text(page: Mapping[str, Any], view: str) -> str:
     if view not in VIEW_COLUMN:
         raise ValueError(f"unknown view {view!r}; one of {VIEWS}")
@@ -118,7 +138,12 @@ def group_pairs(pages: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Mappi
             continue
         entry_id = page["entry_id"]
         pid = pair_id_of(entry_id)
-        arm = page.get("arm") or arm_of(entry_id)
+        # The entry-id suffix is authoritative; the ``arm`` column (vocabulary not yet seen on
+        # the gated data) is only a cross-check after normalising common spellings.
+        arm = arm_of(entry_id)
+        column_arm = normalise_arm(page.get("arm"))
+        if column_arm is not None and column_arm != arm:
+            raise ValueError(f"{entry_id}: arm column {page.get('arm')!r} disagrees with the id suffix")
         label = page.get("label")
         expected_label = "yes" if arm == "attack" else "no"
         if label not in (None, expected_label):
@@ -131,12 +156,12 @@ def group_pairs(pages: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Mappi
     return complete
 
 
-def sample_pairs(pair_ids: Sequence[str], per_pair: int, seed: int) -> list[str]:
-    """``per_pair`` pair ids drawn with a seeded generator; sorted."""
+def sample_pairs(pair_ids: Sequence[str], pairs: int, seed: int) -> list[str]:
+    """``pairs`` pair ids drawn with a seeded generator; sorted."""
     ids = list(pair_ids)
-    if len(ids) < per_pair:
-        raise ValueError(f"only {len(ids)} pairs, asked for {per_pair}")
-    picked = random.Random(seed).sample(ids, per_pair)
+    if len(ids) < pairs:
+        raise ValueError(f"only {len(ids)} pairs, asked for {pairs}")
+    picked = random.Random(seed).sample(ids, pairs)
     return sorted(picked)
 
 
@@ -152,6 +177,8 @@ def coverage(lengths: Sequence[int], clip: int = MAX_CHARS) -> dict[str, Any]:
         "fully_inspected_pages": sum(n <= clip for n in lengths),
         "inspected_share": round(inspected / total, 3) if total else 1.0,
         "mean_page_inspected_share": round(statistics.fmean(min(1.0, clip / n) if n else 1.0 for n in lengths), 3),
+        # "main" is not measured: the main path forwards the whole page to the agent model, so 1.0 by
+        # construction. "withhold_uninspected" is what reaches the model if unread text is held back.
         "reaches_model_share": {"main": 1.0, "withhold_uninspected": round(inspected / total, 3) if total else 1.0},
     }
 
@@ -292,7 +319,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--ids", type=Path, default=IDS, help="the committed pair-id file")
     sub = parser.add_subparsers(dest="command", required=True)
     sample = sub.add_parser("sample", help="draw pair ids and write the id file")
-    sample.add_argument("--per-pair", type=int, default=50, help="number of attack/control pairs (2 pages each)")
+    sample.add_argument(
+        "--pairs",
+        "--per-pair",  # old spelling, kept so earlier commands still work
+        dest="pairs",
+        type=int,
+        default=50,
+        help="number of attack/control pairs (2 pages each)",
+    )
     sample.add_argument("--seed", type=int, default=0)
     build = sub.add_parser("build", help="write the labelled-set JSONL for the committed pair ids")
     build.add_argument("--view", choices=VIEWS, default="markdown")
@@ -304,16 +338,16 @@ def main(argv: Sequence[str] | None = None) -> None:
     if args.command == "sample":
         pages = read_pages(resolve_paths(args.source), columns=list(IDENTITY_COLUMNS))
         pairs = group_pairs(pages)
-        pair_ids = sample_pairs(sorted(pairs), args.per_pair, args.seed)
+        pair_ids = sample_pairs(sorted(pairs), args.pairs, args.seed)
         payload = {
             "dataset": DATASET,
             "revision": REVISION,
             "split": SPLIT,
             "seed": args.seed,
-            "per_pair": args.per_pair,
+            "pairs": args.pairs,
             "view_default": "markdown",
             "gated": True,
-            "labels": {"yes": args.per_pair, "no": args.per_pair},
+            "labels": {"yes": args.pairs, "no": args.pairs},
             "pair_ids": pair_ids,
         }
         args.ids.parent.mkdir(parents=True, exist_ok=True)

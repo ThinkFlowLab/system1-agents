@@ -199,6 +199,12 @@ is not vendored; `scripts/build_browsesafe_plus_set.py build` downloads the pinn
 each chosen view in full. The evaluation applies the runtime 6,000-character clip (`RailSpec.labelled_state`).
 Budget: 100 Jev decisions per text view (50 attack + 50 control).
 
+**Download.** `fetch()` pulls every `data/members-train-*.parquet` shard at the pinned revision, screenshot column
+included; `sample` and `build` then read only the identity and text-view columns. The download size has not been
+measured yet (no gated access); record it here after the first real fetch. Pass `--source` to reuse shards already
+on disk. Pair ids come from the `NNNNN_malicious` / `NNNNN_benign` entry id; the `arm` column, when present, is only
+a cross-check (`attack`/`malicious`/`control`/`benign` all accepted).
+
 **Views.** `markdown` (default) is the published Markdown rendering — closer to a reader-mode `fetch_webpage` than
 raw HTML. `accessibility` is the accessibility-tree YAML and maps to `browser_snapshot`. `html` is the full markup
 as `fetch_webpage`. Screenshot detection is a follow-up: `injection_guard` has no multimodal path today.
@@ -207,7 +213,7 @@ as `fetch_webpage`. Screenshot detection is a follow-up: `injection_guard` has n
 
 ```bash
 HF_TOKEN=… uv run --with pyarrow --with huggingface-hub \
-  python scripts/build_browsesafe_plus_set.py sample --per-pair 50 --seed 0
+  python scripts/build_browsesafe_plus_set.py sample --pairs 50 --seed 0
 HF_TOKEN=… uv run --with pyarrow --with huggingface-hub \
   python scripts/build_browsesafe_plus_set.py build --view markdown
 uv run --with pyarrow python scripts/build_browsesafe_plus_set.py coverage

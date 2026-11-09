@@ -95,6 +95,19 @@ class TestPairs(TestCase):
         self.assertEqual(sorted(pairs), ["00001", "00002", "00003"])
         self.assertEqual(set(pairs["00001"]), {"attack", "control"})
 
+    def test_arm_column_spellings_are_normalised(self) -> None:
+        renamed = [{**p, "arm": "malicious" if p["arm"] == "attack" else "benign"} for p in PAGES]
+        self.assertEqual(sorted(bsp.group_pairs(renamed)), ["00001", "00002", "00003"])
+        no_column = [{k: v for k, v in p.items() if k != "arm"} for p in PAGES]
+        self.assertEqual(sorted(bsp.group_pairs(no_column)), ["00001", "00002", "00003"])
+
+    def test_arm_column_that_contradicts_the_id_is_an_error(self) -> None:
+        flipped = [{**PAGES[0], "arm": "control"}, *PAGES[1:]]
+        with self.assertRaises(ValueError):
+            bsp.group_pairs(flipped)
+        with self.assertRaises(ValueError):
+            bsp.normalise_arm("maybe")
+
     def test_sample_is_seeded_and_reproducible(self) -> None:
         ids = bsp.sample_pairs(["00001", "00002", "00003", "00004", "00005"], 3, seed=0)
         self.assertEqual(ids, sorted(set(ids)))
@@ -108,7 +121,7 @@ class TestPairs(TestCase):
 
     def test_the_committed_ids_name_the_pinned_revision(self) -> None:
         ids = bsp.load_ids()
-        self.assertEqual((ids["seed"], ids["per_pair"], ids["gated"]), (0, 50, True))
+        self.assertEqual((ids["seed"], ids["pairs"], ids["gated"]), (0, 50, True))
         self.assertEqual(ids["labels"], {"yes": 50, "no": 50})
         self.assertEqual(ids["view_default"], "markdown")
         self.assertIn(ids.get("status"), ("awaiting_gated_hf_access", None))
@@ -194,7 +207,7 @@ class TestCliOnFixtureParquet(TestCase):
             root = self._write_fixture(Path(tmp) / "fixture")
             ids_path = Path(tmp) / "ids.json"
             out = Path(tmp) / "out.jsonl"
-            bsp.main(["--source", str(root), "--ids", str(ids_path), "sample", "--per-pair", "2", "--seed", "0"])
+            bsp.main(["--source", str(root), "--ids", str(ids_path), "sample", "--pairs", "2", "--seed", "0"])
             ids = json.loads(ids_path.read_text(encoding="utf-8"))
             self.assertEqual(len(ids["pair_ids"]), 2)
             self.assertEqual(ids["revision"], bsp.REVISION)
