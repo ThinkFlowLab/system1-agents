@@ -1,0 +1,44 @@
+{
+  "recorded_at": "2026-10-25T02:08:22Z",
+  "base_revision": "9b20b989d919bc69227f81bc0ec571ca56925586",
+  "working_tree_scope": "Content workflow, recipe, and tests recorded in the working tree that adds them, on top of the base revision. Re-run the command on the PR head.",
+  "items_sha256": "51828b6671f507e4ce635d90a43420b1855fde864c43dfc17c072e3ba983f064",
+  "report_items_sha256": "312628ea432a06e5590334c5625663c01cf61f34e3d110cba4be0f2f3ffadec2",
+  "environment": {
+    "platform": "Linux x86_64",
+    "python": "Python 3.12.3",
+    "execution": "CPU lexical rule; no neural inference and no decision HTTP call"
+  },
+  "command": "OMNI_BASE_URL= OMNI_API_KEY= uv run python -m s1a.content run --items recipes/content-workflow/items.jsonl --picks recipes/content-workflow/picks.json --publish recipes/content-workflow/publish.json --backend rule",
+  "sanitization": "The full report stays under runs/, which is gitignored. Counts below are from that report.",
+  "verification_output": [
+    "n01 -> supported score 2 decision publish",
+    "n02 -> unsupported score 0 decision publish",
+    "n03 -> needs_human score 1 decision hold",
+    "n04 -> supported score 2 decision hold",
+    "screen 50 / 50",
+    "Verified the fixture workflow; nothing was published"
+  ],
+  "summary": {
+    "backend": "rule",
+    "screen_total": 50,
+    "screen_kept": 32,
+    "screen_choice_correct": 50,
+    "screen_score_correct": 50,
+    "fact_choice_correct": 4,
+    "fact_score_correct": 4,
+    "publish_decisions": {"n01": "publish", "n02": "publish", "n03": "hold", "n04": "hold"},
+    "executed": [],
+    "auto_publish": false,
+    "unsafe_skip": false,
+    "latency_gate_attached": false,
+    "sources": {"rss": 29, "x": 21, "fixture": 0}
+  },
+  "negative_verifier_checks": [
+    {
+      "input": "run without --picks",
+      "exit_code": 2,
+      "stderr": "human pick gate: pass picks, answer the prompt, or pass --allow-unsafe-skip-gates (unsafe: it invents a pick and holds every item; it still does not publish)"
+    }
+  ]
+}

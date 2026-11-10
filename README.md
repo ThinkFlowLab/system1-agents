@@ -152,6 +152,7 @@ The gates and the templates: [docs/skills.md](docs/skills.md#build-a-system-1-ag
 - `flights`: browser use, a Google Flights search over `@playwright/mcp`.
 - `desktop`: computer use, any Windows or macOS app window through [Cua Driver](https://cua.ai/docs/cua-driver).
 - `ticket_router`: 30 labelled support tickets to five queues.
+- Content desk: RSS and fixture ingest, a screen, a human pick, a fact-check, and a human publish decision. Nothing is auto-published. Recipe: [recipes/content-workflow](recipes/content-workflow/README.md).
 - `alfworld`: household tasks in text, with the AI2-THOR scene in the replays.
 - `game2048`, `millionaire`, `blackjack`: games with a score per episode.
 - `injection_guard`: a rail that answers one question at a hook of a running agent and fails closed.
