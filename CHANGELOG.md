@@ -4,6 +4,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `python -m evals.webharbor`: a seeded 12-task Allrecipes slice of WebHarbor's `webharbor-webvoyager@1.0` (ids and
+  revisions only in `evals/webharbor/slice.json`; tasks and images on demand). Each attempt resets the site (fresh
+  per-site container, or the control plane's `POST /reset/<site>`), plays the task through `browse` with a decision
+  model or the chat model, and runs the site's own verifier inside the container; the table counts every attempt and
+  splits decision time from the rest. Offline tests use a fake control plane and a fake `docker`; no live numbers yet
+  (#118).
+
 ## 0.3.0 - 2026-10-30
 
 ### Added
