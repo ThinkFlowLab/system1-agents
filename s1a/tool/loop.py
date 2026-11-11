@@ -18,7 +18,7 @@ from openjiuwen.harness.deep_agent import DeepAgent
 from openjiuwen.harness.factory import create_deep_agent
 
 from s1a.decision_models import DecisionModel
-from s1a.env import Env
+from s1a.env import Env, RequiresImages
 from s1a.jobs import Episode, now_iso
 from s1a.config import HOME
 from s1a.counting_model import CountingModel, call_digests, usage_known
@@ -239,6 +239,14 @@ async def run_episode(
         raise RuntimeError("bounded rethink needs a decision model; --model llm cannot use it")
     if limits is not None and rethink_on and spec.budget.stall_after > 0 and refresh_method is None:
         raise RuntimeError("bounded rethink needs an Env with a refresh callback")
+    if isinstance(env, RequiresImages) and env.requires_images() and model_name != "random":
+        # A ``RequiresImages`` environment refuses a text-only backend up front — deciding
+        # over an observation whose images were stripped would measure a blind run (``random``
+        # never reads the observation and stays the offline smoke)
+        if decision_model is None or not decision_model.supports_images:
+            raise ValueError(
+                f"{spec.name}: this environment decides over its images; --model {model_name} reads text only"
+            )
     state = EvalState(max_acts=max_acts)
     await env.reset()
     first_view = await view_of(env, state)

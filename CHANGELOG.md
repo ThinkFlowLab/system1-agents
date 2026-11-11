@@ -4,6 +4,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- Sokoban `--visual`: the same levels, loop and scoring with the board rendered by Valen's own renderer — one
+  PNG per decision, the theme and tile size each level carries, and Valen's instruction and direction texts in
+  the level's language (`en`/`zh`). The ASCII board never rides with the picture and stays out of the episode
+  records; the `visual` extra (Pillow) is needed, text-board runs stay dependency-free.
+
 ## 0.3.0 - 2026-10-30
 
 ### Added
