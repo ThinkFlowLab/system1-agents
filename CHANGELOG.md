@@ -4,6 +4,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `s1a/browsesafe_pp.py`: `injection_guard` as a detector for the official BrowseSafe++ SDK
+  (`browsesafe evaluate|predict --predict s1a.browsesafe_pp:predict`). Pages are clipped to the runtime's 6,000
+  characters; act/allow/uncertain map to `injected` True/False/None (abstain); a failed decision is an SDK error, or
+  `injected=True` with `S1A_BSPP_ON_FAILURE=closed`. The SDK is not a dependency; scores are N/A until a run with
+  gated HF access and a Jev key (#119).
+
 ## 0.3.0 - 2026-10-30
 
 ### Added
