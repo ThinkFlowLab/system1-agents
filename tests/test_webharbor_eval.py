@@ -234,11 +234,19 @@ def test_missing_or_bad_reward_is_an_error_not_a_pass(tmp_path, content, error):
 
 
 class FakeDocker:
-    """Plays ``docker``: run/rm/exec/cp; ``bash /tests/test.sh`` grades the copied answer like a site verifier."""
+    """Plays ``docker``: run/rm/exec/cp/ps; ``bash /tests/test.sh`` grades the copied answer like a site verifier."""
 
-    def __init__(self, *, answer_key: str = "Zucchini", run_fails: bool = False, verifier_writes: bool = True):
+    def __init__(
+        self,
+        *,
+        answer_key: str = "Zucchini",
+        run_fails: bool = False,
+        verifier_writes: bool = True,
+        published: dict[int, list[str]] | None = None,
+    ):
         self.argv: list[list[str]] = []
         self.answer_key, self.run_fails, self.verifier_writes = answer_key, run_fails, verifier_writes
+        self.published = published or {}
         self.agent_logs: dict[str, str] = {}
 
     def __call__(self, argv):
@@ -247,6 +255,16 @@ class FakeDocker:
         ok = subprocess.CompletedProcess(argv, 0, "", "")
         if cmd == "run" and self.run_fails:
             return subprocess.CompletedProcess(argv, 125, "", "Unable to find image\npull access denied")
+        if cmd == "ps":
+            port = None
+            for i, arg in enumerate(argv):
+                value = arg.split("=", 1)[1] if arg.startswith("--filter=") else None
+                if arg == "--filter" and i + 1 < len(argv):
+                    value = argv[i + 1]
+                if value and value.startswith("publish="):
+                    port = int(value.split("=", 1)[1])
+            names = self.published.get(port, [])
+            return subprocess.CompletedProcess(argv, 0, "".join(f"{name}\n" for name in names), "")
         if cmd == "cp" and argv[3].endswith(":/logs/agent"):
             src = Path(argv[2].removesuffix("/."))
             self.agent_logs = {p.name: p.read_text(errors="ignore") for p in src.rglob("*") if p.is_file()}
@@ -330,16 +348,65 @@ def test_reset_failure_and_verifier_error_are_failed_attempts(tmp_path):
     assert attempts[0].failure == "verifier: verifier wrote no reward.json" and not attempts[0].passed
 
 
+def test_control_port_reads_the_url():
+    assert environment.control_port("http://127.0.0.1:8101") == 8101
+    assert environment.control_port("http://127.0.0.1") == 80
+    assert environment.control_port("https://example.test") == 443
+
+
 def test_control_plane_reset_is_used_when_configured(tmp_path, control_url):
-    fake = FakeDocker()
+    port = environment.control_port(control_url)
+    fake = FakeDocker(published={port: ["wh-all-sites"]})
     site = environment.DockerSite(control=control.ControlPlane(control_url, TOKEN, timeout_s=5), run=fake)
     attempts = asyncio.run(
         runner.run_slice(site, _specs(tmp_path), ["jev"], _player({"jev": "Zucchini"}), tmp_path / "c")
     )
     assert attempts[0].passed and not [argv for argv in fake.argv if argv[1] in ("run", "rm")]
+    assert ["docker", "exec", "wh-all-sites", "bash", "/tests/test.sh"] in fake.argv
+    assert not any("s1a-webharbor" in argv for argv in fake.argv)
+    assert environment.describe(site)["container"] == "wh-all-sites"
     bad = environment.DockerSite(control=control.ControlPlane(control_url, "w" * 40, timeout_s=5), run=fake)
     with pytest.raises(environment.SiteError, match="401"):
         bad.reset(_specs(tmp_path / "d")[0][0])
+
+
+def test_control_plane_verify_uses_an_explicit_container_name(tmp_path, control_url):
+    fake = FakeDocker()  # discovery would fail; the name is given
+    site = environment.DockerSite(
+        control=control.ControlPlane(control_url, TOKEN, timeout_s=5),
+        control_container="wh-review",
+        run=fake,
+    )
+    attempts = asyncio.run(
+        runner.run_slice(site, _specs(tmp_path), ["jev"], _player({"jev": "Zucchini"}), tmp_path / "named")
+    )
+    assert attempts[0].passed
+    assert ["docker", "exec", "wh-review", "bash", "/tests/test.sh"] in fake.argv
+    assert not any(argv[1] == "ps" for argv in fake.argv)
+    assert not any("s1a-webharbor" in argv for argv in fake.argv)
+
+
+def test_control_plane_reset_fails_when_the_all_sites_container_is_missing(tmp_path, control_url):
+    fake = FakeDocker()
+    site = environment.DockerSite(control=control.ControlPlane(control_url, TOKEN, timeout_s=5), run=fake)
+    attempts = asyncio.run(
+        runner.run_slice(site, _specs(tmp_path), ["jev"], _player({"jev": "Zucchini"}), tmp_path / "missing")
+    )
+    assert not attempts[0].passed
+    assert attempts[0].failure and "no container publishes the control-plane port" in attempts[0].failure
+    assert not any(argv[1] in ("exec", "run", "rm") for argv in fake.argv)
+
+
+def test_control_plane_reset_fails_when_several_containers_publish_the_port(tmp_path, control_url):
+    port = environment.control_port(control_url)
+    fake = FakeDocker(published={port: ["wh-a", "wh-b"]})
+    site = environment.DockerSite(control=control.ControlPlane(control_url, TOKEN, timeout_s=5), run=fake)
+    attempts = asyncio.run(
+        runner.run_slice(site, _specs(tmp_path), ["jev"], _player({"jev": "Zucchini"}), tmp_path / "many")
+    )
+    assert not attempts[0].passed
+    assert attempts[0].failure and "several containers" in attempts[0].failure
+    assert "wh-a" in attempts[0].failure and "wh-b" in attempts[0].failure
 
 
 def test_docker_missing_is_a_site_error(tmp_path):

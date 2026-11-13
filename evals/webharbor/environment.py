@@ -3,10 +3,12 @@
 
 ``DockerSite`` runs one per-site image (``wildawm/webharbor:<site>-v1``) with the site port published to the host,
 where the s1a browser front drives it like any web page. Reset is a fresh container per episode, or, with a
-``ControlPlane`` (the all-sites image), ``POST /reset/<site>``. After the episode the agent's final answer, termination
-record and final screenshot are copied into the container's ``/logs/agent`` (the layout WebHarbor's harnesses
-write), the task's ``tests/`` into ``/tests``, and ``tests/test.sh`` runs inside the container exactly as Harbor's
-verifier phase does. The verdict comes from ``/logs/verifier/reward.json``; no LLM judge is involved.
+``ControlPlane`` (the all-sites image), ``POST /reset/<site>``. After a control-plane reset, verify runs inside the
+all-sites container that publishes the control plane (discovered from its host port, or a name passed in), never
+the unused default ``s1a-webharbor``. After the episode the agent's final answer, termination record and final
+screenshot are copied into the container's ``/logs/agent`` (the layout WebHarbor's harnesses write), the task's
+``tests/`` into ``/tests``, and ``tests/test.sh`` runs inside the container exactly as Harbor's verifier phase does.
+The verdict comes from ``/logs/verifier/reward.json``; no LLM judge is involved.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Protocol, Sequence
+from urllib.parse import urlparse
 
 from evals.webharbor.control import ControlPlane
 from evals.webharbor.tasks import TaskSpec
@@ -63,6 +66,43 @@ def _probe(url: str) -> bool:
         return False
 
 
+def control_port(base_url: str) -> int:
+    """Host port of the control plane URL; used to find the all-sites container that published it."""
+    parsed = urlparse(base_url)
+    if parsed.port is not None:
+        return parsed.port
+    if parsed.scheme == "https":
+        return 443
+    return 80
+
+
+def container_publishing(run: Run, port: int) -> str:
+    """The single running container that publishes ``port`` on the host; a missing or ambiguous match is an error."""
+    try:
+        result = run(["docker", "ps", "--filter", f"publish={port}", "--format", "{{.Names}}"])
+    except FileNotFoundError:
+        raise SiteError("docker is not installed") from None
+    except subprocess.TimeoutExpired:
+        raise SiteError("docker ps timed out") from None
+    if result.returncode != 0:
+        tail = (result.stderr or "").strip().splitlines()[-1:] or ["no stderr"]
+        raise SiteError(f"docker ps failed: {tail[0][:200]}")
+    names = [line.strip().lstrip("/") for line in (result.stdout or "").splitlines() if line.strip()]
+    # docker may list the same container twice if it has more than one name
+    names = list(dict.fromkeys(names))
+    if not names:
+        raise SiteError(
+            f"no container publishes the control-plane port {port}; "
+            "start the all-sites image, or pass --control-container with its name"
+        )
+    if len(names) > 1:
+        raise SiteError(
+            f"several containers publish the control-plane port {port} ({', '.join(names)}); "
+            "pass --control-container to pick one"
+        )
+    return names[0]
+
+
 def agent_logs(episode: Episode, dest: Path) -> None:
     """``/logs/agent`` as WebHarbor's ``build_trajectory.py`` reads it: answer, termination, screenshot manifest."""
     dest.mkdir(parents=True, exist_ok=True)
@@ -82,11 +122,13 @@ def agent_logs(episode: Episode, dest: Path) -> None:
 class DockerSite:
     container: str = "s1a-webharbor"
     control: ControlPlane | None = None
+    control_container: str | None = None  # explicit all-sites name; otherwise discovered from the control port
     run: Run = _run
     probe: Probe = _probe
     ready_timeout_s: float = 120.0
     poll_s: float = 1.0
     _image: str | None = None
+    _verify_container: str | None = None
 
     def _docker(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
         try:
@@ -99,6 +141,21 @@ class DockerSite:
             tail = (result.stderr or "").strip().splitlines()[-1:] or ["no stderr"]
             raise SiteError(f"docker {args[0]} failed: {tail[0][:200]}")
         return result
+
+    def _bind_control_container(self) -> str:
+        """The all-sites container the control plane is already running in; never start a fresh ``s1a-webharbor``."""
+        if self.control_container:
+            self._verify_container = self.control_container
+            return self._verify_container
+        if self.control is None:
+            raise SiteError("control-plane container requested without a control plane")
+        self._verify_container = container_publishing(self.run, control_port(self.control.base_url))
+        return self._verify_container
+
+    def _target(self) -> str:
+        if self.control is not None:
+            return self._verify_container or self.control_container or self._bind_control_container()
+        return self.container
 
     def image_digest(self) -> str:
         if self._image is None:
@@ -114,6 +171,7 @@ class DockerSite:
                 self.control.reset(task.site)
             except Exception as exc:  # noqa: BLE001 - the control-plane error classes carry no secret
                 raise SiteError(f"reset failed: {exc}") from None
+            self._bind_control_container()
             return
         self._docker("rm", "-f", self.container, check=False)
         env_args = [arg for key, value in task.env for arg in ("-e", f"{key}={value}")]
@@ -133,13 +191,13 @@ class DockerSite:
         with tempfile.TemporaryDirectory(prefix="s1a-webharbor-") as scratch:
             logs = Path(scratch) / "agent"
             agent_logs(episode, logs)
-            self._docker("exec", self.container, "mkdir", "-p", "/logs/agent", "/tests")
-            self._docker("cp", f"{tests}/.", f"{self.container}:/tests")
-            self._docker("cp", f"{logs}/.", f"{self.container}:/logs/agent")
-        self._docker("exec", self.container, "bash", "/tests/test.sh", check=False)  # non-zero is a 0 reward
+            self._docker("exec", self._target(), "mkdir", "-p", "/logs/agent", "/tests")
+            self._docker("cp", f"{tests}/.", f"{self._target()}:/tests")
+            self._docker("cp", f"{logs}/.", f"{self._target()}:/logs/agent")
+        self._docker("exec", self._target(), "bash", "/tests/test.sh", check=False)  # non-zero is a 0 reward
         verifier = out_dir / "verifier"
         verifier.mkdir(parents=True, exist_ok=True)
-        self._docker("cp", f"{self.container}:/logs/verifier/.", str(verifier), check=False)
+        self._docker("cp", f"{self._target()}:/logs/verifier/.", str(verifier), check=False)
         return read_verdict(verifier)
 
     def close(self) -> None:
@@ -149,4 +207,11 @@ class DockerSite:
 
 def describe(environment: Any) -> dict[str, Any]:
     reset = "control-plane" if getattr(environment, "control", None) is not None else "fresh-container"
-    return {"reset": reset, "container": getattr(environment, "container", None)}
+    target = getattr(environment, "_verify_container", None) or (
+        getattr(environment, "control_container", None)
+        if getattr(environment, "control", None) is not None
+        else getattr(environment, "container", None)
+    )
+    if target is None:
+        target = getattr(environment, "container", None)
+    return {"reset": reset, "container": target}

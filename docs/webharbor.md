@@ -31,7 +31,10 @@ uv run python -m evals.webharbor score evals/results/webharbor/<run>/attempts.js
 1. **Reset.** A fresh container of the per-site image per attempt (`docker rm -f`, `docker run` with the task's
    `WH_*` variables and the site port published on `127.0.0.1`), then wait for the start URL to answer. With
    `--control-url` (the all-sites image) the reset is `POST /reset/<site>` on the control plane, with
-   `Authorization: Bearer $WEBSYN_CONTROL_TOKEN`. A failed reset is a failed attempt, not a skipped one.
+   `Authorization: Bearer $WEBSYN_CONTROL_TOKEN`. The verifier then runs inside that all-sites container,
+   discovered as the one that publishes the control-plane host port, or named with `--control-container`.
+   A failed reset (including a control plane that is not running in a visible container) is a failed
+   attempt, not a skipped one. The default `s1a-webharbor` name is only for the fresh per-site path.
 2. **Play.** The task's own `instruction.md` is the goal; the production `browse` front plays it with the arm's
    model (`jev` or another decision model, or `llm`, the chat model) under the same `--max-steps` and `--timeout`.
 3. **Verify.** The final answer, a termination record and the final screenshot go into the container's

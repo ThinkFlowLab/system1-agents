@@ -6,7 +6,8 @@
 - ``fetch --dest DIR`` downloads the slice's task folders at the pinned revision (network; nothing is vendored).
 - ``run --tasks-dir DIR --arms jev llm`` resets the site for every attempt, plays it, runs the site verifier inside
   the container and writes ``attempts.jsonl`` and ``results.md``. Needs Docker, the per-site image and the models'
-  keys; ``--control-url`` resets through the all-sites image's control plane (``WEBSYN_CONTROL_TOKEN``) instead.
+  keys; ``--control-url`` resets through the all-sites image's control plane (``WEBSYN_CONTROL_TOKEN``) instead,
+  and the verifier runs in that image's container (discovered from the published port, or ``--control-container``).
 - ``score attempts.jsonl`` re-renders the table from recorded attempts.
 """
 
@@ -43,6 +44,11 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("--timeout", type=float, default=600.0)
     run.add_argument("--headed", action="store_true")
     run.add_argument("--control-url", default=None, help="reset through the control plane instead of a new container")
+    run.add_argument(
+        "--control-container",
+        default=None,
+        help="all-sites container to exec the verifier in; discovered from --control-url's published port when omitted",
+    )
     run.add_argument("--out", type=Path, default=None)
     sc = commands.add_parser("score")
     sc.add_argument("attempts", type=Path)
@@ -110,7 +116,7 @@ async def _run(args: argparse.Namespace, slice_: tasks.Slice) -> int:
         print(f"error: {exc} (run `python -m evals.webharbor fetch` first)", file=sys.stderr)
         return 2
     control = ControlPlane.from_env(args.control_url) if args.control_url else None
-    environment = DockerSite(control=control)
+    environment = DockerSite(control=control, control_container=args.control_container)
     out = args.out or RESULTS / f"{datetime.now():%Y-%m-%d__%H-%M-%S}"
     play = make_player(LiveBudget(args.max_steps, args.timeout, not args.headed))
     async with started_runner():
