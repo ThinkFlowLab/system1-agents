@@ -1,0 +1,27 @@
+{
+  "name": "webharbor-allrecipes-12",
+  "repo": "ChilleD/WebHarbor-Tasks",
+  "registry_revision": "3b1da40d1f52426706aab38ae7cbd1a6dc12e030",
+  "dataset": "webharbor-webvoyager",
+  "dataset_version": "1.0",
+  "webharbor_revision": "381dbd9882680806c81ed626d226f114c464a321",
+  "site": "allrecipes",
+  "image": "wildawm/webharbor:allrecipes-v1",
+  "port": 40000,
+  "seed": 118,
+  "selection": "random.Random(118).sample of the 45 allrecipes--* tasks in webharbor-webvoyager@1.0, sorted by index",
+  "tasks": [
+    {"id": "allrecipes--1", "state_change": "unchecked"},
+    {"id": "allrecipes--6", "state_change": "unchecked"},
+    {"id": "allrecipes--11", "state_change": "unchecked"},
+    {"id": "allrecipes--18", "state_change": "unchecked"},
+    {"id": "allrecipes--19", "state_change": "unchecked"},
+    {"id": "allrecipes--21", "state_change": "unchecked"},
+    {"id": "allrecipes--23", "state_change": "unchecked"},
+    {"id": "allrecipes--31", "state_change": "unchecked"},
+    {"id": "allrecipes--32", "state_change": "unchecked"},
+    {"id": "allrecipes--38", "state_change": "unchecked"},
+    {"id": "allrecipes--40", "state_change": "unchecked"},
+    {"id": "allrecipes--42", "state_change": "unchecked"}
+  ]
+}
