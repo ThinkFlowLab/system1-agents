@@ -4,6 +4,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+## 0.4.0 - 2026-11-13
+
 ### Added
 
 - `s1a/browsesafe_pp.py`: `injection_guard` as a detector for the official BrowseSafe++ SDK
