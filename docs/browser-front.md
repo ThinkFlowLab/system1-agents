@@ -158,6 +158,16 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
     `elapsed_ms` stops before the screenshot, and neither the outcome nor the release of the browser and the
     session depends on it. Tests: `tests/test_browse.py`, and `tests/system/test_final_screenshot.py` on a live
     @playwright/mcp.
+21. Confidence-gated deferral (`--defer-below P`, off by default) keeps the decision model as the first-stage
+    selector. When its operation confidence is strictly below `P` (a finite value from 0 through 1), the configured
+    chat model receives the current goal, page and only the currently offered operation/target identifiers. Its JSON
+    response is decoded back through that same action space; an invented operation or target, malformed JSON or a
+    provider failure ends the task `BLOCKED` rather than executing the first-stage action. `decision_ticks.json`
+    records `deferred`, the original choice/confidence, fallback choice, latency and separately-known fallback
+    tokens. The cutoff is a workload- and backend-specific routing knob, not a calibrated probability or a general
+    quality claim. Compare it with decision-only and chat-only on the same bounded task before reporting outcomes.
+    `python scripts/calibrate_browser_deferral.py runs/.../decision_ticks.json --rate 0.15` derives such a cutoff
+    from saved artifacts only; ties are not split, so its output reports the actual deferred count/rate as well.
 
 ## Rejected
 

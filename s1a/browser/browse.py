@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import re
 import shutil
 import sys
@@ -246,8 +247,12 @@ async def browse(
     """
     if policy.rethink_on and model_name == "llm":
         raise RuntimeError("--rethink on needs a decision model; --model llm cannot use it")
+    if policy.defer_below is not None and model_name == "llm":
+        raise RuntimeError("--defer-below needs a decision model; --model llm cannot use it")
     if policy.rethink_on and decision_model is None:
         raise RuntimeError(f"--rethink on needs a decision model; --model {model_name} was given none")
+    if policy.defer_below is not None and decision_model is None:
+        raise RuntimeError(f"--defer-below needs a decision model; --model {model_name} was given none")
     logs_dir.mkdir(parents=True, exist_ok=True)
     calls: list[dict[str, Any]] = []
     counted = CountingModel(chat, calls)
@@ -355,6 +360,13 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
         help="decision models only: offer values extracted from the goal as a choice head",
     )
     build.add_argument(
+        "--defer-below",
+        type=float,
+        default=None,
+        metavar="P",
+        help="decision models only: ask the chat fallback to choose from the current action space when confidence is below P (0 to 1; off by default)",
+    )
+    build.add_argument(
         "--rethink",
         choices=("on", "off"),
         default="off",
@@ -392,12 +404,16 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
 
 def policy_from_args(args: argparse.Namespace) -> BrowserPolicy:
     """The policy from the parsed flags. ``RecoveryLimits`` rejects a non-finite or non-positive budget here."""
+    defer_below = args.defer_below
+    if defer_below is not None and (not math.isfinite(defer_below) or not 0 <= defer_below <= 1):
+        raise ValueError("--defer-below must be finite and between 0 and 1")
     return BrowserPolicy(
         prefetch_values=args.prefetch == "on",
         batch_actions=args.batch == "on",
         goal_value_cache=args.goal_values == "on",
         rethink_on=args.rethink == "on",
         recovery_limits=RecoveryLimits(max_attempts=args.rethink_attempts, timeout_s=float(args.rethink_timeout)),
+        defer_below=defer_below,
     )
 
 
