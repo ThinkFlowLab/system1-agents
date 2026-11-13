@@ -121,6 +121,11 @@ them to:
 | `tests/test_desktop_driver.py` | `mcp.client.stdio.StdioServerParameters` | the 2.x stdio transport parameters |
 | `scripts/smoke.sh` | `mcp.shared.memory.create_connected_server_and_client_session` | `Client` in memory |
 
+`s1a/mcp_server.py` also uses the 1.x experimental task API (`Server.experimental.enable_tasks`,
+`InMemoryTaskStore`, `request_context.experimental.run_task`) for task-augmented `run_agent` calls (#102). That API
+is deprecated in 1.x and removed in 2.x, where tasks are expected as a separate MCP extension; the port moves the
+task path to that extension or drops it, and the `TestRunAgentAsTask` cases say what it must keep.
+
 `mcp.types` (`CallToolResult`, `ImageContent`, `TextContent` in `s1a/desktop/driver.py` and the desktop tests) is
 checked against 2.x during the port. `tests/test_mcp_server.py` holds what a port must preserve: the three-tool
 listing, `decide` against a scripted model, `run_agent` returning its summary, and a clean stdio stream; a test there

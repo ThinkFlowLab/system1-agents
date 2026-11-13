@@ -28,9 +28,15 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.shared.exceptions import McpError
 from mcp.shared.memory import create_connected_server_and_client_session
-from mcp.types import CancelledNotification, CancelledNotificationParams, ClientNotification
+from mcp.types import (
+    METHOD_NOT_FOUND,
+    CallToolResult,
+    CancelledNotification,
+    CancelledNotificationParams,
+    ClientNotification,
+)
 
-from s1a import mcp_server
+from s1a import mcp_server, progress
 from s1a.browser import browse
 from s1a import run as agents
 from s1a.decision_models import JevModel, ScriptedModel, ScriptedTransport
@@ -583,3 +589,149 @@ class TestAdvertisedTools(IsolatedAsyncioTestCase):
         schema = (await self._tools())["run_agent"].outputSchema
         self.assertEqual((schema or {}).get("type"), "object")
         self.assertNotIn("required", schema or {})
+
+
+class TestRunAgentAsTask(IsolatedAsyncioTestCase):
+    """``run_agent`` as an MCP task (#102): a task id at once, status while it runs, the result after, and a cancel
+    that stops the run the way ``notifications/cancelled`` does. Without task metadata nothing changes (above)."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.enterContext(patch.object(agents, "load", lambda name: COUNTER))
+        self.enterContext(patch.object(agents, "SHOWCASE_DIR", self.tmp / "showcase"))
+        self.enterContext(patch.object(loop, "WORKSPACE", self.tmp / "ws"))
+        self.enterContext(patch.object(series, "optional_chat_model", lambda: None))
+
+    async def _until(self, session: ClientSession, task_id: str, *statuses: str) -> Any:
+        for _ in range(500):
+            got = await session.experimental.get_task(task_id)
+            if got.status in statuses:
+                return got
+            await asyncio.sleep(0.01)
+        self.fail(f"task {task_id} never reached {statuses}: {got.status}")
+
+    async def test_only_run_agent_advertises_optional_task_support_and_the_server_takes_task_calls(self) -> None:
+        async with create_connected_server_and_client_session(mcp_server.server) as session:
+            listed = {tool.name: tool for tool in (await session.list_tools()).tools}
+            capabilities = session.get_server_capabilities()
+        self.assertEqual(listed["run_agent"].execution.taskSupport, "optional")
+        for name in ("decide", "list_agents"):
+            self.assertIsNone(listed[name].execution)
+        assert capabilities is not None and capabilities.tasks is not None
+        self.assertIsNotNone(capabilities.tasks.requests.tools.call)
+        self.assertIsNotNone(capabilities.tasks.cancel)
+
+    async def test_a_task_returns_at_once_reports_status_and_then_the_summary(self) -> None:
+        started, release = asyncio.Event(), asyncio.Event()
+
+        async def slow(name: str, flags: list[str]) -> dict[str, Any]:
+            await progress.report(1, 2, "episode 1/2")
+            started.set()
+            await release.wait()
+            return {"env": name, "episodes": 2}
+
+        with patch.object(agents, "run_by_name", slow), patch.object(mcp_server, "PROGRESS_INTERVAL_S", 0.0):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                created = await asyncio.wait_for(
+                    session.experimental.call_tool_as_task("run_agent", {"name": "counter", "flags": []}, ttl=1000), 1
+                )
+                task_id = created.task.taskId
+                await asyncio.wait_for(started.wait(), 5)
+                working = await session.experimental.get_task(task_id)
+                self.assertEqual((working.status, working.statusMessage), ("working", "episode 1/2"))
+                self.assertGreaterEqual(working.ttl, mcp_server.TASK_TTL_MS)  # a 1 s ttl would drop a run mid-way
+                self.assertTrue(mcp_server._ONE_RUN.locked())  # the task holds the slot the synchronous call does
+                release.set()
+                await self._until(session, task_id, "completed")
+                result = await session.experimental.get_task_result(task_id, CallToolResult)
+        self.assertFalse(result.isError, result.content)
+        self.assertEqual(_rows(result), {"env": "counter", "episodes": 2})
+        self.assertFalse(mcp_server._ONE_RUN.locked())
+
+    async def test_a_real_tool_agent_run_as_a_task_returns_the_same_summary(self) -> None:
+        flags = [*RANDOM_RUN[:5], "2", "--showcase"]
+        async with create_connected_server_and_client_session(mcp_server.server) as session:
+            created = await session.experimental.call_tool_as_task("run_agent", {"name": "counter", "flags": flags})
+            await self._until(session, created.task.taskId, "completed")
+            result = await session.experimental.get_task_result(created.task.taskId, CallToolResult)
+        self.assertFalse(result.isError, result.content)
+        summary = _rows(result)
+        self.assertEqual((summary["env"], summary["policy"], summary["episodes"]), ("counter", "random", 2))
+        self.assertTrue(Path(summary["job_dir"]).is_dir())
+
+    async def test_bad_flags_and_a_busy_server_complete_the_task_with_a_tool_error(self) -> None:
+        started = asyncio.Event()
+
+        async def slow(name: str, flags: list[str]) -> dict[str, Any]:
+            started.set()
+            await asyncio.Event().wait()
+            return {}
+
+        async with create_connected_server_and_client_session(mcp_server.server) as session:
+            bad = await session.experimental.call_tool_as_task("run_agent", {"name": "counter", "flags": ["--help"]})
+            await self._until(session, bad.task.taskId, "completed")
+            bad_result = await session.experimental.get_task_result(bad.task.taskId, CallToolResult)
+            with patch.object(agents, "run_by_name", slow):
+                first = await session.experimental.call_tool_as_task("run_agent", {"name": "counter", "flags": []})
+                await asyncio.wait_for(started.wait(), 5)
+                second = await session.experimental.call_tool_as_task("run_agent", {"name": "counter", "flags": []})
+                await self._until(session, second.task.taskId, "completed")
+                busy = await session.experimental.get_task_result(second.task.taskId, CallToolResult)
+                await session.experimental.cancel_task(first.task.taskId)
+        self.assertTrue(bad_result.isError)
+        self.assertIn("bad flags", bad_result.content[0].text)
+        self.assertTrue(busy.isError)
+        self.assertIn("run_agent counter has been running for", busy.content[0].text)
+
+    async def test_tasks_cancel_tears_the_browser_down_and_frees_the_slot(self) -> None:
+        started, torn_down = asyncio.Event(), []
+
+        async def run_agent(agent: Any, inputs: dict[str, Any]) -> dict[str, Any]:
+            started.set()
+            await asyncio.Event().wait()
+            return {}
+
+        async def cleanup() -> None:
+            await asyncio.sleep(0.01)
+            torn_down.append("browser")
+
+        async def release(conversation_id: str) -> None:
+            await asyncio.sleep(0)
+            torn_down.append("session")
+
+        agent = SimpleNamespace(ensure_initialized=AsyncMock(), cleanup_task_resources=cleanup)
+        runner = SimpleNamespace(run_agent=run_agent, release=release)
+
+        async def browser_run(name: str, flags: list[str]) -> dict[str, Any]:
+            return dict(await browse.run_task(agent, "goal", timeout_s=60, logs_dir=self.tmp))  # ty: ignore[invalid-argument-type]
+
+        with (
+            patch.object(browse, "Runner", runner),
+            patch.object(browse, "save_final_screenshot", AsyncMock()),
+            patch.object(agents, "run_by_name", browser_run),
+        ):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                created = await session.experimental.call_tool_as_task("run_agent", {"name": "flights", "flags": []})
+                await asyncio.wait_for(started.wait(), 5)
+                cancelled = await session.experimental.cancel_task(created.task.taskId)
+                for _ in range(100):
+                    if not mcp_server._ONE_RUN.locked():
+                        break
+                    await asyncio.sleep(0.01)
+                self.assertFalse(mcp_server._ONE_RUN.locked())
+                after = await session.experimental.get_task(created.task.taskId)
+                with self.assertRaises(McpError):  # a cancelled task cannot be cancelled again
+                    await session.experimental.cancel_task(created.task.taskId)
+        self.assertEqual(cancelled.status, "cancelled")
+        self.assertEqual(after.status, "cancelled")
+        self.assertEqual(torn_down, ["browser", "session"])
+        self.assertEqual(mcp_server._TASK_SCOPES, {})
+
+    async def test_a_task_call_of_decide_is_a_protocol_error(self) -> None:
+        async with create_connected_server_and_client_session(mcp_server.server) as session:
+            with self.assertRaises(McpError) as caught:
+                await session.experimental.call_tool_as_task(
+                    "decide", {"state": {}, "options": {"a": "a"}, "rules": "pick"}
+                )
+        self.assertEqual(caught.exception.error.code, METHOD_NOT_FOUND)
+        self.assertIn("does not support task-augmented calls", caught.exception.error.message)
