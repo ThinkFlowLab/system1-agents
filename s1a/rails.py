@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import math
 import json
 import statistics
 from collections.abc import Callable
@@ -33,6 +34,37 @@ from s1a.spec import Json, RailSpec, Verdict
 QUESTION = "check"
 RAIL_MODEL_NAMES = ("jev", "clm", "laya", "laya-served")
 BANDS = ("allow", "uncertain", "act", "failure")  # a labelled-set row's outcome; failure: the decision itself failed
+Z95 = 1.959963984540054  # standard normal quantile for a 95% Wilson interval
+
+
+def wilson(k: int, n: int, z: float = Z95) -> tuple[float, float] | None:
+    """95% Wilson score interval for k successes in n trials; None when n is 0."""
+    if n < 0 or k < 0 or k > n:
+        raise ValueError(f"wilson expects 0 <= k <= n, got k={k}, n={n}")
+    if n == 0:
+        return None
+    phat = k / n
+    z2 = z * z
+    denom = 1 + z2 / n
+    centre = (phat + z2 / (2 * n)) / denom
+    half = z * math.sqrt((phat * (1 - phat) + z2 / (4 * n)) / n) / denom
+    return (max(0.0, centre - half), min(1.0, centre + half))
+
+
+def auroc(labels: list[bool], scores: list[float]) -> float | None:
+    """ROC AUC from scores (higher = more positive) via pairwise ranks; ties count as 0.5. None if one class is empty."""
+    pos = [s for s, y in zip(scores, labels) if y]
+    neg = [s for s, y in zip(scores, labels) if not y]
+    if not pos or not neg:
+        return None
+    greater = sum(p > n for p in pos for n in neg)
+    ties = sum(p == n for p in pos for n in neg)
+    return (greater + 0.5 * ties) / (len(pos) * len(neg))
+
+
+def _ci(k: int, n: int) -> list[float] | None:
+    interval = wilson(k, n)
+    return [round(interval[0], 3), round(interval[1], 3)] if interval is not None else None
 
 
 def question(spec: RailSpec) -> Question:
@@ -78,7 +110,8 @@ class DecisionModelRail(DeepAgentRail):
     - ``pass_partial``: allow or uncertain band over part of the event, and the spec has no ``on_partial``.
     - ``withhold_uninspected``: allow or uncertain band over part of the event; the spec's ``on_partial`` ran.
     - ``act``: act band; the spec's action ran.
-    - ``act_on_failure`` / ``pass_on_failure``: the decision failed on a closed / open rail.
+    - ``act_on_failure`` / ``pass_on_failure`` / ``ask_on_failure``: the decision failed on a closed / open / ask rail.
+    - ``ask``: uncertain band, and the spec's ``on_ask`` ran (the tool-call gate's interrupt path).
 
     With ``coverage_of`` set, a tick also carries ``coverage`` (``complete`` or ``partial``), ``chars`` and
     ``inspected_chars``. A tick holds numbers, bands and, on a failure, the error's category and code (see
@@ -116,21 +149,28 @@ class DecisionModelRail(DeepAgentRail):
                 "[DecisionModelRail %s] decision failed, %s: %s", self._spec.name, self._spec.on_failure, error
             )
             closed = self._spec.on_failure == "closed"
+            asking = self._spec.on_failure == "ask"
+            handling = "act_on_failure" if closed else "ask_on_failure" if asking else "pass_on_failure"
             self.ticks.append(
                 {
                     "error": error,
                     "error_code": exc.code,
                     "failed": self._spec.on_failure,
-                    "handling": "act_on_failure" if closed else "pass_on_failure",
+                    "handling": handling,
                     **seen,
                 }
             )
             if closed:
                 verdict = Verdict(p=self._spec.thresholds.act, band="act", ms=0, input_tokens=0)
                 await self._spec.act(ctx, verdict)
+            elif asking and self._spec.on_ask is not None:
+                verdict = Verdict(p=0.5, band="uncertain", ms=0, input_tokens=0)
+                await self._spec.on_ask(ctx, verdict)
             return
         if verdict.band == "act":
             handling = "act"
+        elif verdict.band == "uncertain" and self._spec.on_ask is not None:
+            handling = "ask"
         elif coverage is not None and not coverage.complete:
             handling = "withhold_uninspected" if self._spec.on_partial is not None else "pass_partial"
         else:
@@ -147,6 +187,9 @@ class DecisionModelRail(DeepAgentRail):
         )
         if handling == "act":
             await self._spec.act(ctx, verdict)
+        elif handling == "ask":
+            assert self._spec.on_ask is not None
+            await self._spec.on_ask(ctx, verdict)
         elif handling == "withhold_uninspected":
             assert self._spec.on_partial is not None and coverage is not None
             await self._spec.on_partial(ctx, coverage)
@@ -184,7 +227,9 @@ async def evaluate(
 
     A record's state goes through ``spec.labelled_state`` first, as the hook would clip it. A decision that fails
     (endpoint, key, deadline, malformed answer) is a ``failure`` row, not an abort: every record stays in the
-    denominator, and on a closed rail it counts as acted, as the runtime quarantines it."""
+    denominator, and on a closed rail it counts as acted, as the runtime quarantines it. The summary also reports
+    F1, false-allow and ask rates with Wilson 95% intervals, AUROC from the probabilities, and the same figures
+    per ``split`` when records carry that field."""
     data = labelled_set.read_bytes()  # one read before the first await: the digest covers the bytes evaluated
     records = read_labelled(labelled_set, data)
     clip: Callable[[Json], Json] = spec.labelled_state or (lambda state: state)
@@ -228,6 +273,7 @@ async def evaluate(
         "labelled_set_sha256": hashlib.sha256(data).hexdigest(),
         "finished_at": now_iso(),
     }
+    summary.update(_detection_metrics(labels, bands, verdicts, spec.on_failure, records))
     job_dir = results_dir / spec.name / f"{datetime.now():%Y-%m-%d__%H-%M-%S-%f}__{decision_model.name}"
     job_dir.mkdir(parents=True)
     (job_dir / "verdicts.jsonl").write_text(
@@ -253,6 +299,61 @@ async def evaluate(
     return summary
 
 
+def _detection_metrics(
+    labels: list[bool],
+    bands: list[str],
+    verdicts: list[Verdict | None],
+    on_failure: str,
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """F1, false-allow, ask rate, Wilson intervals, AUROC, and per-split copies of the same."""
+
+    def pack(mask: list[bool]) -> dict[str, Any]:
+        sub_labels = [lab for lab, keep in zip(labels, mask) if keep]
+        sub_bands = [band for band, keep in zip(bands, mask) if keep]
+        sub_verdicts = [verdict for verdict, keep in zip(verdicts, mask) if keep]
+        n = len(sub_labels)
+        asked = [band == "uncertain" or (band == "failure" and on_failure == "ask") for band in sub_bands]
+        acted = [band == "act" or (band == "failure" and on_failure == "closed") for band in sub_bands]
+        tp = sum(a and lab for a, lab in zip(acted, sub_labels))
+        fp = sum(a and not lab for a, lab in zip(acted, sub_labels))
+        fn = sum(lab and not a for a, lab in zip(acted, sub_labels))
+        positives = sum(sub_labels)
+        false_allow = sum(lab and not a and not q for lab, a, q in zip(sub_labels, acted, asked))
+        f1 = (2 * tp / (2 * tp + fp + fn)) if tp + fp + fn else None
+        precision = tp / (tp + fp) if tp + fp else None
+        recall = tp / (tp + fn) if tp + fn else None
+        scored = [(lab, verdict.p) for lab, verdict in zip(sub_labels, sub_verdicts) if verdict is not None]
+        return {
+            "records": n,
+            "positives": positives,
+            "acted": sum(acted),
+            "precision": round(precision, 3) if precision is not None else None,
+            "recall": round(recall, 3) if recall is not None else None,
+            "f1": round(f1, 3) if f1 is not None else None,
+            "precision_ci": _ci(tp, tp + fp) if tp + fp else None,
+            "recall_ci": _ci(tp, tp + fn) if tp + fn else None,
+            "false_allow": round(false_allow / positives, 3) if positives else None,
+            "false_allow_ci": _ci(false_allow, positives) if positives else None,
+            "ask_rate": round(sum(asked) / n, 3) if n else None,
+            "ask_rate_ci": _ci(sum(asked), n) if n else None,
+            "auroc": (
+                round(auc, 3)
+                if (auc := auroc([lab for lab, _ in scored], [p for _, p in scored])) is not None
+                else None
+            ),
+        }
+
+    metrics = pack([True] * len(labels))
+    splits: dict[str, Any] = {}
+    names = sorted({str(record["split"]) for record in records if record.get("split") not in (None, "")})
+    for name in names:
+        splits[name] = pack([str(record.get("split")) == name for record in records])
+    if splits:
+        metrics["splits"] = splits
+    return metrics
+
+
 def parser(spec: RailSpec) -> argparse.ArgumentParser:
     build = argparse.ArgumentParser(prog=f"s1a run {spec.name}", description=spec.description)
     build.add_argument(
@@ -262,18 +363,25 @@ def parser(spec: RailSpec) -> argparse.ArgumentParser:
         required=spec.labelled_set is None,
         help="JSONL records with a state and a boolean label; the spec's set when it names one",
     )
+    models = RAIL_MODEL_NAMES + (("rule",) if spec.name == "tool_gate" else ())
     build.add_argument(
         "--model",
-        choices=RAIL_MODEL_NAMES,
+        choices=models,
         default="jev",
-        help="who answers the question: jev, clm or laya-served over HTTP, laya in process",
+        help="who answers the question: jev, clm or laya-served over HTTP, laya in process"
+        + (", rule for the static tool-gate baseline" if spec.name == "tool_gate" else ""),
     )
     return build
 
 
 async def play(spec: RailSpec, args: argparse.Namespace, *, results_dir: Path) -> dict[str, Any]:
     """Evaluate the rail on its labelled set with a fresh model; the summary names its job folder."""
-    decision_model = build_model(args.model)
+    if args.model == "rule":
+        from s1a.agents.tool_gate import RuleNoulModel
+
+        decision_model = RuleNoulModel()
+    else:
+        decision_model = build_model(args.model)
     try:
         await decision_model.warm()
         return await evaluate(spec, args.labelled_set, decision_model=decision_model, results_dir=results_dir)
