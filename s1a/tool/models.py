@@ -132,6 +132,14 @@ class ToolDecisionModel(Model):
         if state.error is not None:
             return self._stop("BLOCKED", state.error)
         observation = await env.observe()
+        locate_record = None
+        locate_fn = getattr(env, "locate_box_targets", None)
+        if callable(locate_fn) and getattr(env, "box_targets", None):
+            try:
+                locate_record = await locate_fn(self._decision_model)
+            except BaseError as exc:
+                state.error = f"box locate failed: {exc}"
+                return self._stop("BLOCKED", state.error)
         candidates = await env.candidates()
         if not candidates:
             return self._stop("BLOCKED", "no candidates")
@@ -168,6 +176,13 @@ class ToolDecisionModel(Model):
         }
         if choice.backend_confidence is not None:
             tick["backend_confidence"] = round(choice.backend_confidence, 3)
+        if locate_record is not None:
+            tick["box_locate"] = locate_record
+        hit_fn = getattr(env, "box_hit", None)
+        if callable(hit_fn) and choice.key.startswith("box:"):
+            hit = hit_fn(choice.key)
+            if hit is not None:
+                tick["box"] = hit.record()
         state.ticks.append(tick)
         state.blocked = set()  # a block, the notices and the plan last one turn
         state.notices = []

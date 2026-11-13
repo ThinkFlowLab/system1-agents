@@ -17,6 +17,8 @@ from openjiuwen.core.common.exception.errors import build_error
 
 from s1a.decision_models.types import (
     Answer,
+    Box,
+    BoxQuestion,
     Choice,
     ChoiceQuestion,
     Decision,
@@ -104,6 +106,39 @@ def validate_noul(fields: Json) -> Noul:
     )
 
 
+def validate_box(fields: Json) -> Box:
+    """The typed box: four edges in [0, 1] with left < right and top < bottom, plus confidence in [0, 1].
+
+    TypeSafe's Box confidence is kept as ``Box.confidence`` (there is no separate contract rescale). A missing or
+    malformed edge or confidence is ``MODEL_CALL_FAILED``.
+    """
+    edges = fields.get("box")
+    if not isinstance(edges, dict):
+        raise build_error(StatusCode.MODEL_CALL_FAILED, error_msg="decisions answer is not a box: box is not an object")
+    try:
+        top, bottom, left, right = (float(edges[k]) for k in ("top", "bottom", "left", "right"))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise build_error(
+            StatusCode.MODEL_CALL_FAILED,
+            cause=exc,
+            error_msg="decisions answer is not a box: edges missing or non-numeric",
+        ) from exc
+    confidence = fields.get("confidence")
+    if not all(unit_interval(v) for v in (top, bottom, left, right, confidence)):
+        raise build_error(
+            StatusCode.MODEL_CALL_FAILED,
+            error_msg="decisions answer is not a box: an edge or confidence is not in [0, 1]",
+        )
+    assert unit_interval(confidence)  # narrows Any | None to float for the type checker
+    if not (left < right and top < bottom):
+        raise build_error(
+            StatusCode.MODEL_CALL_FAILED,
+            error_msg=f"decisions answer is not a box: edges must satisfy left < right and top < bottom, got {edges}",
+        )
+    conf = float(confidence)
+    return Box(top=top, bottom=bottom, left=left, right=right, confidence=conf, backend_confidence=conf)
+
+
 def validate_answer(fields: Any, question: Question) -> Answer:
     """One answer as its question's type; a non-object answer reads as an empty one and fails on its fields."""
     fields = fields if isinstance(fields, dict) else {}
@@ -112,6 +147,8 @@ def validate_answer(fields: Any, question: Question) -> Answer:
             return validate_choice(fields, question.ids)
         case NoulQuestion():
             return validate_noul(fields)
+        case BoxQuestion():
+            return validate_box(fields)
     raise TypeError(f"not a question: {question!r}")
 
 

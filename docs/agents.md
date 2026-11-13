@@ -50,7 +50,7 @@ If a call's token usage is unknown, the reported cost stays unknown rather than 
 `--batch on|off`, `--prefetch on|off`, `--goal-values on|off`, `--rethink on|off`, `--rethink-attempts`,
 `--rethink-timeout`, `--profile-out` and `--logs-dir`; `desktop` takes `--app`, `--app-path`, `--window-title`,
 `--goal`, `--expect`, `--execute`, `--plan`, `--clear`, `--text`, `--text-target`, `--text-mode`, `--verify-file`,
-`--pixel-target` and the same three `--rethink` flags; `ticket_router` takes `--dataset` and `--batch-size`;
+`--pixel-target`, `--box-target` and the same three `--rethink` flags; `ticket_router` takes `--dataset` and `--batch-size`;
 `injection_guard` takes `--labelled-set`. The four games take no flag of their own.
 
 ### Desktop text input
@@ -70,6 +70,14 @@ The [macOS fixture](../evals/desktop/README.md) provides a local Laya demo and a
 among them when controls have no accessibility elements. Each click carries its screenshot capture ID.
 Install the `cua-four-b` extra and set `CUA_S1_VARIANT=4b`, `CUA_S1_MODALITY=multimodal`.
 See [the macOS visual task](../evals/desktop/visual.md) for setup and verification commands.
+
+`--box-target KEY=description` (**experimental**, needs #97 / `S1A_JEV_IMAGES=1`, `TYPESAFE_MODEL=jev-1.14.0` or
+newer) locates each key with Jev's Box question instead of hand-written coordinates. Every step one request asks,
+per target, a presence `noul` and a `box` over the current screenshot. Targets below
+`S1A_BOX_PRESENCE_THRESHOLD` or `S1A_BOX_CONFIDENCE_THRESHOLD` (both default `0.5`, **uncalibrated**) are not
+offered; the click is the box centre, bound to the current capture like `--pixel-target`. Do not treat this as a
+general accuracy claim; measure on your own captures with `scripts/measure_box_targets.py`. A live run on the #30
+visual fixture is still required before calling the feature measured. Browser Box is out of scope.
 
 ## Allrecipes
 
