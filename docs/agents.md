@@ -69,6 +69,8 @@ The [macOS fixture](../evals/desktop/README.md) provides a local Laya demo and a
 `--pixel-target KEY=X,Y` offers named points in screenshot fractions. Local Cua-S1 4B multimodal can select
 among them when controls have no accessibility elements. Each click carries its screenshot capture ID.
 Install the `cua-four-b` extra and set `CUA_S1_VARIANT=4b`, `CUA_S1_MODALITY=multimodal`.
+To run the model on a CUDA host instead, start system1-omni's multimodal worker there and set `CUA_S1_VARIANT=4b`
+and `CUA_S1_URL`; the Mac client then needs no extra. The click still uses the capture whose screenshot was sent.
 See [the macOS visual task](../evals/desktop/visual.md) for setup and verification commands.
 
 ## Allrecipes
