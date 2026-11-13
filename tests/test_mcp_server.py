@@ -1,8 +1,10 @@
 # coding: utf-8
-"""The MCP server over an in-memory session: the three tools, decide against a fake client, and the agent listing."""
+"""The MCP server over an in-memory session: the three tools, decide against a fake client, the agent listing, and
+long runs (progress, the busy refusal, cancellation)."""
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import importlib.util
 import io
@@ -13,25 +15,33 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from collections.abc import AsyncIterator
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase, skipUnless
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.shared.exceptions import McpError
 from mcp.shared.memory import create_connected_server_and_client_session
+from mcp.types import CancelledNotification, CancelledNotificationParams, ClientNotification
 
 from s1a import mcp_server
+from s1a.browser import browse
 from s1a import run as agents
 from s1a.decision_models import JevModel, ScriptedModel, ScriptedTransport
 from s1a.tool import loop, series
+from s1a.agents.flights import SPEC as FLIGHTS
 from support import COUNTER
 
 RANDOM_RUN = ["--model", "random", "--rethink", "off", "--episodes", "1", "--showcase"]
 NO_KEYS = {"TYPESAFE_API_KEY": "", "OPENROUTER_API_KEY": "", "MODEL_NAME": "", "OPENAI_API_KEY": "", "LLM_API_KEY": ""}
 HAVE_RLCARD = importlib.util.find_spec("rlcard") is not None  # the one tool agent that runs offline
+ROOT = Path(__file__).resolve().parents[1]
 HARNESS_LOG = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| ")  # the console entry routes these to files
 
 
@@ -282,6 +292,230 @@ class TestMcpServer(IsolatedAsyncioTestCase):
             rows["alfworld"], {"name": "alfworld", "front": "unavailable", "description": "ALFWORLD_DATA is empty"}
         )
         self.assertEqual(rows["game2048"]["front"], "tool")
+
+
+async def _cancel(session: ClientSession, request_id: int) -> None:
+    params = CancelledNotificationParams(requestId=request_id, reason="host gave up")
+    await session.send_notification(ClientNotification(CancelledNotification(params=params)))
+
+
+class TestLongRuns(IsolatedAsyncioTestCase):
+    """What a host with a tool timeout needs: progress, a fast refusal while busy, and a clean cancellation."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.enterContext(patch.object(agents, "load", lambda name: COUNTER))
+        self.enterContext(patch.object(agents, "SHOWCASE_DIR", self.tmp / "showcase"))
+        self.enterContext(patch.object(loop, "WORKSPACE", self.tmp / "ws"))
+        self.enterContext(patch.object(series, "optional_chat_model", lambda: None))
+
+    def test_the_first_512_characters_say_runs_are_serialized_and_need_a_raised_timeout(self) -> None:
+        head = mcp_server.INSTRUCTIONS[:512]
+        self.assertIn("One run or decision at a time per server", head)
+        for setting in ("tool timeout", "tool_timeout_sec", "MCP_TOOL_TIMEOUT"):
+            self.assertIn(setting, head)
+
+    async def test_a_progress_token_gets_increasing_progress_per_episode(self) -> None:
+        points: list[tuple[float, float | None, str | None]] = []
+
+        async def heard(done: float, total: float | None, message: str | None) -> None:
+            points.append((done, total, message))
+
+        flags = [*RANDOM_RUN[:5], "3", "--showcase"]
+        with patch.object(mcp_server, "PROGRESS_INTERVAL_S", 0.0):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                result = await session.call_tool(
+                    "run_agent", {"name": "counter", "flags": flags}, progress_callback=heard
+                )
+        self.assertFalse(result.isError, result.content)
+        self.assertEqual(_rows(result)["episodes"], 3)
+        self.assertEqual(points, [(1, 3, "episode 1/3"), (2, 3, "episode 2/3"), (3, 3, "episode 3/3")])
+
+    async def test_without_a_token_no_progress_is_sent(self) -> None:
+        flags = [*RANDOM_RUN[:5], "3", "--showcase"]
+        with patch.object(mcp_server.Context, "report_progress", new_callable=AsyncMock) as sent:
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                result = await session.call_tool("run_agent", {"name": "counter", "flags": flags})
+        self.assertFalse(result.isError, result.content)
+        sent.assert_not_awaited()
+
+    async def test_the_rate_bound_keeps_the_last_point_and_drops_repeats(self) -> None:
+        ctx = SimpleNamespace(
+            request_context=SimpleNamespace(meta=SimpleNamespace(progressToken="t")), report_progress=AsyncMock()
+        )
+        send = mcp_server._progress_reporter(ctx)  # ty: ignore[invalid-argument-type]
+        assert send is not None
+        for done in (1, 1, 2, 3, 4):
+            await send(done, 4, f"step {done}/4")
+        sent = [call.args for call in ctx.report_progress.await_args_list]
+        self.assertEqual(sent, [(1, 4, "step 1/4"), (4, 4, "step 4/4")])  # 2 and 3 fell inside the interval
+
+    async def test_a_call_while_a_run_holds_the_slot_is_refused_at_once(self) -> None:
+        started = asyncio.Event()
+
+        async def slow(name: str, flags: list[str]) -> dict[str, Any]:
+            started.set()
+            await asyncio.Event().wait()
+            return {}
+
+        with (
+            patch.object(agents, "run_by_name", slow),
+            patch.object(mcp_server, "build_model", return_value=ScriptedModel(choose="a")),
+        ):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                request_id = session._request_id  # the id the next request takes
+                first = asyncio.create_task(session.call_tool("run_agent", {"name": "counter", "flags": []}))
+                await asyncio.wait_for(started.wait(), 5)
+                busy = await asyncio.wait_for(
+                    session.call_tool("decide", {"state": {}, "options": {"a": "a"}, "rules": "pick"}), 1
+                )
+                again = await asyncio.wait_for(
+                    session.call_tool("run_agent", {"name": "counter", "flags": RANDOM_RUN}), 1
+                )
+                await _cancel(session, request_id)
+                with contextlib.suppress(McpError):
+                    await asyncio.wait_for(first, 5)
+        for refused in (busy, again):
+            self.assertTrue(refused.isError)
+            self.assertIn("run_agent counter has been running for", refused.content[0].text)
+            self.assertIn("one call at a time", refused.content[0].text)
+
+    async def test_a_cancelled_browser_run_tears_down_and_frees_the_slot(self) -> None:
+        started, torn_down = asyncio.Event(), []
+
+        async def run_agent(agent: Any, inputs: dict[str, Any]) -> dict[str, Any]:
+            started.set()
+            await asyncio.Event().wait()
+            return {}
+
+        async def cleanup() -> None:
+            await asyncio.sleep(0.01)  # a real teardown awaits; the cancelled task must not cut it short
+            torn_down.append("browser")
+
+        async def release(conversation_id: str) -> None:
+            await asyncio.sleep(0)
+            torn_down.append("session")
+
+        agent = SimpleNamespace(ensure_initialized=AsyncMock(), cleanup_task_resources=cleanup)
+        runner = SimpleNamespace(run_agent=run_agent, release=release)
+
+        async def browser_run(name: str, flags: list[str]) -> dict[str, Any]:
+            return dict(await browse.run_task(agent, "goal", timeout_s=60, logs_dir=self.tmp))  # ty: ignore[invalid-argument-type]
+
+        with (
+            patch.object(browse, "Runner", runner),
+            patch.object(browse, "save_final_screenshot", AsyncMock()),
+            patch.object(mcp_server, "build_model", return_value=ScriptedModel(choose="a")),
+        ):
+            async with create_connected_server_and_client_session(mcp_server.server) as session:
+                with patch.object(agents, "run_by_name", browser_run):
+                    request_id = session._request_id
+                    first = asyncio.create_task(session.call_tool("run_agent", {"name": "flights", "flags": []}))
+                    await asyncio.wait_for(started.wait(), 5)
+                    await _cancel(session, request_id)
+                    with contextlib.suppress(McpError):
+                        await asyncio.wait_for(first, 5)
+                    for _ in range(100):
+                        if not mcp_server._ONE_RUN.locked():
+                            break
+                        await asyncio.sleep(0.01)
+                self.assertFalse(mcp_server._ONE_RUN.locked())
+                after = await asyncio.wait_for(
+                    session.call_tool("decide", {"state": {}, "options": {"a": "a"}, "rules": "pick"}), 5
+                )
+        self.assertEqual(torn_down, ["browser", "session"])
+        self.assertFalse(after.isError, after.content)
+        self.assertEqual(_rows(after)["choice"], "a")
+
+    async def test_a_cancelled_series_writes_its_job_as_cancelled(self) -> None:
+        real, blocked = loop.run_episode, asyncio.Event()
+
+        async def second_blocks(*args: Any, **kwargs: Any) -> Any:
+            if kwargs["seed"] > 0:
+                blocked.set()
+                await asyncio.Event().wait()
+            return await real(*args, **kwargs)
+
+        parsed = series.parser(COUNTER).parse_args([*RANDOM_RUN[:5], "3"])
+        with patch.object(series, "run_episode", second_blocks):
+            task = asyncio.create_task(series.play(COUNTER, parsed, results_dir=self.tmp / "results"))
+            await asyncio.wait_for(blocked.wait(), 5)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        (job_dir,) = (self.tmp / "results" / COUNTER.name).iterdir()
+        job = json.loads((job_dir / "result.json").read_text(encoding="utf-8"))
+        self.assertTrue(job["cancelled"])
+        self.assertEqual((job["n_total_trials"], job["stats"]["n_cancelled_trials"]), (3, 2))
+
+    async def test_a_cancelled_browser_play_writes_a_cancelled_answer(self) -> None:
+        async def blocks(*args: Any, **kwargs: Any) -> Any:
+            await asyncio.Event().wait()
+
+        args = SimpleNamespace(
+            profile_out=None, model="llm", goal="g", timeout=60.0, max_steps=5, logs_dir=self.tmp / "logs", headed=False
+        )
+        with (
+            patch.object(browse, "chat_model_from_env", lambda: None),
+            patch.object(browse, "policy_from_args", lambda args: None),
+            patch.object(browse, "browse", blocks),
+        ):
+            task = asyncio.create_task(browse.play(FLIGHTS, args))  # ty: ignore[invalid-argument-type]
+            await asyncio.sleep(0.01)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        answer = json.loads((self.tmp / "logs" / "answer.json").read_text(encoding="utf-8"))
+        self.assertEqual((answer["ok"], answer["cancelled"], answer["model"]), (False, True, "llm"))
+
+    async def test_a_cancel_before_any_episode_still_writes_a_cancelled_job(self) -> None:
+        """Cancel during the first episode: no finished trial, but every planned seed is recorded."""
+        real, blocked = series.run_episode, asyncio.Event()
+
+        async def blocks_first(*args: Any, **kwargs: Any) -> Any:
+            blocked.set()
+            await asyncio.Event().wait()
+            return await real(*args, **kwargs)
+
+        parsed = series.parser(COUNTER).parse_args([*RANDOM_RUN[:5], "3"])
+        with patch.object(series, "run_episode", blocks_first):
+            task = asyncio.create_task(series.play(COUNTER, parsed, results_dir=self.tmp / "results"))
+            await asyncio.wait_for(blocked.wait(), 5)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        (job_dir,) = (self.tmp / "results" / COUNTER.name).iterdir()
+        job = json.loads((job_dir / "result.json").read_text(encoding="utf-8"))
+        self.assertTrue(job["cancelled"])
+        self.assertEqual((job["n_total_trials"], job["stats"]["n_cancelled_trials"]), (3, 3))
+        self.assertEqual(job["stats"]["n_completed_trials"], 0)
+        config = json.loads((job_dir / "config.json").read_text(encoding="utf-8"))
+        self.assertEqual(config["datasets"], [{"name": COUNTER.name, "n_tasks": 3}])
+
+
+class TestSdkBound(TestCase):
+    """mcp stays on 1.x until openjiuwen's fastmcp allows 2.x; docs/architecture.md § MCP SDK 2.x tracks the port."""
+
+    NOTE = "### MCP SDK 2.x"
+    ONE_X_ONLY = re.compile(r"^\s*from mcp(?:\.server\.fastmcp|\.client\.stdio|\.shared\.memory)? import ", re.M)
+
+    def test_the_declared_bound_and_the_installed_sdk_stay_below_2(self) -> None:
+        declared = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["dependencies"]
+        self.assertIn("mcp>=1.26,<2", declared)
+        self.assertEqual(version("mcp").split(".")[0], "1", version("mcp"))
+
+    def test_the_migration_note_names_every_file_importing_1x_only_names(self) -> None:
+        architecture = (ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+        self.assertIn(self.NOTE, architecture)
+        note = architecture.split(self.NOTE, 1)[1]
+        sources = [*ROOT.glob("s1a/**/*.py"), *ROOT.glob("tests/**/*.py"), *ROOT.glob("scripts/*.sh")]
+        importing = sorted(
+            path.relative_to(ROOT).as_posix()
+            for path in sources
+            if self.ONE_X_ONLY.search(path.read_text(encoding="utf-8"))
+        )
+        self.assertIn("s1a/mcp_server.py", importing)
+        self.assertEqual([name for name in importing if f"`{name}`" not in note], [])
 
 
 class TestAdvertisedTools(IsolatedAsyncioTestCase):

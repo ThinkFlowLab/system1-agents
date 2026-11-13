@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -5221,6 +5221,7 @@ name = "system1-agents"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "anyio" },
     { name = "httpx" },
     { name = "mcp" },
     { name = "openjiuwen" },
@@ -5289,13 +5290,14 @@ requires-dist = [
     { name = "accelerate", marker = "extra == 'omnijev'" },
     { name = "ai2thor", marker = "extra == 'alfworld-visual'", specifier = "==2.1.0" },
     { name = "alfworld", marker = "extra == 'alfworld'", specifier = ">=0.4" },
+    { name = "anyio", specifier = ">=4" },
     { name = "cua-s1", marker = "extra == 'cua'", git = "https://github.com/trycua/cua.git?subdirectory=libs%2Fcua-s1%2Fpython&rev=aea61b6eb97e2d8c0f6f71eb804e5769fe910af4" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "huggingface-hub", marker = "extra == 'cua'", specifier = ">=0.24" },
     { name = "huggingface-hub", marker = "extra == 'omnijev'", specifier = ">=0.24" },
     { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.18" },
     { name = "laya", marker = "extra == 'laya'", specifier = ">=0.3.9" },
-    { name = "mcp", specifier = ">=1.26" },
+    { name = "mcp", specifier = ">=1.26,<2" },
     { name = "opencv-python-headless", marker = "extra == 'alfworld-visual'", specifier = ">=4.10" },
     { name = "openjiuwen", git = "https://github.com/ThinkFlowLab/agent-core?rev=jj-0.1.0" },
     { name = "peft", marker = "extra == 'cua-four-b'", specifier = ">=0.21,<1" },

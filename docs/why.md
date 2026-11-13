@@ -22,7 +22,7 @@ what happens to speed, cost and score, on the same loop, the same tools and the 
 
 ## 2. What Jev is, and where it fits
 
-TypeSafe Jev (`jev-latest` at api.typesafe.ai, `typesafe/jev-1.13` on OpenRouter) is a decision model with
+TypeSafe Jev (pinned `jev-1.13.0` at api.typesafe.ai, `typesafe/jev-1.13` on OpenRouter) is a decision model with
 three heads, each returning an index into options the caller enumerates: `choice` (one option key, a
 probability per option, a confidence), `noul` (the probability that a statement holds) and `score` (a position
 in an ordered rubric). It emits no free text. Input is capped at 32K tokens. Price: $0.042 per million input

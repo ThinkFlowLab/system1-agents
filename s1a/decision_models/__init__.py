@@ -15,6 +15,7 @@ from s1a.decision_models.fakes import ScriptedModel, ScriptedTransport
 from s1a.decision_models.jev import JevModel, jev_question
 from s1a.decision_models.laya import LayaModel
 from s1a.decision_models.omnijev import OmniJevModel
+from s1a.decision_models.onejev import OneJevModel
 from s1a.decision_models.types import (
     Answer,
     Choice,
@@ -29,7 +30,14 @@ from s1a.decision_models.types import (
     Reply,
     Usage,
 )
-from s1a.decision_models.validation import choice_faults, validate_answers, validate_choice, validate_noul
+from s1a.decision_models.validation import (
+    choice_confidence,
+    choice_faults,
+    noul_confidence,
+    validate_answers,
+    validate_choice,
+    validate_noul,
+)
 
 __all__ = [
     "DECISION_MODEL_NAMES",
@@ -49,6 +57,7 @@ __all__ = [
     "Noul",
     "NoulQuestion",
     "OmniJevModel",
+    "OneJevModel",
     "Observation",
     "Question",
     "RandomModel",
@@ -57,7 +66,9 @@ __all__ = [
     "RuleModel",
     "Usage",
     "build_model",
+    "choice_confidence",
     "choice_faults",
+    "noul_confidence",
     "jev_question",
     "validate_answers",
     "validate_choice",

@@ -95,9 +95,9 @@ browser-use/jev-ultrafast (MIT), whose observe-decide-act tick this policy follo
     | `BATCH_ACTION_TIMEOUT_MS` | 2000 | a stamp lost to a re-render fails fast; the returned probe re-stamps |
 
 14. Two decisions backends, separate keys. `typesafe` talks to `api.typesafe.ai/v1/systemone` with
-    `TYPESAFE_API_KEY` and `jev-latest`; `openrouter` talks to `/api/alpha/decisions` with
-    `OPENROUTER_API_KEY` and `typesafe/jev-1.13` (`TYPESAFE_API_URL` and `TYPESAFE_MODEL` override the
-    proxy only). Setting `TYPESAFE_API_URL` selects the proxy backend, which reads `OPENROUTER_API_KEY`; the
+    `TYPESAFE_API_KEY` and the pinned `jev-1.13.0`; `openrouter` talks to `/api/alpha/decisions` with
+    `OPENROUTER_API_KEY` and `typesafe/jev-1.13` (`TYPESAFE_MODEL` overrides the model on both, `TYPESAFE_API_URL`
+    the proxy URL). Each tick records `model` and `requested_model`. Setting `TYPESAFE_API_URL` selects the proxy backend, which reads `OPENROUTER_API_KEY`; the
     TypeSafe key is never sent to OpenRouter. Measured: 294 to 418 ms per decision direct, 450 to 510 ms through the proxy.
 15. Batched actions (`--batch on`, `BrowserPolicy.batch_actions`, needs the `unsafe_dev` browser capability). Each step is one
     `browser_run_code_unsafe` call that performs the action and returns the next probe; one transport round

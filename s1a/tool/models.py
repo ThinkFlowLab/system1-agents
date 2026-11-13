@@ -151,23 +151,24 @@ class ToolDecisionModel(Model):
             state.error = f"decision failed: {exc}"
             return self._stop("BLOCKED", state.error)
         choice = decision.choice("pick")
-        state.ticks.append(
-            {
-                "step": len(state.ticks) + 1,
-                "key": choice.key,
-                "confidence": round(choice.confidence, 3),
-                "probabilities": choice.probabilities,
-                "ms": round((time.perf_counter() - started) * 1000),
-                "input_tokens": decision.usage.input_tokens,
-                "output_tokens": decision.usage.output_tokens,
-                "usage_known": decision.usage.known,
-                "plan": bool(state.plan),
-                "blocked": sorted(state.blocked),
-                "source": self.name,
-                "model": decision.model,
-                **decision.provenance,
-            }
-        )
+        tick = {
+            "step": len(state.ticks) + 1,
+            "key": choice.key,
+            "confidence": round(choice.confidence, 3),
+            "probabilities": choice.probabilities,
+            "ms": round((time.perf_counter() - started) * 1000),
+            "input_tokens": decision.usage.input_tokens,
+            "output_tokens": decision.usage.output_tokens,
+            "usage_known": decision.usage.known,
+            "plan": bool(state.plan),
+            "blocked": sorted(state.blocked),
+            "source": self.name,
+            "model": decision.model,
+            **decision.provenance,
+        }
+        if choice.backend_confidence is not None:
+            tick["backend_confidence"] = round(choice.backend_confidence, 3)
+        state.ticks.append(tick)
         state.blocked = set()  # a block, the notices and the plan last one turn
         state.notices = []
         state.plan = ""

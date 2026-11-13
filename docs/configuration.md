@@ -10,8 +10,9 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 |:---|:---|:---|:---|
 | `TYPESAFE_API_KEY` | `jev` model | *(unset)* | API key for direct TypeSafe decisions endpoint (`https://api.typesafe.ai/v1/systemone`). |
 | `TYPESAFE_API_URL` | `jev` model | `https://openrouter.ai/api/alpha/decisions` | Endpoint URL for decisions; defaults to OpenRouter proxy, or can be overridden to a custom proxy URL. |
-| `TYPESAFE_MODEL` | `jev` model | `typesafe/jev-1.13` | Model identifier when proxying Jev decisions through OpenRouter. |
-| `S1A_DECISION_TIMEOUT_S` | `jev` model | `5` | Seconds one decision may take, retries included. Raise it for a slower System One server behind `TYPESAFE_API_URL` (e.g. a local OneJev-27B or CLM-8B: `30`). |
+| `TYPESAFE_MODEL` | `jev` model | `jev-1.13.0` direct, `typesafe/jev-1.13` through OpenRouter | Jev model id on either backend. Both defaults are pinned versions: no path sends the moving `jev-latest` or `jev-preview` aliases unless you set them here. On the direct path (`TYPESAFE_API_KEY` without `TYPESAFE_API_URL`) it takes a TypeSafe name such as `jev-1.14.0`; an OpenRouter id like `typesafe/jev-1.13` there is a config error. TypeSafe keeps `jev-1.13.0` available and promises 60 days' notice before deprecating it. Step records keep `model` (the id the response reports, else the one sent) and `requested_model` (the one sent). |
+| `S1A_DECISION_TIMEOUT_S` | `jev`, `jev-vl-served` models | `5` | Total deadline in seconds for one decision. Jev includes retries; JEV-VL shares it across sequential questions and does not retry HTTP requests. Must be finite and above zero. Raise it for a slower System One server behind `TYPESAFE_API_URL` (e.g. a local OneJev-27B or CLM-8B: `30`). |
+| `JEV_VL_URL` | `jev-vl-served` model | *(unset, required)* | Frontend base URL serving `autotrust/JEV-27B-VL` through System1-Omni's native flat `/v1/systemone` protocol, e.g. `http://127.0.0.1:8080`. Browser and direct factory paths only; requires exactly one current PNG/JPEG image. |
 | `OPENROUTER_API_KEY` | `jev` model (proxy), chat model fallback | *(unset)* | OpenRouter API key, used for proxying Jev decisions or as a fallback for `LLM_API_KEY`. |
 | `OPENROUTER_BASE_URL` | chat model fallback | `https://openrouter.ai/api/v1` | Fallback base URL for the chat model when `LLM_BASE_URL` or `OPENAI_BASE_URL` is unset. |
 | `MODEL_NAME` | chat model (`llm` model, rethink planner, browser agent) | *(unset)* | Model identifier for the chat model (e.g. `google/gemini-2.5-flash` or `claude-fable-5-1`). |
@@ -55,6 +56,10 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `OMNIJEV_REVISION` | `omnijev` model | `v1.1` | Revision of a Hugging Face `OMNIJEV_CHECKPOINT`. |
 | `OMNIJEV_BASE` | `omnijev` model | `Qwen/Qwen3.5-0.8B` | Hugging Face ID or local directory of the Qwen3.5 backbone of the same size as the checkpoint. |
 | `OMNIJEV_PROMPT` | `omnijev` model | `full` | `full` sends the text state, goal and rules with each question; `short` sends the goal and the ask only, the screenshot carrying the page. |
+| `ONEJEV_URL` | `onejev` model | *(unset, required)* | Base URL of a served OneJev (`qev`/`flide`), e.g. `http://127.0.0.1:8000`. Browser and `build_model` only; requires a screenshot in the observation. |
+| `ONEJEV_MODEL` | `onejev` model | `OmniJev/OneJev1.6-4B` | Model id sent in the `/v1/systemone` body (checkpoint the server loaded, e.g. `OmniJev/OneJev1.6-0.8B`). |
+| `ONEJEV_API_KEY` | `onejev` model | *(unset)* | Bearer token when the server expects one; loopback `qev`/`flide` usually needs none. |
+| `ONEJEV_TIMEOUT_S` | `onejev` model | `30` | Deadline per decision in seconds, the one refused-connection / 502 / 504 retry included. A finite number above 0. Raise for large checkpoints or a cold load. |
 | `CUA_DRIVER_BIN` | `desktop` agent | `cua-driver` | Path to the `cua-driver` executable on Windows or macOS when not located on `PATH`. |
 | `CUA_DRIVER_PERMISSION_MODE` | `desktop` agent | `standard` | Permission mode passed to `cua-driver mcp` (`standard`, or `bounded` for restricted capability manifests). |
 | `HF_HOME` | Hugging Face runtime | `~/.cache/huggingface` | Cache directory where Laya and Cua-S1 checkpoints are downloaded on first run. |

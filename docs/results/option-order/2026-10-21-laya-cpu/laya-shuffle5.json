@@ -1,0 +1,1001 @@
+{
+ "model": "laya",
+ "order": "shuffle:5",
+ "seed": 0,
+ "rows": [
+  {
+   "note": "ordinary logistics",
+   "choice": "logistics",
+   "ok": true,
+   "reordered_choices": [
+    "logistics",
+    "logistics",
+    "logistics",
+    "logistics",
+    "logistics"
+   ],
+   "reordered_ok": 5,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 326
+    },
+    {
+     "options": [
+      "returns",
+      "payment",
+      "logistics",
+      "human",
+      "account"
+     ],
+     "choice": "logistics",
+     "ms": 292
+    },
+    {
+     "options": [
+      "logistics",
+      "returns",
+      "payment",
+      "account",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 298
+    },
+    {
+     "options": [
+      "payment",
+      "logistics",
+      "human",
+      "returns",
+      "account"
+     ],
+     "choice": "logistics",
+     "ms": 245
+    },
+    {
+     "options": [
+      "returns",
+      "logistics",
+      "account",
+      "payment",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 284
+    },
+    {
+     "options": [
+      "payment",
+      "human",
+      "account",
+      "returns",
+      "logistics"
+     ],
+     "choice": "logistics",
+     "ms": 307
+    }
+   ]
+  },
+  {
+   "note": "negation",
+   "choice": "logistics",
+   "ok": true,
+   "reordered_choices": [
+    "logistics",
+    "logistics",
+    "logistics",
+    "logistics",
+    "logistics"
+   ],
+   "reordered_ok": 5,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 321
+    },
+    {
+     "options": [
+      "payment",
+      "account",
+      "human",
+      "logistics",
+      "returns"
+     ],
+     "choice": "logistics",
+     "ms": 369
+    },
+    {
+     "options": [
+      "payment",
+      "logistics",
+      "human",
+      "account",
+      "returns"
+     ],
+     "choice": "logistics",
+     "ms": 309
+    },
+    {
+     "options": [
+      "human",
+      "logistics",
+      "payment",
+      "account",
+      "returns"
+     ],
+     "choice": "logistics",
+     "ms": 278
+    },
+    {
+     "options": [
+      "logistics",
+      "returns",
+      "payment",
+      "account",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 276
+    },
+    {
+     "options": [
+      "returns",
+      "payment",
+      "account",
+      "human",
+      "logistics"
+     ],
+     "choice": "logistics",
+     "ms": 250
+    }
+   ]
+  },
+  {
+   "note": "ordinary payment",
+   "choice": "payment",
+   "ok": true,
+   "reordered_choices": [
+    "payment",
+    "payment",
+    "payment",
+    "payment",
+    "payment"
+   ],
+   "reordered_ok": 5,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "payment",
+     "ms": 285
+    },
+    {
+     "options": [
+      "returns",
+      "human",
+      "payment",
+      "account",
+      "logistics"
+     ],
+     "choice": "payment",
+     "ms": 250
+    },
+    {
+     "options": [
+      "payment",
+      "human",
+      "account",
+      "logistics",
+      "returns"
+     ],
+     "choice": "payment",
+     "ms": 250
+    },
+    {
+     "options": [
+      "logistics",
+      "account",
+      "returns",
+      "human",
+      "payment"
+     ],
+     "choice": "payment",
+     "ms": 247
+    },
+    {
+     "options": [
+      "account",
+      "returns",
+      "payment",
+      "human",
+      "logistics"
+     ],
+     "choice": "payment",
+     "ms": 279
+    },
+    {
+     "options": [
+      "human",
+      "payment",
+      "account",
+      "returns",
+      "logistics"
+     ],
+     "choice": "payment",
+     "ms": 247
+    }
+   ]
+  },
+  {
+   "note": "background keyword",
+   "choice": "payment",
+   "ok": true,
+   "reordered_choices": [
+    "payment",
+    "payment",
+    "payment",
+    "payment",
+    "payment"
+   ],
+   "reordered_ok": 5,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "payment",
+     "ms": 240
+    },
+    {
+     "options": [
+      "payment",
+      "human",
+      "account",
+      "returns",
+      "logistics"
+     ],
+     "choice": "payment",
+     "ms": 247
+    },
+    {
+     "options": [
+      "account",
+      "logistics",
+      "payment",
+      "returns",
+      "human"
+     ],
+     "choice": "payment",
+     "ms": 309
+    },
+    {
+     "options": [
+      "returns",
+      "logistics",
+      "payment",
+      "account",
+      "human"
+     ],
+     "choice": "payment",
+     "ms": 354
+    },
+    {
+     "options": [
+      "account",
+      "human",
+      "logistics",
+      "payment",
+      "returns"
+     ],
+     "choice": "payment",
+     "ms": 234
+    },
+    {
+     "options": [
+      "account",
+      "human",
+      "payment",
+      "returns",
+      "logistics"
+     ],
+     "choice": "payment",
+     "ms": 248
+    }
+   ]
+  },
+  {
+   "note": "ordinary returns",
+   "choice": "returns",
+   "ok": true,
+   "reordered_choices": [
+    "returns",
+    "returns",
+    "returns",
+    "returns",
+    "returns"
+   ],
+   "reordered_ok": 5,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "returns",
+     "ms": 242
+    },
+    {
+     "options": [
+      "account",
+      "returns",
+      "human",
+      "payment",
+      "logistics"
+     ],
+     "choice": "returns",
+     "ms": 215
+    },
+    {
+     "options": [
+      "human",
+      "payment",
+      "returns",
+      "account",
+      "logistics"
+     ],
+     "choice": "returns",
+     "ms": 212
+    },
+    {
+     "options": [
+      "returns",
+      "account",
+      "logistics",
+      "payment",
+      "human"
+     ],
+     "choice": "returns",
+     "ms": 216
+    },
+    {
+     "options": [
+      "logistics",
+      "account",
+      "payment",
+      "returns",
+      "human"
+     ],
+     "choice": "returns",
+     "ms": 275
+    },
+    {
+     "options": [
+      "human",
+      "account",
+      "payment",
+      "logistics",
+      "returns"
+     ],
+     "choice": "returns",
+     "ms": 265
+    }
+   ]
+  },
+  {
+   "note": "negated background",
+   "choice": "returns",
+   "ok": true,
+   "reordered_choices": [
+    "returns",
+    "logistics",
+    "returns",
+    "logistics",
+    "logistics"
+   ],
+   "reordered_ok": 2,
+   "flipped": true,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "returns",
+     "ms": 225
+    },
+    {
+     "options": [
+      "payment",
+      "human",
+      "logistics",
+      "returns",
+      "account"
+     ],
+     "choice": "returns",
+     "ms": 221
+    },
+    {
+     "options": [
+      "payment",
+      "account",
+      "human",
+      "returns",
+      "logistics"
+     ],
+     "choice": "logistics",
+     "ms": 244
+    },
+    {
+     "options": [
+      "logistics",
+      "human",
+      "account",
+      "payment",
+      "returns"
+     ],
+     "choice": "returns",
+     "ms": 340
+    },
+    {
+     "options": [
+      "payment",
+      "returns",
+      "account",
+      "human",
+      "logistics"
+     ],
+     "choice": "logistics",
+     "ms": 232
+    },
+    {
+     "options": [
+      "payment",
+      "returns",
+      "account",
+      "human",
+      "logistics"
+     ],
+     "choice": "logistics",
+     "ms": 215
+    }
+   ]
+  },
+  {
+   "note": "ordinary account",
+   "choice": "account",
+   "ok": true,
+   "reordered_choices": [
+    "account",
+    "account",
+    "account",
+    "account",
+    "account"
+   ],
+   "reordered_ok": 5,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "account",
+     "ms": 240
+    },
+    {
+     "options": [
+      "returns",
+      "account",
+      "human",
+      "logistics",
+      "payment"
+     ],
+     "choice": "account",
+     "ms": 238
+    },
+    {
+     "options": [
+      "payment",
+      "human",
+      "account",
+      "logistics",
+      "returns"
+     ],
+     "choice": "account",
+     "ms": 210
+    },
+    {
+     "options": [
+      "account",
+      "logistics",
+      "returns",
+      "human",
+      "payment"
+     ],
+     "choice": "account",
+     "ms": 219
+    },
+    {
+     "options": [
+      "human",
+      "logistics",
+      "returns",
+      "payment",
+      "account"
+     ],
+     "choice": "account",
+     "ms": 266
+    },
+    {
+     "options": [
+      "payment",
+      "human",
+      "returns",
+      "account",
+      "logistics"
+     ],
+     "choice": "account",
+     "ms": 264
+    }
+   ]
+  },
+  {
+   "note": "background payment",
+   "choice": "account",
+   "ok": true,
+   "reordered_choices": [
+    "account",
+    "payment",
+    "account",
+    "payment",
+    "payment"
+   ],
+   "reordered_ok": 2,
+   "flipped": true,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "account",
+     "ms": 268
+    },
+    {
+     "options": [
+      "payment",
+      "human",
+      "account",
+      "logistics",
+      "returns"
+     ],
+     "choice": "account",
+     "ms": 241
+    },
+    {
+     "options": [
+      "account",
+      "logistics",
+      "payment",
+      "human",
+      "returns"
+     ],
+     "choice": "payment",
+     "ms": 307
+    },
+    {
+     "options": [
+      "payment",
+      "returns",
+      "human",
+      "account",
+      "logistics"
+     ],
+     "choice": "account",
+     "ms": 244
+    },
+    {
+     "options": [
+      "logistics",
+      "returns",
+      "human",
+      "payment",
+      "account"
+     ],
+     "choice": "payment",
+     "ms": 250
+    },
+    {
+     "options": [
+      "human",
+      "logistics",
+      "returns",
+      "payment",
+      "account"
+     ],
+     "choice": "payment",
+     "ms": 219
+    }
+   ]
+  },
+  {
+   "note": "independent intents",
+   "choice": "logistics",
+   "ok": false,
+   "reordered_choices": [
+    "logistics",
+    "logistics",
+    "logistics",
+    "logistics",
+    "logistics"
+   ],
+   "reordered_ok": 0,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 222
+    },
+    {
+     "options": [
+      "returns",
+      "account",
+      "human",
+      "payment",
+      "logistics"
+     ],
+     "choice": "logistics",
+     "ms": 271
+    },
+    {
+     "options": [
+      "account",
+      "payment",
+      "logistics",
+      "returns",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 282
+    },
+    {
+     "options": [
+      "account",
+      "returns",
+      "human",
+      "logistics",
+      "payment"
+     ],
+     "choice": "logistics",
+     "ms": 273
+    },
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "account",
+      "returns",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 279
+    },
+    {
+     "options": [
+      "payment",
+      "human",
+      "logistics",
+      "returns",
+      "account"
+     ],
+     "choice": "logistics",
+     "ms": 229
+    }
+   ]
+  },
+  {
+   "note": "insufficient information",
+   "choice": "logistics",
+   "ok": false,
+   "reordered_choices": [
+    "logistics",
+    "logistics",
+    "returns",
+    "returns",
+    "logistics"
+   ],
+   "reordered_ok": 0,
+   "flipped": true,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 241
+    },
+    {
+     "options": [
+      "returns",
+      "human",
+      "payment",
+      "logistics",
+      "account"
+     ],
+     "choice": "logistics",
+     "ms": 227
+    },
+    {
+     "options": [
+      "payment",
+      "account",
+      "logistics",
+      "returns",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 226
+    },
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "human",
+      "returns",
+      "account"
+     ],
+     "choice": "returns",
+     "ms": 236
+    },
+    {
+     "options": [
+      "logistics",
+      "account",
+      "human",
+      "payment",
+      "returns"
+     ],
+     "choice": "returns",
+     "ms": 220
+    },
+    {
+     "options": [
+      "payment",
+      "logistics",
+      "returns",
+      "human",
+      "account"
+     ],
+     "choice": "logistics",
+     "ms": 223
+    }
+   ]
+  },
+  {
+   "note": "explicit human",
+   "choice": "logistics",
+   "ok": false,
+   "reordered_choices": [
+    "logistics",
+    "logistics",
+    "logistics",
+    "logistics",
+    "logistics"
+   ],
+   "reordered_ok": 0,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 259
+    },
+    {
+     "options": [
+      "human",
+      "account",
+      "returns",
+      "payment",
+      "logistics"
+     ],
+     "choice": "logistics",
+     "ms": 237
+    },
+    {
+     "options": [
+      "returns",
+      "account",
+      "logistics",
+      "human",
+      "payment"
+     ],
+     "choice": "logistics",
+     "ms": 260
+    },
+    {
+     "options": [
+      "returns",
+      "payment",
+      "logistics",
+      "human",
+      "account"
+     ],
+     "choice": "logistics",
+     "ms": 235
+    },
+    {
+     "options": [
+      "payment",
+      "logistics",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "logistics",
+     "ms": 262
+    },
+    {
+     "options": [
+      "returns",
+      "human",
+      "logistics",
+      "account",
+      "payment"
+     ],
+     "choice": "logistics",
+     "ms": 324
+    }
+   ]
+  },
+  {
+   "note": "negation insufficient",
+   "choice": "human",
+   "ok": true,
+   "reordered_choices": [
+    "human",
+    "human",
+    "human",
+    "human",
+    "human"
+   ],
+   "reordered_ok": 5,
+   "flipped": false,
+   "asks": [
+    {
+     "options": [
+      "logistics",
+      "payment",
+      "returns",
+      "account",
+      "human"
+     ],
+     "choice": "human",
+     "ms": 224
+    },
+    {
+     "options": [
+      "logistics",
+      "human",
+      "returns",
+      "account",
+      "payment"
+     ],
+     "choice": "human",
+     "ms": 240
+    },
+    {
+     "options": [
+      "returns",
+      "payment",
+      "account",
+      "logistics",
+      "human"
+     ],
+     "choice": "human",
+     "ms": 289
+    },
+    {
+     "options": [
+      "account",
+      "logistics",
+      "payment",
+      "human",
+      "returns"
+     ],
+     "choice": "human",
+     "ms": 245
+    },
+    {
+     "options": [
+      "human",
+      "logistics",
+      "returns",
+      "payment",
+      "account"
+     ],
+     "choice": "human",
+     "ms": 287
+    },
+    {
+     "options": [
+      "account",
+      "returns",
+      "human",
+      "logistics",
+      "payment"
+     ],
+     "choice": "human",
+     "ms": 239
+    }
+   ]
+  }
+ ],
+ "cases": 12,
+ "flips": 3,
+ "flip_rate": 0.25,
+ "right": 9,
+ "accuracy": 0.75,
+ "reordered_asks": 60,
+ "reordered_right": 39,
+ "reordered_accuracy": 0.65,
+ "median_ms": 247,
+ "verdict": "not a decision-model task"
+}

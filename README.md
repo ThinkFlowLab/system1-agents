@@ -120,6 +120,9 @@ uv run s1a run blackjack --model jev --rethink off --episodes 20
 uv run s1a run blackjack --model llm --rethink off --episodes 20     # the chat model in the same agent
 ```
 
+Each `--option KEY=DESCRIPTION` must use a unique, case-sensitive key. Repeated keys are usage errors (exit 2),
+reported before loading a model or checking its credentials; they never replace an earlier description.
+
 `decide` prints one JSON object with `choice`, a probability per option, `confidence` and `ms`; `run` writes a job
 folder with the score. Without a key, `--model cua` answers in process after `uv sync --extra cua`.
 
@@ -129,7 +132,9 @@ folder with the score. Without a key, `--model cua` answers in process after `uv
 codex mcp add s1a -- uv run --project /path/to/system1-agents s1a-mcp
 ```
 
-It serves three tools, `list_agents`, `run_agent` and `decide`, to any host that speaks MCP.
+It serves three tools, `list_agents`, `run_agent` and `decide`, to any host that speaks MCP. Run `uv sync` in the
+checkout once before registering it, and raise the host's tool timeout: a browser run takes minutes, beyond Codex's
+60 s default. The settings for Codex and Claude Code: [docs/skills.md](docs/skills.md#host-timeouts).
 
 ## Build your own
 

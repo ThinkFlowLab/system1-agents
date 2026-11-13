@@ -141,6 +141,22 @@ class Verdict:
 
 
 @dataclass(frozen=True)
+class Coverage:
+    """How much of an event's content a rail decision saw: the first ``inspected`` of ``total`` characters."""
+
+    inspected: int
+    total: int
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.inspected <= self.total:
+            raise ValueError(f"coverage must satisfy 0 <= inspected <= total: {self}")
+
+    @property
+    def complete(self) -> bool:
+        return self.inspected == self.total
+
+
+@dataclass(frozen=True)
 class RailSpec:
     """A rail-front agent: one Jev question at one callback hook of a DeepAgent, acted on above a threshold."""
 
@@ -156,9 +172,18 @@ class RailSpec:
     act: Callable[[AgentCallbackContext, Verdict], Awaitable[None]]
     on_failure: Literal["open", "closed"]  # closed: a decision error runs act with a verdict at the act threshold
     labelled_set: Path | None  # JSONL records {"state", "label"}; the label says whether the flagged statement holds
+    # What the hook would send for a labelled record's state (the injection guard clips the text as state_of does), so
+    # a set can keep pages in full and the evaluation measures the runtime clip. None sends the state as is.
+    labelled_state: Callable[[Json], Json] | None = None
+    # How much of the event the state shows; None: the rail does not track coverage and records none.
+    coverage_of: Callable[[AgentCallbackContext], Coverage | None] | None = None
+    # Runs instead of passing the event when a verdict below the act band saw only part of it; None passes it whole.
+    on_partial: Callable[[AgentCallbackContext, Coverage], Awaitable[None]] | None = None
 
     def __post_init__(self) -> None:
         _check_name_and_text(self.name, self.description, self.rules)
+        if self.on_partial is not None and self.coverage_of is None:
+            raise ValueError(f"{self.name}: on_partial needs coverage_of to say what was inspected")
         if self.hook not in RAIL_HOOKS:
             raise ValueError(f"{self.name}: hook must be one of {[hook.name for hook in RAIL_HOOKS]}, got {self.hook}")
         if self.on_failure not in ("open", "closed"):

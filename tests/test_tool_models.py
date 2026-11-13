@@ -338,7 +338,7 @@ class TestOtherModels(IsolatedAsyncioTestCase):
         self.assertIn(json.loads(message.tool_calls[0].arguments)["key"], {"inc", "noop"})
         self.assertEqual((state.ticks[0]["source"], state.ticks[0]["input_tokens"]), ("random", 0))
         self.assertEqual(
-            (state.ticks[0]["probabilities"], state.ticks[0]["confidence"]), ({"inc": 0.5, "noop": 0.5}, 0.0)
+            (state.ticks[0]["probabilities"], state.ticks[0]["confidence"]), ({"inc": 0.5, "noop": 0.5}, 0.5)
         )
 
     async def test_random_is_reproducible_per_seed_and_not_the_stream_of_random_seeded_with_the_integer(self) -> None:

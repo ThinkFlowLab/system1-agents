@@ -5,8 +5,10 @@ labelled-set evaluation."""
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import statistics
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -30,6 +32,7 @@ from s1a.spec import Json, RailSpec, Verdict
 
 QUESTION = "check"
 RAIL_MODEL_NAMES = ("jev", "clm", "laya", "laya-served")
+BANDS = ("allow", "uncertain", "act", "failure")  # a labelled-set row's outcome; failure: the decision itself failed
 
 
 def question(spec: RailSpec) -> Question:
@@ -53,8 +56,34 @@ async def ask(spec: RailSpec, state: Json, decision_model: DecisionModel) -> Ver
     return Verdict(p=p, band=spec.thresholds.band(p), ms=decision.latency_ms, input_tokens=decision.usage.input_tokens)
 
 
+def failure_category(exc: BaseError) -> str:
+    """A decision failure as its status name, plus its cause's type when it has one (``MODEL_CALL_FAILED (ReadTimeout)``).
+
+    Never the exception's message: an endpoint's error body can quote the submitted state, and so the guarded tool
+    output, back into it.
+    """
+    category = getattr(exc.status, "name", type(exc).__name__)
+    cause = exc.__cause__
+    return f"{category} ({type(cause).__name__})" if cause is not None else category
+
+
 class DecisionModelRail(DeepAgentRail):
-    """The spec's question on the spec's hook; the spec's action runs in the act band. ``ticks`` records every verdict."""
+    """The spec's question on the spec's hook; the spec's action runs in the act band. ``ticks`` records every verdict.
+
+    Each tick names the ``handling`` the event got, so a pass on an uncertain or partly inspected event never reads as
+    a confident allow:
+
+    - ``pass``: allow band, every character inspected (or the spec tracks no coverage).
+    - ``pass_uncertain``: uncertain band, every character inspected; the model abstained and the event passes whole.
+    - ``pass_partial``: allow or uncertain band over part of the event, and the spec has no ``on_partial``.
+    - ``withhold_uninspected``: allow or uncertain band over part of the event; the spec's ``on_partial`` ran.
+    - ``act``: act band; the spec's action ran.
+    - ``act_on_failure`` / ``pass_on_failure``: the decision failed on a closed / open rail.
+
+    With ``coverage_of`` set, a tick also carries ``coverage`` (``complete`` or ``partial``), ``chars`` and
+    ``inspected_chars``. A tick holds numbers, bands and, on a failure, the error's category and code (see
+    ``failure_category``); never the event's content and never an exception's message, which can echo it.
+    """
 
     def __init__(self, spec: RailSpec, decision_model: DecisionModel) -> None:
         super().__init__()
@@ -69,28 +98,67 @@ class DecisionModelRail(DeepAgentRail):
         state = self._spec.state_of(ctx)
         if state is None:
             return
+        coverage = self._spec.coverage_of(ctx) if self._spec.coverage_of is not None else None
+        seen: dict[str, Any] = (
+            {
+                "coverage": "complete" if coverage.complete else "partial",
+                "chars": coverage.total,
+                "inspected_chars": coverage.inspected,
+            }
+            if coverage is not None
+            else {}
+        )
         try:
             verdict = await ask(self._spec, state, self._decision_model)
         except BaseError as exc:
+            error = failure_category(exc)
             logger.warning(
-                "[DecisionModelRail %s] decision failed, %s: %s", self._spec.name, self._spec.on_failure, exc
+                "[DecisionModelRail %s] decision failed, %s: %s", self._spec.name, self._spec.on_failure, error
             )
-            self.ticks.append({"error": str(exc), "failed": self._spec.on_failure})
-            if self._spec.on_failure == "closed":
+            closed = self._spec.on_failure == "closed"
+            self.ticks.append(
+                {
+                    "error": error,
+                    "error_code": exc.code,
+                    "failed": self._spec.on_failure,
+                    "handling": "act_on_failure" if closed else "pass_on_failure",
+                    **seen,
+                }
+            )
+            if closed:
                 verdict = Verdict(p=self._spec.thresholds.act, band="act", ms=0, input_tokens=0)
                 await self._spec.act(ctx, verdict)
             return
-        self.ticks.append(
-            {"p": round(verdict.p, 3), "band": verdict.band, "ms": verdict.ms, "input_tokens": verdict.input_tokens}
-        )
         if verdict.band == "act":
+            handling = "act"
+        elif coverage is not None and not coverage.complete:
+            handling = "withhold_uninspected" if self._spec.on_partial is not None else "pass_partial"
+        else:
+            handling = "pass_uncertain" if verdict.band == "uncertain" else "pass"
+        self.ticks.append(
+            {
+                "p": round(verdict.p, 3),
+                "band": verdict.band,
+                "ms": verdict.ms,
+                "input_tokens": verdict.input_tokens,
+                "handling": handling,
+                **seen,
+            }
+        )
+        if handling == "act":
             await self._spec.act(ctx, verdict)
+        elif handling == "withhold_uninspected":
+            assert self._spec.on_partial is not None and coverage is not None
+            await self._spec.on_partial(ctx, coverage)
 
 
-def read_labelled(path: Path) -> list[dict[str, Any]]:
-    """JSONL records, each with a ``state`` for Jev and a boolean ``label``: does the flagged statement hold."""
+def read_labelled(path: Path, data: bytes | None = None) -> list[dict[str, Any]]:
+    """JSONL records, each with a ``state`` for Jev and a boolean ``label``: does the flagged statement hold.
+
+    ``data`` is the file's bytes when the caller has already read them, so what is parsed is what it hashed."""
     records: list[dict[str, Any]] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    text = (path.read_bytes() if data is None else data).decode("utf-8")
+    for line_number, line in enumerate(text.splitlines(), start=1):
         if not line.strip():
             continue
         try:
@@ -112,29 +180,52 @@ def read_labelled(path: Path) -> list[dict[str, Any]]:
 async def evaluate(
     spec: RailSpec, labelled_set: Path, *, decision_model: DecisionModel, results_dir: Path
 ) -> dict[str, Any]:
-    """Every record through the same question; precision and recall of the act band against the labels, one job folder."""
-    records = read_labelled(labelled_set)
-    verdicts = [await ask(spec, record["state"], decision_model) for record in records]
-    acted = [verdict.band == "act" for verdict in verdicts]
+    """Every record through the same question; precision and recall of the act band against the labels, one job folder.
+
+    A record's state goes through ``spec.labelled_state`` first, as the hook would clip it. A decision that fails
+    (endpoint, key, deadline, malformed answer) is a ``failure`` row, not an abort: every record stays in the
+    denominator, and on a closed rail it counts as acted, as the runtime quarantines it."""
+    data = labelled_set.read_bytes()  # one read before the first await: the digest covers the bytes evaluated
+    records = read_labelled(labelled_set, data)
+    clip: Callable[[Json], Json] = spec.labelled_state or (lambda state: state)
+    verdicts: list[Verdict | None] = []
+    errors: list[str | None] = []
+    for record in records:
+        try:
+            verdicts.append(await ask(spec, clip(record["state"]), decision_model))
+            errors.append(None)
+        except BaseError as exc:  # the error's class and code only: its message can echo the page
+            verdicts.append(None)
+            errors.append(getattr(getattr(exc, "status", None), "name", None) or type(exc).__name__)
+    bands = [verdict.band if verdict else "failure" for verdict in verdicts]
+    acted = [band == "act" or (band == "failure" and spec.on_failure == "closed") for band in bands]
     labels = [bool(record["label"]) for record in records]
+    answered = [verdict for verdict in verdicts if verdict]
     tp = sum(a and label for a, label in zip(acted, labels))
     fp = sum(a and not label for a, label in zip(acted, labels))
     fn = sum(label and not a for a, label in zip(acted, labels))
-    jev_input_tokens = sum(verdict.input_tokens for verdict in verdicts) if decision_model.bills_input_tokens else 0
+    jev_input_tokens = sum(verdict.input_tokens for verdict in answered) if decision_model.bills_input_tokens else 0
     summary = {
         "rail": spec.name,
+        "model": decision_model.name,
         "records": len(records),
         "positives": sum(labels),
         "acted": sum(acted),
-        "uncertain": sum(verdict.band == "uncertain" for verdict in verdicts),
+        "uncertain": bands.count("uncertain"),
+        "failures": bands.count("failure"),
+        "bands": {
+            str(flag).lower(): {band: sum(b == band and lab == flag for b, lab in zip(bands, labels)) for band in BANDS}
+            for flag in (True, False)
+        },
         "precision": round(tp / (tp + fp), 3) if tp + fp else None,
         "recall": round(tp / (tp + fn), 3) if tp + fn else None,
         "accuracy": round(sum(a == label for a, label in zip(acted, labels)) / len(records), 3),
-        "median_ms": int(statistics.median(verdict.ms for verdict in verdicts)),
+        "median_ms": int(statistics.median(verdict.ms for verdict in answered)) if answered else None,
         "jev_input_tokens": jev_input_tokens,
         "cost_usd": cost_usd(jev_input_tokens, 0, 0, 0, None),
         "thresholds": {"allow": spec.thresholds.allow, "act": spec.thresholds.act},
         "labelled_set": str(labelled_set),
+        "labelled_set_sha256": hashlib.sha256(data).hexdigest(),
         "finished_at": now_iso(),
     }
     job_dir = results_dir / spec.name / f"{datetime.now():%Y-%m-%d__%H-%M-%S-%f}__{decision_model.name}"
@@ -144,15 +235,16 @@ async def evaluate(
             json.dumps(
                 {
                     "label": label,
-                    "p": round(verdict.p, 3),
-                    "band": verdict.band,
-                    "ms": verdict.ms,
+                    "p": round(verdict.p, 3) if verdict else None,
+                    "band": verdict.band if verdict else "failure",
+                    "ms": verdict.ms if verdict else None,
                     "note": record.get("note"),
-                },
+                }
+                | ({"error": error} if error else {}),
                 ensure_ascii=False,
             )
             + "\n"
-            for record, label, verdict in zip(records, labels, verdicts)
+            for record, label, verdict, error in zip(records, labels, verdicts, errors)
         ),
         encoding="utf-8",
     )

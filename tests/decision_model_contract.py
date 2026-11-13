@@ -62,6 +62,11 @@ class DecisionModelContract:
         self.assertGreaterEqual(decision.latency_ms, 0)
         self.assertGreaterEqual(decision.usage.input_tokens, 0)
 
+    async def test_choice_confidence_is_the_peak_probability(self) -> None:
+        """Every backend reports ``max_k p_k`` as ``Choice.confidence`` (issue #89)."""
+        choice = (await self.make().decide_many(OBSERVATION, {"pick": PICK})).choice("pick")
+        self.assertAlmostEqual(choice.confidence, max(choice.probabilities.values()), places=6)
+
     async def test_decide_equals_decide_many_with_one_question(self) -> None:
         one = await self.make().decide(OBSERVATION, PICK, name="pick")
         many = (await self.make().decide_many(OBSERVATION, {"pick": PICK})).answers["pick"]
@@ -173,6 +178,24 @@ class DecisionModelContract:
             self.skipTest("not scriptable, or choice only")
         decision = await self.make_scripted([{"check": {"noul": 0.25}}]).decide_many(OBSERVATION, {"check": CHECK})
         self.assertEqual((decision.noul("check").p, decision.noul("check").confidence), (0.25, 0.75))
+
+    async def test_scripted_backend_confidence_is_kept_apart_from_contract_confidence(self) -> None:
+        """A backend-native confidence must not become ``Choice.confidence`` (issue #89).
+
+        Some backends rewrite the number before validation (OmniJev recomputes Jev's margin); whatever lands in
+        the reply's ``confidence`` field is kept as ``backend_confidence``, while the contract field is always
+        ``max_k p_k``.
+        """
+        if not self.scriptable:
+            self.skipTest("not scriptable")
+        # peak p = 0.9, with a Laya-like entropy confidence of 0.4 in the scripted dict
+        skewed = {"pick": {"choice": "stand", "probabilities": {"hit": 0.1, "stand": 0.9}, "confidence": 0.4}}
+        decision = await self.make_scripted([skewed]).decide_many(OBSERVATION, {"pick": PICK})
+        choice = decision.choice("pick")
+        self.assertEqual(choice.key, "stand")
+        self.assertAlmostEqual(choice.confidence, 0.9, places=6)
+        self.assertIsNotNone(choice.backend_confidence)
+        self.assertEqual(decision.raw["backend_confidence"]["pick"], choice.backend_confidence)
 
 
 def _seen_observations(decision_model: DecisionModel) -> list[Observation]:

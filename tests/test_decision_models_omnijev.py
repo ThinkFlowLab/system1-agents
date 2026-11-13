@@ -130,7 +130,10 @@ class TestMapping(IsolatedAsyncioTestCase):
         self.assertEqual(choice.key, "stand")
         self.assertAlmostEqual(sum(choice.probabilities.values()), 1.0, places=6)
         self.assertAlmostEqual(choice.probabilities["stand"], 0.6 / 0.9, places=6)  # abstain 0.1 left out
-        self.assertAlmostEqual(choice.confidence, (2 * 0.6 / 0.9 - 1) / 1, places=6)
+        peak = 0.6 / 0.9
+        self.assertAlmostEqual(choice.confidence, peak, places=6)  # contract: max_k p_k
+        # OmniJev's pre-validation Jev-margin recompute is kept as backend_confidence
+        self.assertAlmostEqual(choice.backend_confidence, (2 * peak - 1) / 1, places=6)
 
     async def test_abstain_stays_in_the_raw_reply(self) -> None:
         decision = await _model().decide_many(PICTURED, {"pick": contract.PICK})

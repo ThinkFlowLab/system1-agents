@@ -16,6 +16,7 @@ from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
+import anyio
 from openjiuwen.core.common.logging import logger
 from openjiuwen.core.foundation.llm import Model
 from openjiuwen.core.runner import Runner
@@ -41,13 +42,15 @@ from s1a.spec import BrowserAgentSpec, positive_float, positive_int
 Answer = dict[str, Any]
 BROWSER_MODEL_NAMES = (
     "jev",
+    "jev-vl-served",
     "clm",
     "laya",
     "laya-served",
     "cua",
     "omnijev",
+    "onejev",
     "llm",
-)  # a decision model (Jev or served Laya over HTTP, Laya, Cua-S1 or OmniJev in process) or the chat model
+)  # a decision model over HTTP or in process, or the chat model
 RUNS_DIR = HOME / "runs" / "browser"
 FINAL_SCREENSHOT = "final.png"  # the page the task ended on, next to the run's records
 SCREENSHOT_TIMEOUT_S = 5.0  # @playwright/mcp's page.screenshot timeout; also caps a hung call before the cleanup
@@ -211,8 +214,9 @@ async def run_task(agent: DeepAgent, goal: str, *, timeout_s: float, logs_dir: P
         try:
             await save_final_screenshot(agent, answer, logs_dir)  # before the cleanup closes the page
         finally:  # a cancellation during the screenshot still releases the browser and the session
-            await agent.cleanup_task_resources()
-            await Runner.release(conversation_id)
+            with anyio.CancelScope(shield=True):  # a cancelled task (an MCP host's cancel) must not cut the teardown
+                await agent.cleanup_task_resources()
+                await Runner.release(conversation_id)
     answer["final"] = str(result.get("output") or "")
     answer["ok"] = result.get("result_type") == "answer" and bool(answer["final"])
     if not answer["ok"]:
@@ -250,10 +254,12 @@ async def browse(
     workspace = str(logs_dir / "workspace")  # the harness scaffolds SOUL.md, memory/ and friends here, not in the cwd
     instance = BrowserInstanceConfig(launch_args=browser_launch_args(headless))
     match model_name:
-        case "jev" | "clm" | "laya" | "laya-served" | "cua" | "omnijev":
+        case "jev" | "jev-vl-served" | "clm" | "laya" | "laya-served" | "cua" | "omnijev" | "onejev":
             if decision_model is None:
                 raise RuntimeError(f"--model {model_name} needs a decision model")
-            slot_model = BrowserDecisionModel(spec, policy, counted, decision_model=decision_model, value_model=None)
+            slot_model = BrowserDecisionModel(
+                spec, policy, counted, decision_model=decision_model, value_model=None, max_steps=max_steps
+            )
             agent = create_browser_agent(
                 slot_model,
                 language=spec.language,
@@ -315,7 +321,7 @@ def parser(spec: BrowserAgentSpec) -> argparse.ArgumentParser:
         "--model",
         choices=BROWSER_MODEL_NAMES,
         required=True,
-        help="who decides each browser step: jev, clm or laya-served (over HTTP), laya, cua or omnijev (in process; omnijev reads a screenshot), or llm (the chat model in MODEL_NAME)",
+        help="who decides each browser step: jev, jev-vl-served, clm, laya-served or onejev (over HTTP; jev-vl-served and onejev require a screenshot), laya, cua or omnijev (in process; omnijev reads a screenshot), or llm (the chat model in MODEL_NAME)",
     )
     build.add_argument(
         "--goal", default=spec.goal, required=spec.goal is None, help="the task; the spec's goal when it has one"
@@ -396,7 +402,9 @@ def policy_from_args(args: argparse.Namespace) -> BrowserPolicy:
 
 
 async def play(spec: BrowserAgentSpec, args: argparse.Namespace) -> Answer:
-    """One task inside an already started Runner: the answer without the ticks, which ``decision_ticks.json`` holds."""
+    """One task inside an already started Runner: the answer without the ticks, which ``decision_ticks.json`` holds.
+
+    A cancelled task writes ``answer.json`` with ``"cancelled": true`` and re-raises."""
     if args.profile_out is not None and args.model == "llm":
         raise RuntimeError("--profile-out needs a decision model: the profiler times the slot model's turns")
     chat = chat_model_from_env()
@@ -415,9 +423,15 @@ async def play(spec: BrowserAgentSpec, args: argparse.Namespace) -> Answer:
             chat=chat,
             decision_model=decision_model,
         )
+    except asyncio.CancelledError:  # a host cancelled the call: answer.json says so instead of keeping a stale answer
+        args.logs_dir.mkdir(parents=True, exist_ok=True)
+        cancelled = {"ok": False, "cancelled": True, "error": "cancelled", "agent": spec.name, "model": args.model}
+        (args.logs_dir / "answer.json").write_text(json.dumps(cancelled, indent=1), encoding="utf-8")
+        raise
     finally:
-        if decision_model is not None:
-            await decision_model.close()
+        with anyio.CancelScope(shield=True):  # a cancelled task still closes its decision model
+            if decision_model is not None:
+                await decision_model.close()
         if profiler is not None:
             profiler.detach()
     result = {key: value for key, value in answer.items() if key != "ticks"}

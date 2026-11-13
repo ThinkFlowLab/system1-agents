@@ -249,6 +249,17 @@ class TestJevModel(IsolatedAsyncioTestCase):
         bare = ScriptedTransport(usage={})
         self.assertEqual((await JevModel(bare).decide_many(OBSERVATION, {"pick": PICK})).usage, Usage())
 
+    async def test_the_requested_model_is_recorded_next_to_the_answering_one(self) -> None:
+        class Moved(ScriptedTransport):  # the server names the model it actually ran
+            async def decide(self, body: Json) -> tuple[Json, int]:
+                payload, ms = await super().decide(body)
+                return {**payload, "model": "jev-1.14.0"}, ms
+
+        decision = await JevModel(Moved()).decide_many(OBSERVATION, {"pick": PICK})
+        self.assertEqual((decision.model, decision.provenance["requested_model"]), ("jev-1.14.0", MODEL))
+        silent = await JevModel(ScriptedTransport()).decide_many(OBSERVATION, {"pick": PICK})
+        self.assertEqual((silent.model, silent.provenance["requested_model"]), (MODEL, MODEL))
+
     async def test_a_missing_or_malformed_answer_is_a_model_call_failure(self) -> None:
         for answers in ({}, {"pick": "nonsense"}, {"other": {"choice": "hit"}}):
             with self.subTest(answers=answers):
@@ -287,6 +298,30 @@ class TestFromEnv(TestCase):
             decision_model = JevModel.from_env()
         self.assertEqual(decision_model.model, wire.TYPESAFE_DEFAULT_MODEL)
         self.assertEqual(decision_model._transport.url, wire.TYPESAFE_DECISIONS_URL)
+
+    def test_no_default_is_a_moving_alias(self) -> None:  # #93: jev-latest moved to 1.14 under recorded numbers
+        for default in (wire.TYPESAFE_DEFAULT_MODEL, wire.DEFAULT_MODEL):
+            with self.subTest(default=default):
+                self.assertNotIn(default.rsplit("/", 1)[-1], ("jev-latest", "jev-preview"))
+        self.assertEqual(wire.TYPESAFE_DEFAULT_MODEL, "jev-1.13.0")
+
+    def test_typesafe_model_overrides_the_pin_on_the_direct_path(self) -> None:
+        env = {
+            "TYPESAFE_API_KEY": "k",
+            "TYPESAFE_API_URL": "",
+            "OPENROUTER_API_KEY": "",
+            "TYPESAFE_MODEL": "jev-1.14.0",
+        }
+        with patch.dict(os.environ, env):
+            self.assertEqual(JevModel.from_env().model, "jev-1.14.0")
+        with patch.dict(os.environ, {**env, "TYPESAFE_MODEL": ""}):
+            self.assertEqual(JevModel.from_env().model, wire.TYPESAFE_DEFAULT_MODEL)
+
+    def test_an_openrouter_model_id_on_the_direct_path_is_a_config_error(self) -> None:
+        env = {"TYPESAFE_API_KEY": "k", "TYPESAFE_API_URL": "", "TYPESAFE_MODEL": "typesafe/jev-1.13"}
+        with patch.dict(os.environ, env), self.assertRaises(BaseError) as caught:
+            JevModel.from_env()
+        self.assertEqual(caught.exception.status, StatusCode.MODEL_SERVICE_CONFIG_ERROR)
 
     def test_openrouter_otherwise(self) -> None:
         env = {"TYPESAFE_API_KEY": "", "OPENROUTER_API_KEY": "r", "TYPESAFE_MODEL": "", "TYPESAFE_API_URL": ""}
