@@ -4,6 +4,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `scripts/build_browsesafe_plus_set.py`: seeded BrowseSafe++ **train**-pair sample (pair ids in
+  `evals/labelled/browsesafe-plus-train-sample.json`, dataset not vendored; gated HF access required to download) in
+  the injection guard's labelled-set shape, separate from BrowseSafe-Bench (#75 / #77). Default view is Markdown;
+  accessibility / HTML views supported. Live Jev scores pending `TYPESAFE_API_KEY` and HF access (#87).
+
 ## 0.4.0 - 2026-11-13
 
 ### Added

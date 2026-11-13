@@ -67,6 +67,20 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
+## BrowseSafe++
+
+`evals/labelled/browsesafe-plus-train-sample.json` lists (or will list, after gated Hugging Face access) pair ids of the
+**train** split of [perplexity-ai/browsesafe-plus-plus](https://huggingface.co/datasets/perplexity-ai/browsesafe-plus-plus)
+at revision `7674843074bf3b36c0a0209dfd06e03cf47743dd`, described in Chen et al., 2026,
+[BrowseSafe++: Benchmarking Prompt Injection Detection Across Web Contexts, Languages, and Browser Views](https://arxiv.org/abs/2610.17457).
+`scripts/build_browsesafe_plus_set.py` downloads the labelled train shards (with `HF_TOKEN`) and converts the listed
+pairs; no page content is redistributed in this repository. The hidden test inputs are **not** used.
+
+This is a different dataset from BrowseSafe-Bench (`perplexity-ai/browsesafe-bench`) above.
+
+The training split is released under Creative Commons Attribution 4.0 International (CC BY 4.0).
+Full legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
 ## InjecAgent
 
 The records of `evals/labelled/injection-public.jsonl` whose note starts with `injecagent-` are built by
