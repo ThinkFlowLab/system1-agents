@@ -32,6 +32,10 @@ _TRANSPORT_RETRIES = 1
 # double-billed decision when the server closed the socket after reading the request instead.
 _RETRIED_TRANSPORT = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError)
 _MAX_RETRY_AFTER_S = 5.0
+# Hosted Jev reads images only behind this header (TypeSafe "danger zone", experimental). See #97.
+JEV_IMAGES_HEADER = "TypeSafe-Danger-Zone-Images"
+_TRUE = frozenset({"1", "true", "yes", "on"})
+_FALSE = frozenset({"", "0", "false", "no", "off"})
 
 
 def decisions_timeout_from_env() -> float:
@@ -59,6 +63,32 @@ def decisions_backend_from_env() -> str:
     return "typesafe" if os.getenv("TYPESAFE_API_KEY") and not os.getenv("TYPESAFE_API_URL") else "openrouter"
 
 
+def jev_images_from_env(backend: str) -> bool:
+    """Whether ``S1A_JEV_IMAGES`` turns on screenshot input for hosted Jev; off by default.
+
+    Only the direct TypeSafe backend is known to forward the ``assets`` map and the danger-zone header, so the
+    setting on the OpenRouter proxy (or a custom ``TYPESAFE_API_URL``) is a config error rather than a silent
+    text-only run. A value that is neither true nor false is a config error too.
+    """
+    raw = (os.getenv("S1A_JEV_IMAGES") or "").strip().lower()
+    if raw in _FALSE:
+        return False
+    if raw not in _TRUE:
+        raise build_error(
+            StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+            error_msg=f"S1A_JEV_IMAGES must be 1/true or 0/false, not {os.getenv('S1A_JEV_IMAGES')!r}",
+        )
+    if backend != "typesafe":
+        raise build_error(
+            StatusCode.MODEL_SERVICE_CONFIG_ERROR,
+            error_msg=(
+                "S1A_JEV_IMAGES needs the direct TypeSafe backend (TYPESAFE_API_KEY without TYPESAFE_API_URL); "
+                "the OpenRouter proxy is not known to forward image assets"
+            ),
+        )
+    return True
+
+
 def client_from_env(backend: str, *, timeout_s: float) -> "JevDecisionsClient":
     """Build the decisions client for one backend from the environment.
 
@@ -66,7 +96,9 @@ def client_from_env(backend: str, *, timeout_s: float) -> "JevDecisionsClient":
     overrides the pinned ``TYPESAFE_DEFAULT_MODEL``; an OpenRouter-style ``typesafe/...`` id there is a config
     error rather than a request TypeSafe would reject); ``openrouter`` talks to the proxy with
     ``OPENROUTER_API_KEY`` (``TYPESAFE_API_URL`` / ``TYPESAFE_MODEL`` override the proxy URL and model).
+    ``S1A_JEV_IMAGES`` (direct TypeSafe only) marks the client as able to carry screenshots.
     """
+    images = jev_images_from_env(backend) if backend in DECISIONS_BACKENDS else False
     match backend:
         case "typesafe":
             model = (os.getenv("TYPESAFE_MODEL") or "").strip() or TYPESAFE_DEFAULT_MODEL
@@ -84,6 +116,7 @@ def client_from_env(backend: str, *, timeout_s: float) -> "JevDecisionsClient":
                 url=TYPESAFE_DECISIONS_URL,
                 model=model,
                 timeout_s=timeout_s,
+                images=images,
             )
         case "openrouter":
             return JevDecisionsClient(
@@ -107,7 +140,7 @@ def _retry_after_s(response: httpx.Response, *, fallback: float) -> float:
 class JevDecisionsClient:
     """Async HTTP client for the decisions endpoint with a warm keep-alive connection."""
 
-    def __init__(self, *, api_key: str, url: str, model: str, timeout_s: float) -> None:
+    def __init__(self, *, api_key: str, url: str, model: str, timeout_s: float, images: bool = False) -> None:
         if not api_key:
             raise build_error(
                 StatusCode.MODEL_SERVICE_CONFIG_ERROR,
@@ -121,6 +154,7 @@ class JevDecisionsClient:
             )
         self.url = url
         self.model = model
+        self.images = images  # JevModel sends screenshots (assets + the danger-zone header) only when True
         self._timeout_s = timeout_s  # the deadline for one decision, retries included
         self._client = httpx.AsyncClient(timeout=timeout_s, headers={"Authorization": f"Bearer {api_key}"})
 
@@ -131,15 +165,19 @@ class JevDecisionsClient:
         except httpx.HTTPError:
             return None
 
-    async def decide(self, body: dict[str, Any]) -> tuple[dict[str, Any], int]:
-        """One decision: the payload and the last attempt's latency in ms; every retry fits one overall deadline."""
+    async def decide(
+        self, body: dict[str, Any], *, headers: dict[str, str] | None = None
+    ) -> tuple[dict[str, Any], int]:
+        """One decision: the payload and the last attempt's latency in ms; every retry fits one overall deadline.
+
+        ``headers`` are added to this request only (the image header rides only on bodies that carry an image)."""
         deadline = time.monotonic() + self._timeout_s
         attempt = 0
         while True:
             started = time.perf_counter()
             remaining = deadline - time.monotonic()
             try:
-                response = await self._client.post(self.url, json=body, timeout=max(remaining, 0.01))
+                response = await self._client.post(self.url, json=body, headers=headers, timeout=max(remaining, 0.01))
             except _RETRIED_TRANSPORT as exc:
                 attempt += 1
                 if attempt <= _TRANSPORT_RETRIES and time.monotonic() < deadline:

@@ -4,6 +4,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- Experimental (TypeSafe danger zone): `S1A_JEV_IMAGES=1` lets `--model jev` on the direct TypeSafe backend read one
+  current screenshot (TypeSafe `assets` plus the `TypeSafe-Danger-Zone-Images` header), resized or rejected to the
+  documented limits before sending, and enables `--pixel-target` for `--model jev`. Off by default; the proxy
+  backend refuses it. Step records gain `sent_image`. No live comparison is recorded yet (#97).
+
 ## 0.4.0 - 2026-11-13
 
 ### Added
