@@ -170,7 +170,7 @@ class RailSpec:
     state_of: Callable[[AgentCallbackContext], Json | None]  # what Jev sees at the hook; None skips the event
     thresholds: Thresholds
     act: Callable[[AgentCallbackContext, Verdict], Awaitable[None]]
-    on_failure: Literal["open", "closed"]  # closed: a decision error runs act with a verdict at the act threshold
+    on_failure: Literal["open", "closed", "ask"]  # closed: act; ask: on_ask (or nothing) instead of deny; open: pass
     labelled_set: Path | None  # JSONL records {"state", "label"}; the label says whether the flagged statement holds
     # What the hook would send for a labelled record's state (the injection guard clips the text as state_of does), so
     # a set can keep pages in full and the evaluation measures the runtime clip. None sends the state as is.
@@ -179,6 +179,8 @@ class RailSpec:
     coverage_of: Callable[[AgentCallbackContext], Coverage | None] | None = None
     # Runs instead of passing the event when a verdict below the act band saw only part of it; None passes it whole.
     on_partial: Callable[[AgentCallbackContext, Coverage], Awaitable[None]] | None = None
+    # Runs in the uncertain band, and on a decision error when on_failure is "ask" (the tool-call gate's interrupt path).
+    on_ask: Callable[[AgentCallbackContext, Verdict], Awaitable[None]] | None = None
 
     def __post_init__(self) -> None:
         _check_name_and_text(self.name, self.description, self.rules)
@@ -186,8 +188,8 @@ class RailSpec:
             raise ValueError(f"{self.name}: on_partial needs coverage_of to say what was inspected")
         if self.hook not in RAIL_HOOKS:
             raise ValueError(f"{self.name}: hook must be one of {[hook.name for hook in RAIL_HOOKS]}, got {self.hook}")
-        if self.on_failure not in ("open", "closed"):
-            raise ValueError(f"{self.name}: on_failure must be open or closed, got {self.on_failure!r}")
+        if self.on_failure not in ("open", "closed", "ask"):
+            raise ValueError(f"{self.name}: on_failure must be open, closed or ask, got {self.on_failure!r}")
         match self.question:
             case "noul":
                 if set(self.criteria) != {"true", "false"} or self.flagged != "true":

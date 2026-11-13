@@ -33,7 +33,7 @@ the description, the rules text the model reads, a budget, and the front-specifi
   model writes text only for typed values and the final answer. Agents: `flights`, `allrecipes`. Design:
   `docs/browser-front.md`; timing: `docs/benchmarks.md`.
 - Rail front (`RailSpec`, `s1a/rails.py`): `DecisionModelRail` asks one question at one DeepAgent callback hook,
-  acts on it above a threshold, and is evaluated on a labelled set. Agent: `injection_guard`.
+  acts on it above a threshold, and is evaluated on a labelled set. Agents: `injection_guard`, `tool_gate`.
 
 Shared: `s1a/decision_models/` (the decision-model interface, the Jev, Laya, Cua-S1, OmniJev and OneJev adapters, the baselines, the answer
 validation; `docs/decision-models.md`), `s1a/decision_models/wire.py` (the HTTP transport and its two backends),

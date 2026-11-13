@@ -182,12 +182,15 @@ guideline text before model calls.
 
 ### Tool-call guardrail inside the permission engine
 
-Jev decides allow or ask for calls the static policy cannot classify, on every call. Plug-in:
-`openjiuwen/harness/rails/security/tool_security_rail.py` (`before_tool_call`, which calls
-`resolve_interrupt`). Demo: "clean up ./dist" with a planted `rm -rf ~/`. Thresholds to start from:
-auto-allow above 0.7, ask in between, deny below 0.1. Probe: 7 of 7; safe calls scored p=0.73 to 0.94, unsafe
-ones (home-directory wipe, force push, env exfiltration, CI-file backdoor) p=0.01 to 0.03. Effort: a day, plus a
-100-call labelled set for a precision and recall table. Public set: R-Judge (569 records, GPT-4o F1 74.42%).
+Measured offline on TS-Bench (#122). `s1a/agents/tool_gate.py` is a `BEFORE_TOOL_CALL` `noul` rail ("is this tool
+call unsafe to run for this user request?"). The roadmap's bands stay in *safe* p (allow above 0.7, deny below 0.1,
+ask in between); the rail flags *unsafe*, so `p_safe = 1 - p` and the thresholds are allow 0.3 / deny 0.9. A
+decision error fails closed to ask, not deny, and ask uses the same `InterruptRequest` / `ConfirmPayload` shape as
+`resolve_interrupt`. The labelled set is a seeded 600-id sample of TS-Bench (`MurrayTom/TS-Bench` @ `19047a0c`,
+Apache-2.0; 300 AgentDojo-Traj + 300 ASB-Traj; dataset not vendored). Scores for Jev and a chat-model judge are
+not recorded yet (no keys on the machine that wrote this); the static-rule baseline is in `docs/benchmarks.md`.
+Live AgentDojo / ASB re-runs with the gate switched on (utility under attack) remain a follow-up. The earlier
+7-of-7 probe and R-Judge are superseded as the primary evidence by this public step-level set.
 
 ### Severity and escalate-to-human after every turn
 
@@ -214,7 +217,7 @@ Principle: keep regex for syntactic checks and put Jev on semantic branches.
 | # | Place | Rule today | Jev head | Before/after metric |
 |---|---|---|---|---|
 | 1 | Injection on tool results | the `injection_guard` rail, shipped | `noul` | attack success rate and utility under attack on InjecAgent and AgentDojo |
-| 2 | Tool-call gate | tier rules, `shell_ast`, path extraction, destructive patterns | `noul` | false-allow rate and ask-rate on 250 labelled calls; R-Judge |
+| 2 | Tool-call gate | the `tool_gate` rail, measured offline on TS-Bench (#122); live utility under attack still to run | `noul` | false-allow and ask rate on the committed 600-id TS-Bench sample; live AgentDojo/ASB follow-up |
 | 3 | Loop detection, `harness/rails/model_anomaly_detection_rail.py` | identical tool set and args across rounds; repeated output suffix | `noul` "is the agent making progress?" | F1 on 200 labelled windows; wasted tool calls per episode |
 | 4 | Retryability, `harness/rails/tool_call_resilience_rail.py` | exception type plus marker substrings | `choice` retry, backoff, repair args, give up | accuracy on 300 labelled errors |
 | 5 | Context offloading, `core/context_engine/processor/offloader/tool_result_budget_processor.py` | size thresholds | `score` "needed again?" | recall calls per episode; task success at a fixed token budget |

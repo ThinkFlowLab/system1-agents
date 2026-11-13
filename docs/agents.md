@@ -16,13 +16,14 @@ hook of a running agent. The injection guard rail fails closed: a decision error
 | `millionaire` | tool | winnings on a 15-question quiz ladder | `s1a run millionaire --model jev --rethink off --episodes 5` |
 | `blackjack` | tool | payoff per hand (RLCard) | `s1a run blackjack --model jev --rethink off --episodes 100` |
 | `injection_guard` | rail | precision and recall on a labelled injection set | `s1a run injection_guard` |
+| `tool_gate` | rail | precision, recall, F1, false-allow and ask rate on a TS-Bench tool-call sample | `s1a run tool_gate --labelled-set .external/tsbench/sample.jsonl` |
 
 Every tool agent takes `--model jev|clm|laya|laya-served|cua|llm|random|rule`, `--rethink on|off`, `--episodes N`, `--seed S`,
 `--max-steps` and `--timeout`, and writes a Harbor-shaped job folder under `evals/results/<agent>/`. A browser agent
 takes `--model jev|clm|laya|laya-served|cua|omnijev|onejev|llm`, `--goal` and the same `--rethink` flag.
 The desktop agent adds `--rethink-attempts` and `--rethink-timeout` and stalls after 3 actions without observed
 progress. The browser front takes the same three names; `docs/browser-front.md` decision 19 describes its branch. A rail takes
-`--model jev|clm|laya|laya-served`, the models that answer `noul`.
+`--model jev|clm|laya|laya-served`, the models that answer `noul`; `tool_gate` also takes `--model rule`.
 `uv run python -m evals.table evals/results` aggregates every job folder per eval and model into one table.
 
 Every `run` prints one JSON object on stdout and nothing else there; `s1a-mcp` serves the same agents over stdio
