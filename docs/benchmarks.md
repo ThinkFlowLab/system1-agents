@@ -233,6 +233,56 @@ vs control** (`bands` in `summary.json`). Do not invent numbers.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | pending | markdown | 50 | 100 | 6,000 | jev | yes (attack) / no (control) | N/A | N/A | N/A | N/A | N/A | N/A |
 
+### BrowseSafe++ through the official SDK
+
+[BrowseSafe++](https://browsesafe.perplexity.ai/quickstart/) ships a Python SDK (`browsesafe-pp`, installed from
+[GitHub](https://github.com/perplexityai/browsesafe-plus-plus), not PyPI) that loads attack/control pairs, scores a
+detector and writes leaderboard predictions. `s1a/browsesafe_pp.py` is `injection_guard` as an SDK detector
+(`predict(request) -> Prediction`, #119). The SDK is not a dependency of this package and core CI never imports it.
+
+- **Input.** `request.content` is cut to the runtime's 6,000-character clip (`MAX_CHARS`) and sent as
+  `{"tool", "text"}`: `browser_snapshot` for the `accessibility` view, `fetch_webpage` for `html` and `markdown`.
+- **Abstain mapping.** Act band (p ≥ 0.7) is `injected=True`, allow band (p ≤ 0.3) is `injected=False`, and the
+  uncertain band is `injected=None`, which the SDK reports as an abstention. This is a choice: the runtime lets an
+  uncertain page through whole, so mapping it to `False` is the other reading. It changes recall and control-page
+  FPR, so quote it with every number.
+- **Failures.** A failed decision raises and the SDK counts the page as an error (one attempt per page, no
+  retries). `S1A_BSPP_ON_FAILURE=closed` answers `injected=True` instead, as the runtime guard fails closed. The
+  error names the failure category only, never the endpoint's message, which can quote the page.
+- **Backend.** `S1A_BSPP_MODEL` (default `jev`; also `clm`, `laya`, `laya-served`).
+- **SDK commit.** `a01d2515ba985d43409836f0503146dec9734258` (GitHub `HEAD` on 2026-11-09). The SDK loads its own
+  default dataset revision; record the revision it reports with each run. The converter in #117 pins `7674843`.
+
+Train split, per view (needs gated HF access with `hf auth login` or `HF_TOKEN`, plus `TYPESAFE_API_KEY`):
+
+```bash
+SDK='browsesafe-pp[eval] @ git+https://github.com/perplexityai/browsesafe-plus-plus.git@a01d2515ba985d43409836f0503146dec9734258'
+for view in markdown accessibility html; do
+  uv run --with "$SDK" browsesafe evaluate --predict s1a.browsesafe_pp:predict --view "$view" \
+    --output "results/browsesafe-pp/s1a-jev-$view"
+done
+```
+
+**Cross-check against our converter.** On the same seeded 50 train pairs as #117 (`evals/labelled/browsesafe-plus-train-sample.json`),
+report the SDK's numbers next to `s1a run injection_guard` on the converter's JSONL, per view. Differences to look
+for, not tune away: the abstain mapping above (the converter's precision/recall count only the act band), failures
+(acted on in `s1a run`, an error in the SDK) and any difference in the view text between the published columns and
+the SDK's `request.content`.
+
+| date | view | pairs | model | SDK precision | SDK recall | control FPR | paired correct | abstain | errors | converter precision | converter recall |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| pending | markdown | 50 | jev | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+
+Not run yet: no gated HF access or Jev key on the machine that wrote this. Do not fill the table without a run.
+
+**Leaderboard prep, not submission.** Test inputs are leaderboard-only and licensed for evaluation only: never
+vendor them, cache them in the tree or use them for anything but this command. Submitting is a maintainer decision
+under a maintainer's HF account (one submission per account per week) and stays outside the repository.
+
+```bash
+uv run --with "$SDK" browsesafe predict --predict s1a.browsesafe_pp:predict \
+  --view html --view markdown --view accessibility --output predictions.jsonl
+```
 
 ## Series
 

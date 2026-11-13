@@ -89,6 +89,7 @@ include = ["s1a"]
 include = [
     "s1a/agents/alfworld.py",
     "s1a/agents/blackjack.py",
+    "s1a/browsesafe_pp.py",  # the BrowseSafe++ SDK, installed only with `uv run --with`
     "s1a/decision_models/cua.py",
     "s1a/decision_models/cua_four_b.py",
     "s1a/decision_models/laya.py",
