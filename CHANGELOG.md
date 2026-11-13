@@ -4,6 +4,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `python -m benchmarks.legs.browser_steps`: offline step-level scoring of browser decision backends on
+  [myjev-browser-decisions](https://huggingface.co/datasets/Mlchemist/myjev-browser-decisions) (pinned revision,
+  hash-checked at download, never vendored; CC BY-NC-SA 4.0). `predict` sends each step through `DecisionModel`
+  (any text backend), one request at a time, no retries, failures scored wrong; `score` reports operation and
+  element accuracy, step success, Brier/ECE and latency with denominators, on the full split and the Jev-answered
+  subset; `thresholds` turns a calibration run into a deferral threshold table. `--shape dataset` re-sends
+  jev-ultrafast's body unchanged, `--shape ours` swaps in our operation text and rules. Only a random floor is
+  reported so far. See [docs/results/browser-steps](docs/results/browser-steps/README.md) (#109).
+
 ## 0.4.0 - 2026-11-13
 
 ### Added
