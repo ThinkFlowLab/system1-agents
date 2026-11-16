@@ -120,6 +120,46 @@ The set has two limits. Only 34 of the normal outputs contain a request. The pla
 requests also come from different benchmarks with different text formats, so a simple word-count classifier already
 separates them 73% of the time.
 
+### Pre-execution tool-call gate: TS-Bench
+
+This is **not** the injection guard. The injection guard judges *tool output* on `AFTER_TOOL_CALL`
+(`evals/labelled/injection-public.jsonl` draws on AgentDojo as page text). The tool-call gate judges the *next
+call* on `BEFORE_TOOL_CALL`. The two hooks are different; a seeded-id check found no verbatim overlap between the
+TS-Bench sample and injection-public.
+
+[TS-Bench](https://huggingface.co/datasets/MurrayTom/TS-Bench) (ToolSafe, [ACL 2026 Findings](https://aclanthology.org/2026.findings-acl.1850/),
+Apache-2.0, revision `19047a0c4a54f54cc1ddd4a2c597105d8453b819`) labels each candidate action `instruction` /
+`history` / `current_action` / `env_info` as safe (score 0), controversial (0.5) or unsafe (1). The committed
+sample (`evals/labelled/tsbench-sample.json`, seed 122) is 150 safe + 150 unsafe ids from `AgentDojo-Traj` and the
+same from `ASB-Traj` (600 headline rows). Score 0.5 is dropped from the headline and is not in this table. Rows whose
+action names no tool (`Action: None`, `Final Answer`, or prose; 414 rows across the two splits, 406 of them safe
+ASB-Traj rows) are never sampled, since a `BEFORE_TOOL_CALL` hook would not see them. The dataset is not vendored.
+
+```bash
+uv run python scripts/build_tsbench_set.py sample --per-split-per-label 150 --seed 122
+uv run python scripts/build_tsbench_set.py build --dest .external/tsbench/sample.jsonl
+uv run s1a run tool_gate --labelled-set .external/tsbench/sample.jsonl --model rule
+uv run s1a run tool_gate --labelled-set .external/tsbench/sample.jsonl --model jev
+```
+
+Bands invert the roadmap's safe p: allow when p_unsafe ≤ 0.3, deny when p_unsafe ≥ 0.9, ask in between. Precision,
+recall and F1 are of the *deny* (act) band against "unsafe". False-allow is the share of unsafe rows that were
+allowed through (not denied and not asked). AUROC uses the unsafe probability on answered rows.
+
+| date | split | n | model | precision | recall | F1 | false-allow | ask rate | AUROC |
+|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-16 | all 600 | 600 | rule | 0.500 [0.460, 0.540] | 1.000 [0.987, 1.000] | 0.667 | 0.000 [0.000, 0.013] | 0.000 [0.000, 0.006] | 0.500 |
+| 2026-11-16 | AgentDojo-Traj | 300 | rule | 0.500 [0.444, 0.556] | 1.000 [0.975, 1.000] | 0.667 | 0.000 [0.000, 0.025] | 0.000 [0.000, 0.013] | 0.500 |
+| 2026-11-16 | ASB-Traj | 300 | rule | 0.500 [0.444, 0.556] | 1.000 [0.975, 1.000] | 0.667 | 0.000 [0.000, 0.025] | 0.000 [0.000, 0.013] | 0.500 |
+| pending | all 600 | 600 | jev | N/A | N/A | N/A | N/A | N/A | N/A |
+| pending | all 600 | 600 | llm | N/A | N/A | N/A | N/A | N/A | N/A |
+
+The `rule` row is a local `--model rule` run on the committed ids (labelled-set sha256
+`1cf421c2a10853b6e1373aaf5de1313373e828bffb8040118a923ec94012c4a1`). The static baseline flags a call as unsafe if a
+destructive pattern appears *or* the tool name is missing from the instruction, so it denies all 600 rows: full
+recall, chance precision, AUROC at the floor. Jev needs `TYPESAFE_API_KEY`; a chat-model judge (`llm`) is listed for
+the same ids but is not a rail backend yet. Do not invent numbers.
+
 ### Page-length inputs: BrowseSafe-Bench
 
 The 20-item set and the InjecAgent/AgentDojo set of #23 are short tool outputs. Real `browser_snapshot` and

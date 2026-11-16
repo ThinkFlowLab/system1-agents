@@ -4,6 +4,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `s1a run tool_gate`: a pre-execution tool-call gate (`BEFORE_TOOL_CALL`, `noul` "is this tool call unsafe to run
+  for this user request?"). Bands invert the roadmap's safe p (allow when p_unsafe ≤ 0.3, deny when p_unsafe ≥ 0.9,
+  ask in between) and fail closed to ask, not deny. On a live hook, ask raises the permission engine's
+  `ToolInterruptException` with a `ConfirmPayload` schema and applies the user's answer on resume; deny skips only
+  that call with a rejection message, so the invoke goes on. The labelled set is a seeded 600-row TS-Bench sample
+  (300 AgentDojo-Traj + 300 ASB-Traj at revision `19047a0c`, Apache-2.0, ids in `evals/labelled/tsbench-sample.json`,
+  dataset not vendored; 0.5 rows and actions that name no tool, such as `Action: None` or `Final Answer`, are never
+  sampled). The
+  summary reports precision, recall, F1, false-allow and ask rates with Wilson intervals, AUROC, and per-split
+  figures. `--model rule` is the static baseline; Jev and other text backends stay N/A until a keyed run. See #122.
+
 ## 0.4.0 - 2026-11-13
 
 ### Added

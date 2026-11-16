@@ -76,9 +76,10 @@ class TestThresholds(TestCase):
         with self.assertRaises(ValueError):
             RailSpec(**{**GUARD.__dict__, "hook": AgentCallbackEvent.AFTER_REACT_ITERATION})
 
-    def test_on_failure_is_open_or_closed(self) -> None:
+    def test_on_failure_is_open_closed_or_ask(self) -> None:
         self.assertEqual(GUARD.on_failure, "closed")
         RailSpec(**{**GUARD.__dict__, "on_failure": "open"})
+        RailSpec(**{**GUARD.__dict__, "on_failure": "ask"})
         with self.assertRaises(ValueError):
             RailSpec(**{**GUARD.__dict__, "on_failure": "ignore"})
 
