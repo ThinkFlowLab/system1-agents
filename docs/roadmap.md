@@ -185,8 +185,9 @@ guideline text before model calls.
 Measured offline on TS-Bench (#122). `s1a/agents/tool_gate.py` is a `BEFORE_TOOL_CALL` `noul` rail ("is this tool
 call unsafe to run for this user request?"). The roadmap's bands stay in *safe* p (allow above 0.7, deny below 0.1,
 ask in between); the rail flags *unsafe*, so `p_safe = 1 - p` and the thresholds are allow 0.3 / deny 0.9. A
-decision error fails closed to ask, not deny, and ask uses the same `InterruptRequest` / `ConfirmPayload` shape as
-`resolve_interrupt`. The labelled set is a seeded 600-id sample of TS-Bench (`MurrayTom/TS-Bench` @ `19047a0c`,
+decision error fails closed to ask, not deny. Ask raises `ToolInterruptException` with a `ConfirmPayload` schema,
+the way `BaseInterruptRail._apply_decision` does, and applies the user's answer on resume; deny skips only that call
+with a rejection message (`_skip_tool`), so the agent can try something else. The labelled set is a seeded 600-id sample of TS-Bench (`MurrayTom/TS-Bench` @ `19047a0c`,
 Apache-2.0; 300 AgentDojo-Traj + 300 ASB-Traj; dataset not vendored). Scores for Jev and a chat-model judge are
 not recorded yet (no keys on the machine that wrote this); the static-rule baseline is in `docs/benchmarks.md`.
 Live AgentDojo / ASB re-runs with the gate switched on (utility under attack) remain a follow-up. The earlier

@@ -12,7 +12,10 @@ from unittest.mock import MagicMock
 
 from openjiuwen.core.common.exception.codes import StatusCode
 from openjiuwen.core.common.exception.errors import build_error
-from openjiuwen.core.single_agent.interrupt.response import InterruptRequest
+from openjiuwen.core.runner.callback import AbortError
+from openjiuwen.core.session import InteractiveInput
+from openjiuwen.core.single_agent.interrupt.exception import ToolInterruptException
+from openjiuwen.core.single_agent.interrupt.state import RESUME_USER_INPUT_KEY
 from openjiuwen.core.single_agent.rail.base import AgentCallbackContext, AgentCallbackEvent, ToolCallInputs
 
 from s1a import rails
@@ -55,26 +58,79 @@ class TestBandsAndInversion(IsolatedAsyncioTestCase):
         self.assertEqual(SPEC.rules, RULES)
         self.assertEqual((SPEC.on_failure, SPEC.hook.name), ("ask", "BEFORE_TOOL_CALL"))
 
-    async def test_ask_runs_in_the_uncertain_band_and_deny_in_the_act_band(self) -> None:
-        rail = rails.DecisionModelRail(SPEC, _noul([0.5, 0.95]))
-        ask_ctx, deny_ctx = _ctx("send_money"), _ctx("run_shell")
-        await rail.on_event(ask_ctx)
-        await rail.on_event(deny_ctx)
+    async def test_ask_interrupts_the_call_in_the_uncertain_band(self) -> None:
+        rail = rails.DecisionModelRail(SPEC, _noul([0.5]))
+        ctx = _ctx("send_money")
+        with self.assertRaises(AbortError) as raised:
+            await rail.on_event(ctx)
+        cause = raised.exception.cause
+        self.assertIsInstance(cause, ToolInterruptException)
+        self.assertIs(cause.tool_call, ctx.inputs.tool_call)
+        self.assertEqual(cause.request.metadata["band"], "ask")
+        self.assertIn("approved", cause.request.payload_schema["properties"])
         self.assertEqual(rail.ticks[0]["handling"], "ask")
-        self.assertEqual(ask_ctx.extra["tool_gate"]["band"], "ask")
-        self.assertIsInstance(ask_ctx.extra["tool_gate_interrupt"], InterruptRequest)
-        self.assertEqual(rail.ticks[1]["handling"], "act")
-        self.assertEqual(deny_ctx.extra["tool_gate"]["band"], "deny")
-        self.assertTrue(deny_ctx.has_force_finish_request)
+        self.assertNotIn("_skip_tool", ctx.extra)
+
+    async def test_deny_skips_only_this_call_with_a_rejection_message(self) -> None:
+        rail = rails.DecisionModelRail(SPEC, _noul([0.95]))
+        ctx = _ctx("run_shell")
+        await rail.on_event(ctx)
+        self.assertEqual(rail.ticks[0]["handling"], "act")
+        self.assertEqual(ctx.extra["tool_gate"]["band"], "deny")
+        self.assertIs(ctx.extra["_skip_tool"], True)
+        self.assertFalse(ctx.has_force_finish_request)
+        self.assertEqual(ctx.inputs.tool_msg.tool_call_id, "call-1")
+        self.assertIn("run_shell was not run", ctx.inputs.tool_msg.content)
+
+    async def test_allow_runs_the_call(self) -> None:
+        rail = rails.DecisionModelRail(SPEC, _noul([0.1]))
+        ctx = _ctx("get_balance")
+        await rail.on_event(ctx)
+        self.assertEqual(rail.ticks[0]["handling"], "pass")
+        self.assertNotIn("_skip_tool", ctx.extra)
+        self.assertFalse(ctx.has_force_finish_request)
 
     async def test_a_decision_error_fails_closed_to_ask_not_deny(self) -> None:
         ctx = _ctx("send_money")
         rail = rails.DecisionModelRail(SPEC, _noul([0.1], fail=True))
-        await rail.on_event(ctx)
+        with self.assertRaises(AbortError) as raised:
+            await rail.on_event(ctx)
+        self.assertIsInstance(raised.exception.cause, ToolInterruptException)
         self.assertEqual(rail.ticks[0]["handling"], "ask_on_failure")
         self.assertEqual(ctx.extra["tool_gate"]["band"], "ask")
+        self.assertNotIn("_skip_tool", ctx.extra)
         self.assertFalse(ctx.has_force_finish_request)
         self.assertNotIn("secret", json.dumps(rail.ticks[0]))
+
+
+class TestResume(IsolatedAsyncioTestCase):
+    async def test_an_approval_for_this_call_runs_it_without_asking_again(self) -> None:
+        model = _noul([0.5])
+        rail = rails.DecisionModelRail(SPEC, model)
+        ctx = _ctx("send_money")
+        ctx.extra[RESUME_USER_INPUT_KEY] = InteractiveInput()
+        ctx.extra[RESUME_USER_INPUT_KEY].update("call-1", {"approved": True})
+        await rail.on_event(ctx)
+        self.assertEqual(rail.ticks, [{"handling": "resumed"}])
+        self.assertEqual(ctx.extra["tool_gate"], {"band": "resumed", "tool": "send_money", "approved": True})
+        self.assertNotIn("_skip_tool", ctx.extra)
+
+    async def test_a_rejection_skips_the_call_with_the_users_feedback(self) -> None:
+        rail = rails.DecisionModelRail(SPEC, _noul([0.5]))
+        ctx = _ctx("send_money")
+        ctx.extra[RESUME_USER_INPUT_KEY] = {"call-1": {"approved": False, "feedback": "not that account"}}
+        await rail.on_event(ctx)
+        self.assertEqual(rail.ticks, [{"handling": "resumed"}])
+        self.assertIs(ctx.extra["_skip_tool"], True)
+        self.assertEqual(ctx.inputs.tool_msg.content, "not that account")
+
+    async def test_an_answer_for_another_call_is_not_an_approval(self) -> None:
+        rail = rails.DecisionModelRail(SPEC, _noul([0.5]))
+        ctx = _ctx("send_money")
+        ctx.extra[RESUME_USER_INPUT_KEY] = {"call-2": {"approved": True}}
+        with self.assertRaises(AbortError):
+            await rail.on_event(ctx)
+        self.assertEqual(rail.ticks[0]["handling"], "ask")
 
 
 class TestStaticRule(IsolatedAsyncioTestCase):

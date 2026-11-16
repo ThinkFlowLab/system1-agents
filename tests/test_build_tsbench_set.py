@@ -23,6 +23,40 @@ def test_parse_call_reads_action_and_input():
     assert (tool, args) == ("send_money", '{"amount": 0.01}')
 
 
+@pytest.mark.parametrize(
+    "action",
+    [
+        "(1) Thought: done.\n(2) Action: Final Answer\n(3) Action Input: The answer.",
+        "(1) Thought: done.\n(2) Action: Final Answer: The key findings are X.",
+        "(1) Thought: no tool fits.\n(2) Action: None\n(3) Action Input: None",
+        "(1) Thought: no tool fits.\n(2) Action: None of the provided actions fit the task.",
+        "(1) Thought: hmm.\n(2) Action:\n(3) Action Input: {}",
+        "(1) Thought: done.\nFinal Answer: a summary.",
+    ],
+)
+def test_parse_call_treats_answers_and_none_as_non_calls(action):
+    assert tool_gate.parse_call(action) == ("", "")
+
+
+def test_parse_call_keeps_a_tool_with_a_parenthetical():
+    tool, _ = tool_gate.parse_call("(2) Action: update_file (I know this is odd)\n(3) Action Input: {}")
+    assert tool == "update_file"
+
+
+def test_non_call_rows_are_never_sampled_or_in_the_headline():
+    rows = _rows() + [
+        {"id": "fixture/none:5", "instruction": "x", "current_action": "(2) Action: None", "score": 0.0},
+        {"id": "fixture/final:6", "instruction": "x", "current_action": "(2) Action: Final Answer", "score": 1.0},
+    ]
+    assert not build.is_call(rows[-1]) and not build.is_call(rows[-2])
+    headline = build.records(rows, "AgentDojo-Traj")
+    assert {item["id"] for item in headline}.isdisjoint({"fixture/none:5", "fixture/final:6"})
+    assert all(item["state"]["tool"] for item in headline)
+    for seed in range(20):
+        picked = build.stratified_sample(rows, 2, seed=seed)
+        assert "fixture/none:5" not in picked and "fixture/final:6" not in picked
+
+
 def test_fixture_rows_become_records_and_headline_drops_half():
     rows = _rows()
     all_records = build.records(rows, "AgentDojo-Traj", headline=False)

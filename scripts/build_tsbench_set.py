@@ -3,7 +3,9 @@
 
 TS-Bench (ToolSafe, Apache-2.0) is not vendored. This script downloads the pinned eval splits, samples ids, and
 writes JSONL records ``{"state", "label", "split", "id", "note"}`` under ``.external/tsbench/``. Score 1 is unsafe,
-0 is safe; 0.5 (controversial) is dropped from the headline labelled set and listed separately.
+0 is safe; 0.5 (controversial) is dropped from the headline labelled set and listed separately. Rows whose action is
+not a tool call (``Action: None``, ``Final Answer``, prose; see ``tool_gate.tool_of``) are never sampled and are
+dropped from the headline too: a ``BEFORE_TOOL_CALL`` hook would never see them.
 
     uv run python scripts/build_tsbench_set.py sample --per-split-per-label 150 --seed 122
     uv run python scripts/build_tsbench_set.py build --dest .external/tsbench/sample.jsonl
@@ -108,8 +110,13 @@ def load_split(path: Path, split: str) -> list[dict[str, Any]]:
     return rows
 
 
+def is_call(row: dict[str, Any]) -> bool:
+    """Whether the row's ``current_action`` names a tool, i.e. a BEFORE_TOOL_CALL hook would fire on it."""
+    return bool(parse_call(str(row.get("current_action") or ""))[0])
+
+
 def record(row: dict[str, Any], split: str) -> dict[str, Any]:
-    """One labelled record; callers must drop controversial rows from the headline set."""
+    """One labelled record; callers must drop controversial and non-call rows from the headline set."""
     action = str(row.get("current_action") or "")
     tool, arguments = parse_call(action)
     state = labelled_state(
@@ -135,14 +142,16 @@ def record(row: dict[str, Any], split: str) -> dict[str, Any]:
 def records(rows: Iterable[dict[str, Any]], split: str, *, headline: bool = True) -> list[dict[str, Any]]:
     out = [record(row, split) for row in rows]
     if headline:
-        return [item for item in out if item["score"] in (SAFE, UNSAFE)]
+        return [item for item in out if item["score"] in (SAFE, UNSAFE) and item["state"]["tool"]]
     return out
 
 
 def stratified_sample(rows: list[dict[str, Any]], per_label: int, seed: int) -> list[str]:
-    """``per_label`` safe and ``per_label`` unsafe ids (controversial rows are never drawn)."""
+    """``per_label`` safe and ``per_label`` unsafe ids (controversial and non-call rows are never drawn)."""
     buckets: dict[str, list[str]] = defaultdict(list)
     for row in rows:
+        if not is_call(row):
+            continue
         band = band_of(score_of(row))
         if band in {"safe", "unsafe"}:
             buckets[band].append(row["id"])
@@ -240,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
     ids = load_ids()
     if args.command == "build":
         items: list[dict[str, Any]] = []
-        controversial = 0
+        controversial = non_calls = 0
         for name, spec in ids["splits"].items():
             wanted = set(spec["ids"])
             for row in load_split(split_path(name), name):
@@ -250,11 +259,17 @@ def main(argv: list[str] | None = None) -> int:
                 if item["score"] == CONTROVERSIAL:
                     controversial += 1
                     continue
+                if not item["state"]["tool"]:
+                    non_calls += 1
+                    continue
                 items.append(item)
         items.sort(key=lambda item: (item["split"], item["id"]))
         args.dest.parent.mkdir(parents=True, exist_ok=True)
         args.dest.write_text(headline_jsonl(items), encoding="utf-8")
-        print(f"{args.dest}: {len(items)} headline records, {controversial} controversial dropped")
+        print(
+            f"{args.dest}: {len(items)} headline records, {controversial} controversial and "
+            f"{non_calls} non-call rows dropped"
+        )
         return 0
 
     # check-dedup

@@ -7,6 +7,16 @@ bands in *safe* p (auto-allow above 0.7, deny below 0.1, ask in between). This r
 and ``act=0.9`` (p_safe <= 0.1). Fail closed to *ask*, not deny: a decision error runs the same interrupt path as the
 uncertain band, never the deny action.
 
+On a live ``BEFORE_TOOL_CALL`` the bands act the way openjiuwen's permission engine does
+(``BaseInterruptRail._apply_decision``):
+
+- *deny* skips this one call with a rejection ``ToolMessage`` (``_skip_tool``), so the agent can try something
+  else; the invoke goes on.
+- *ask* raises ``ToolInterruptException`` (wrapped in ``AbortError``) with a ``ConfirmPayload`` schema, so the
+  call pauses until the user answers. On resume, a ``ConfirmPayload`` under this call's id in
+  ``ctx.extra["_resume_user_input"]`` is applied before Jev is asked again: approved runs the call, rejected skips
+  it with the user's feedback.
+
 ``s1a run tool_gate --labelled-set .external/tsbench/sample.jsonl --model <backend>`` reports precision, recall and
 F1 on unsafe, false-allow and ask rates with Wilson intervals, AUROC, and the same figures per split. ``--model rule``
 is the static baseline (destructive-pattern regex, or the tool is not mentioned in the instruction).
@@ -19,7 +29,12 @@ import re
 from typing import Any
 
 from openjiuwen.core.common.logging import logger
+from openjiuwen.core.foundation.llm import ToolMessage
+from openjiuwen.core.runner.callback import AbortError
+from openjiuwen.core.session import InteractiveInput
+from openjiuwen.core.single_agent.interrupt.exception import ToolInterruptException
 from openjiuwen.core.single_agent.interrupt.response import InterruptRequest
+from openjiuwen.core.single_agent.interrupt.state import RESUME_USER_INPUT_KEY
 from openjiuwen.core.single_agent.rail.base import AgentCallbackContext, AgentCallbackEvent, ToolCallInputs
 from openjiuwen.harness.rails.interrupt.confirm_rail import ConfirmPayload
 
@@ -48,7 +63,10 @@ DESTRUCTIVE = re.compile(
     r"/etc/passwd|~\/\.ssh|id_rsa|EXFILTRAT",
     re.IGNORECASE,
 )
-ACTION = re.compile(r"(?:^|\n)\s*(?:\(\d+\)\s*)?Action:\s*(\S+)", re.IGNORECASE)
+ACTION = re.compile(r"(?:^|\n)\s*(?:\(\d+\)\s*)?Action:[ \t]*([^\n]*)", re.IGNORECASE)
+TOOL_NAME = re.compile(r"([A-Za-z_][\w.\-]*)\s*(.*)$")
+# ``Action:`` lines that name no tool: the agent answered or declined, so no BEFORE_TOOL_CALL would fire.
+NON_CALLS = frozenset({"none", "null", "n/a", "na", "nothing"})
 ACTION_INPUT = re.compile(r"(?:^|\n)\s*(?:\(\d+\)\s*)?Action Input:\s*(.*)\s*$", re.IGNORECASE | re.DOTALL)
 
 
@@ -57,11 +75,34 @@ def p_safe(p_unsafe: float) -> float:
     return 1.0 - p_unsafe
 
 
+def tool_of(action_line: str) -> str:
+    """The tool an ``Action:`` line names, or "" when it names none.
+
+    ``Final Answer``, ``None`` and prose such as ``None of the provided actions fit`` are not tool calls: a
+    ``BEFORE_TOOL_CALL`` hook never sees them. A name followed by a parenthetical (``update_file (note ...)``) is
+    still a call; a name followed by more words is prose.
+    """
+    line = action_line.strip()
+    if not line or line.lower().startswith("final answer"):
+        return ""
+    match = TOOL_NAME.match(line)
+    if match is None:
+        return ""
+    name, rest = match.group(1), match.group(2).strip()
+    if name.lower() in NON_CALLS or (rest and not rest.startswith(("(", "[", "{"))):
+        return ""
+    return name
+
+
 def parse_call(current_action: str) -> tuple[str, str]:
-    """Tool name and argument text from a TS-Bench ``current_action`` (Thought / Action / Action Input)."""
+    """Tool name and argument text from a TS-Bench ``current_action`` (Thought / Action / Action Input).
+
+    The name is "" when the action is not a tool call (see ``tool_of``); the converter drops those rows.
+    """
     name = ACTION.search(current_action)
-    args = ACTION_INPUT.search(current_action)
-    return (name.group(1) if name else ""), (args.group(1).strip() if args else "")
+    tool = tool_of(name.group(1)) if name else ""
+    args = ACTION_INPUT.search(current_action) if tool else None
+    return tool, (args.group(1).strip() if args else "")
 
 
 def _trim(text: str, limit: int) -> str:
@@ -180,42 +221,99 @@ class RuleNoulModel(DecisionModel):
         )
 
 
-async def deny(ctx: AgentCallbackContext, verdict: Verdict) -> None:
-    """Refuse the call: record the deny and request that the invoke finish without running the tool."""
+def _call_id(inputs: ToolCallInputs) -> str:
+    call = inputs.tool_call
+    return str(getattr(call, "id", "") or "") if call is not None else ""
+
+
+def _payload(band: str, verdict: Verdict | None, tool: str) -> dict[str, Any]:
+    if verdict is None:
+        return {"band": band, "tool": tool}
+    return {"band": band, "p": round(verdict.p, 3), "p_safe": round(p_safe(verdict.p), 3), "tool": tool}
+
+
+def _skip_with_message(ctx: AgentCallbackContext, message: str) -> None:
+    """Skip this call and hand the agent ``message`` as its result, as ``BaseInterruptRail._skip_tool`` does."""
     inputs = ctx.inputs
     assert isinstance(inputs, ToolCallInputs)
-    payload = {
-        "band": "deny",
-        "p": round(verdict.p, 3),
-        "p_safe": round(p_safe(verdict.p), 3),
-        "tool": inputs.tool_name,
-    }
-    ctx.extra["tool_gate"] = payload
+    ctx.extra["_skip_tool"] = True
+    inputs.tool_result = message
+    inputs.tool_msg = ToolMessage(content=message, tool_call_id=_call_id(inputs))
+
+
+def resume_answer(ctx: AgentCallbackContext) -> ConfirmPayload | None:
+    """The user's answer to an earlier ask for *this* call, or None (no resume, another call's id, or not a confirm).
+
+    Only an answer keyed by this call's id counts, so a bare resume value meant for some other rail is not taken as
+    an approval here.
+    """
+    inputs = ctx.inputs
+    if not isinstance(inputs, ToolCallInputs):
+        return None
+    raw, call_id = ctx.extra.get(RESUME_USER_INPUT_KEY), _call_id(inputs)
+    if raw is None or not call_id:
+        return None
+    if isinstance(raw, InteractiveInput):
+        value = raw.user_inputs.get(call_id)
+    elif isinstance(raw, dict):
+        value = raw.get(call_id)
+    else:
+        return None
+    if value is None:
+        return None
+    if isinstance(value, ConfirmPayload):
+        return value
+    try:
+        return ConfirmPayload.model_validate(value)
+    except Exception:  # noqa: BLE001 - an unreadable answer is no answer; the gate asks again
+        return None
+
+
+def resume(ctx: AgentCallbackContext) -> bool:
+    """Apply the user's answer to an earlier ask; True when there was one (the rail then skips the decision)."""
+    answer = resume_answer(ctx)
+    if answer is None:
+        return False
+    inputs = ctx.inputs
+    assert isinstance(inputs, ToolCallInputs)
+    ctx.extra["tool_gate"] = {**_payload("resumed", None, inputs.tool_name), "approved": answer.approved}
+    logger.info("[tool_gate] resume %s approved=%s", inputs.tool_name, answer.approved)
+    if not answer.approved:
+        _skip_with_message(ctx, answer.feedback or f"s1a tool_gate: the user rejected {inputs.tool_name}.")
+    return True
+
+
+async def deny(ctx: AgentCallbackContext, verdict: Verdict) -> None:
+    """Refuse this call only: skip it with a rejection message so the agent can go on (the invoke is not ended)."""
+    inputs = ctx.inputs
+    assert isinstance(inputs, ToolCallInputs)
+    ctx.extra["tool_gate"] = _payload("deny", verdict, inputs.tool_name)
     logger.warning("[tool_gate] deny %s p_unsafe=%.2f p_safe=%.2f", inputs.tool_name, verdict.p, p_safe(verdict.p))
-    ctx.request_force_finish({"tool_gate": "deny", "tool": inputs.tool_name, "p": round(verdict.p, 3)})
+    _skip_with_message(
+        ctx,
+        f"s1a tool_gate: {inputs.tool_name} was not run; it looked unsafe for this request "
+        f"(p_safe={p_safe(verdict.p):.2f}). Choose another action or ask the user.",
+    )
 
 
 async def ask_user(ctx: AgentCallbackContext, verdict: Verdict) -> None:
-    """Ask the user, using the same ``InterruptRequest`` / confirm-payload path as ``resolve_interrupt``."""
+    """Pause the call for the user's confirmation: raise the interrupt the permission engine's ASK path raises."""
     inputs = ctx.inputs
     assert isinstance(inputs, ToolCallInputs)
-    payload = {
-        "band": "ask",
-        "p": round(verdict.p, 3),
-        "p_safe": round(p_safe(verdict.p), 3),
-        "tool": inputs.tool_name,
-    }
+    payload = _payload("ask", verdict, inputs.tool_name)
     ctx.extra["tool_gate"] = payload
     logger.info("[tool_gate] ask %s p_unsafe=%.2f p_safe=%.2f", inputs.tool_name, verdict.p, p_safe(verdict.p))
-    # The permission engine's ASK path builds an InterruptRequest with ConfirmPayload; we do the same here so a
-    # DeepAgent that already handles that interrupt (PermissionInterruptRail.resolve_interrupt) sees a familiar shape.
-    ctx.extra["tool_gate_interrupt"] = InterruptRequest(
+    request = InterruptRequest(
         message=(
             f"s1a tool_gate: allow {inputs.tool_name} for this request? "
             f"p_safe={p_safe(verdict.p):.2f} (flagged p={verdict.p:.2f})."
         ),
         payload_schema=ConfirmPayload.to_schema(),
         metadata=payload,
+    )
+    raise AbortError(
+        reason=f"Tool execution interrupted: {inputs.tool_name}",
+        cause=ToolInterruptException(request=request, tool_call=inputs.tool_call),
     )
 
 
@@ -234,4 +332,5 @@ SPEC = RailSpec(
     labelled_set=None,  # built on demand from the committed TS-Bench ids; nothing is vendored
     labelled_state=labelled_state,
     on_ask=ask_user,
+    on_resume=resume,
 )

@@ -131,8 +131,9 @@ TS-Bench sample and injection-public.
 Apache-2.0, revision `19047a0c4a54f54cc1ddd4a2c597105d8453b819`) labels each candidate action `instruction` /
 `history` / `current_action` / `env_info` as safe (score 0), controversial (0.5) or unsafe (1). The committed
 sample (`evals/labelled/tsbench-sample.json`, seed 122) is 150 safe + 150 unsafe ids from `AgentDojo-Traj` and the
-same from `ASB-Traj` (600 headline rows). Score 0.5 is dropped from the headline and is not in this table. The
-dataset is not vendored.
+same from `ASB-Traj` (600 headline rows). Score 0.5 is dropped from the headline and is not in this table. Rows whose
+action names no tool (`Action: None`, `Final Answer`, or prose; 414 rows across the two splits, 406 of them safe
+ASB-Traj rows) are never sampled, since a `BEFORE_TOOL_CALL` hook would not see them. The dataset is not vendored.
 
 ```bash
 uv run python scripts/build_tsbench_set.py sample --per-split-per-label 150 --seed 122
@@ -147,15 +148,15 @@ allowed through (not denied and not asked). AUROC uses the unsafe probability on
 
 | date | split | n | model | precision | recall | F1 | false-allow | ask rate | AUROC |
 |---|---|---|---|---|---|---|---|---|---|
-| 2026-11-13 | all 600 | 600 | rule | 0.499 [0.459, 0.539] | 0.997 [0.981, 0.999] | 0.665 | 0.003 [0.001, 0.019] | 0.000 [0.000, 0.006] | 0.498 |
-| 2026-11-13 | AgentDojo-Traj | 300 | rule | 0.500 [0.444, 0.556] | 1.000 [0.975, 1.000] | 0.667 | 0.000 [0.000, 0.025] | 0.000 [0.000, 0.013] | 0.500 |
-| 2026-11-13 | ASB-Traj | 300 | rule | 0.498 [0.442, 0.555] | 0.993 [0.963, 0.999] | 0.664 | 0.007 [0.001, 0.037] | 0.000 [0.000, 0.013] | 0.497 |
+| 2026-11-16 | all 600 | 600 | rule | 0.500 [0.460, 0.540] | 1.000 [0.987, 1.000] | 0.667 | 0.000 [0.000, 0.013] | 0.000 [0.000, 0.006] | 0.500 |
+| 2026-11-16 | AgentDojo-Traj | 300 | rule | 0.500 [0.444, 0.556] | 1.000 [0.975, 1.000] | 0.667 | 0.000 [0.000, 0.025] | 0.000 [0.000, 0.013] | 0.500 |
+| 2026-11-16 | ASB-Traj | 300 | rule | 0.500 [0.444, 0.556] | 1.000 [0.975, 1.000] | 0.667 | 0.000 [0.000, 0.025] | 0.000 [0.000, 0.013] | 0.500 |
 | pending | all 600 | 600 | jev | N/A | N/A | N/A | N/A | N/A | N/A |
 | pending | all 600 | 600 | llm | N/A | N/A | N/A | N/A | N/A | N/A |
 
 The `rule` row is a local `--model rule` run on the committed ids (labelled-set sha256
-`22012a4e0519edae5b110741f5a36dc84fdea30e617a1b85f867799b65b6a2c3`). The static baseline flags a call as unsafe if a
-destructive pattern appears *or* the tool name is missing from the instruction, so it denies 599 of 600 rows: high
+`1cf421c2a10853b6e1373aaf5de1313373e828bffb8040118a923ec94012c4a1`). The static baseline flags a call as unsafe if a
+destructive pattern appears *or* the tool name is missing from the instruction, so it denies all 600 rows: full
 recall, chance precision, AUROC at the floor. Jev needs `TYPESAFE_API_KEY`; a chat-model judge (`llm`) is listed for
 the same ids but is not a rail backend yet. Do not invent numbers.
 

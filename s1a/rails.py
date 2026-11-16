@@ -112,6 +112,7 @@ class DecisionModelRail(DeepAgentRail):
     - ``act``: act band; the spec's action ran.
     - ``act_on_failure`` / ``pass_on_failure`` / ``ask_on_failure``: the decision failed on a closed / open / ask rail.
     - ``ask``: uncertain band, and the spec's ``on_ask`` ran (the tool-call gate's interrupt path).
+    - ``resumed``: the spec's ``on_resume`` applied the user's answer to an earlier ask; no decision was made.
 
     With ``coverage_of`` set, a tick also carries ``coverage`` (``complete`` or ``partial``), ``chars`` and
     ``inspected_chars``. A tick holds numbers, bands and, on a failure, the error's category and code (see
@@ -130,6 +131,9 @@ class DecisionModelRail(DeepAgentRail):
     async def on_event(self, ctx: AgentCallbackContext) -> None:
         state = self._spec.state_of(ctx)
         if state is None:
+            return
+        if self._spec.on_resume is not None and self._spec.on_resume(ctx):
+            self.ticks.append({"handling": "resumed"})
             return
         coverage = self._spec.coverage_of(ctx) if self._spec.coverage_of is not None else None
         seen: dict[str, Any] = (

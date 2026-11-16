@@ -181,6 +181,9 @@ class RailSpec:
     on_partial: Callable[[AgentCallbackContext, Coverage], Awaitable[None]] | None = None
     # Runs in the uncertain band, and on a decision error when on_failure is "ask" (the tool-call gate's interrupt path).
     on_ask: Callable[[AgentCallbackContext, Verdict], Awaitable[None]] | None = None
+    # Runs before the decision; True means the event is the user's answer to an earlier ask and has been applied, so
+    # the rail records a "resumed" tick and does not ask the model again. None: every event is decided.
+    on_resume: Callable[[AgentCallbackContext], bool] | None = None
 
     def __post_init__(self) -> None:
         _check_name_and_text(self.name, self.description, self.rules)
