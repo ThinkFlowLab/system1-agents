@@ -126,3 +126,21 @@ OneJev and its serving code are Apache License 2.0 (Copyright OmniJev Team). Thi
 vendor OneJev weights, training code, or the `qev`/`flide` packages; install and run them separately
 per the model card. The unrelated PyPI package named `qev` is not the OneJev server — install from the
 OneJev GitHub repository as the model card instructs.
+
+## Online-Mind2Web
+
+`evals/online_mind2web` measures a seeded 16-task live-web slice of
+[Online-Mind2Web](https://huggingface.co/datasets/osunlp/Online-Mind2Web) (OSU NLP Group; Xue, Qi, Shi, Song, Gou,
+Song, Sun, and Su, *An Illusion of Progress? Assessing the Current State of Web Agents*, 2025,
+[arXiv:2504.01382](https://arxiv.org/abs/2504.01382)). The official task file is gated and is not vendored; only
+task ids, start URLs, difficulty labels and the pinned dataset revision are committed, in
+`evals/online_mind2web/slice.json`. Downstream users must accept the dataset terms and download
+`Online_Mind2Web.json` at that revision themselves.
+
+The dataset is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The dataset card also
+asks that [Mind2Web](https://arxiv.org/abs/2306.06070) (Deng et al., 2023) be cited. The WebJudge automatic
+evaluator and the rest of the [OSU-NLP-Group/Online-Mind2Web](https://github.com/OSU-NLP-Group/Online-Mind2Web)
+code are MIT License (Copyright (c) 2025 OSU Natural Language Processing). This repository does not vendor that
+code; a run may call it separately.
+
+This work is used here for research evaluation of System 1 browser agents.

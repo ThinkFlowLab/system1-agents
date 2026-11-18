@@ -64,6 +64,19 @@ the harness continues without it. Both sides pay it.
 
 ![Allrecipes, Jev left, the chat model right, at 8x](assets/demos/allrecipes-comparison-8x.gif)
 
+
+## Browser use: Online-Mind2Web live slice
+
+A seeded 16-task **live-web** slice of [Online-Mind2Web](https://github.com/OSU-NLP-Group/Online-Mind2Web)
+(Xue et al., 2025, [arXiv:2504.01382](https://arxiv.org/abs/2504.01382)) lives in
+`evals/online_mind2web/slice.json` (seed 116, 12 easy + 4 medium public-read tasks; official file downloaded at
+revision `6aa56e07c9d247fcc2b72fc3d94ad0f857f1e5d4`). This is an end-to-end live suite: it is not the offline
+step-level collector in issue #109, and it is not the planned Anthropic `browser_toolset` baseline in issue #104.
+
+Run it with `python -m evals.online_mind2web`; details, judging (WebJudge at threshold 3) and licence notes are in
+[online-mind2web.md](online-mind2web.md). No live numbers are committed yet. Traces belong under
+`docs/results/online-mind2web/`.
+
 ## A longer game
 
 Over 150 moves of 2048 the cost gap widens with the transcript. Seed 0: Jev scored 1,104 in 244 s for $0.003; the

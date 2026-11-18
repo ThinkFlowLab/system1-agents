@@ -1,0 +1,32 @@
+{
+  "name": "online-mind2web-16",
+  "dataset": "osunlp/Online-Mind2Web",
+  "source_file": "Online_Mind2Web.json",
+  "revision": "6aa56e07c9d247fcc2b72fc3d94ad0f857f1e5d4",
+  "expected_tasks": 300,
+  "seed": 116,
+  "n_easy": 12,
+  "n_medium": 4,
+  "selection": "random.Random(116).sample of the sorted easy public-read ids (12) plus the sorted medium public-read ids (4); public-read drops login, payment, cart, favorites, account-write and similar task text (tasks.SKIP). Eligible pool at this revision: 76 easy, 135 medium. The committed list is then sorted by id. Task text is not vendored; fetch the official file at the pinned revision (gated; needs HF_TOKEN after accepting the dataset terms).",
+  "paper": "https://arxiv.org/abs/2504.01382",
+  "license": "CC BY 4.0",
+  "judge": "WebJudge (official auto-eval, default score threshold 3); not the Allrecipes site check and not the #109 offline step collector.",
+  "tasks": [
+    {"id": "0632e496d37badee0350dad358f047c5", "level": "easy", "website": "https://cookpad.com/", "reference_length": 4},
+    {"id": "207e933d1bba815bcb58664b5d82c085", "level": "medium", "website": "https://www.apartments.com/", "reference_length": 6},
+    {"id": "2532fd402d3c741b79894e6ff2269f53", "level": "easy", "website": "https://www.thumbtack.com/", "reference_length": 3},
+    {"id": "34ccd15a8ea8fd3895af83f5ccf62369", "level": "easy", "website": "https://us.megabus.com/", "reference_length": 3},
+    {"id": "3621b099326c7aebd2e2dac6be3b52d1", "level": "easy", "website": "https://www.nvidia.com/", "reference_length": 5},
+    {"id": "5e1b8254c123c80178cc28e0afdb14f0_110325", "level": "easy", "website": "https://ticketmaster.com/", "reference_length": 4},
+    {"id": "6db4a0e346976f2729ba9afcd3208941", "level": "easy", "website": "https://www.fedex.com/en-us/home.html", "reference_length": 2},
+    {"id": "783ce6a3499fa7cf25bc12f8f0ecbbbb", "level": "easy", "website": "https://www.mayoclinic.org/", "reference_length": 5},
+    {"id": "864244b6969e0f8733b0eb1ca06cd51f", "level": "medium", "website": "https://www.espn.com/", "reference_length": 6},
+    {"id": "a11ecdff735b51372d536c866011af6f", "level": "easy", "website": "https://www.coursera.org/", "reference_length": 4},
+    {"id": "a6f0434ce6aff5f9b03681241b03ad82", "level": "easy", "website": "https://finance.yahoo.com/", "reference_length": 3},
+    {"id": "bd1e3770b7181f6fce9c35e18caa9785", "level": "easy", "website": "https://craigslist.org/", "reference_length": 3},
+    {"id": "c698ff3fc0f6cbce39947c597ab5749b_121425", "level": "medium", "website": "https://www.eventbrite.com/", "reference_length": 8},
+    {"id": "d5c34bf39eb6096ae5d439325cde4d32", "level": "easy", "website": "https://www.dmv.virginia.gov/", "reference_length": 5},
+    {"id": "d71be72aa25c3eab8eea47a0e60382e2", "level": "easy", "website": "https://www.apple.com/", "reference_length": 4},
+    {"id": "fa9adb815b85d259f943d81874a052e5", "level": "medium", "website": "https://soundcloud.com/", "reference_length": 6}
+  ]
+}
