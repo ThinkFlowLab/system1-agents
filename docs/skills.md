@@ -143,6 +143,13 @@ It produces the module, its test and a row in the agents table, and stops at the
    A backend whose answer follows position rather than content shows up here, not in accuracy (#90). A flip is
    only position bias if the backend is deterministic: run `--order same:N` too, which re-asks in file order, and
    read the reordered flip rate against that same-order disagreement rate.
+   `s1a probe cases.jsonl --bundle` is a different check (#127): on a file of multi-question cases (Choice and
+   Noul on one state, or a browser-shaped frozen tick), it compares isolated answers to a bundled `decide_many`
+   in file order and in reversed question-name order, plus a same-order bundled repeat as the non-determinism
+   control. It prints per-head flip rates and total variation; `--json PATH` keeps both answers. Browser ticks
+   are the in-repo bundled path; ticket-router is single-question today and appears only as a dummy-question
+   negative control in `evals/probe/interference.jsonl`. Nothing changes without `--bundle`, and it cannot be
+   combined with `--order`.
 3. Front: a tool loop for an environment that enumerates moves and scores, a browser policy for a page with visible
    controls, a rail for one question at a hook of a running agent.
 4. Scaffold from the front's template under `s1a/agents/_templates/`, with the state-design rules from the skill's
