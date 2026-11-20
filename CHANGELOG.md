@@ -4,6 +4,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `python -m evals.online_mind2web`: a seeded 16-task live-web slice of Online-Mind2Web (12 easy + 4 medium, seed 116;
+  ids, websites and the official revision only in `evals/online_mind2web/slice.json`; task text downloaded on demand
+  from the gated `osunlp/Online-Mind2Web` file). Each attempt starts a clean `browse` profile, plays hosted Jev (or
+  another arm) under a pinned budget, and records every outcome; success is WebJudge at threshold 3 (or `unevaluated`
+  if no judge ran). The table names Agents SHA, model, budget and date. Offline tests use a fixture file and a
+  scripted player; no live numbers yet (#116).
+
+### Fixed
+
+- `--judge-scores` keys of the form `task_id__arm` are applied per arm (with a fallback to `task_id`). The runner
+  now threads the arm into the score judge, so a two-arm run no longer collapses both arms onto the unsuffixed key
+  (#116).
+
 ## 0.4.0 - 2026-11-13
 
 ### Added

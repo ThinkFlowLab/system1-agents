@@ -18,6 +18,7 @@ folder per episode). `uv run python -m evals.table evals/results` aggregates the
 | Injection guard on page-length HTML (BrowseSafe-Bench sample) | precision, recall, failures and page coverage at the runtime clip | `s1a run injection_guard --labelled-set .external/browsesafe/test-sample-html.jsonl`, after `scripts/build_browsesafe_set.py build`; see `docs/benchmarks.md` |
 | Bounded recovery on/off (3 local form fixtures) | completion on/off in a real headless Chromium, judged by the fixture server | `python -m evals.recovery --repeat 1` |
 | Bounded recovery live (real decision/chat models, 3 local form fixtures) | completion on/off with the real models in a real headless Chromium, judged by the fixture server; cost null unless `CHAT_USD_PER_M_*` is set; optional `--validate-submission` variant | `python -m evals.recovery.live --model jev --repeat 1` |
+| Online-Mind2Web live slice (16 seeded tasks) | live-web task completion, WebJudge-graded, failures in the denominator | `python -m evals.online_mind2web run`; see `docs/online-mind2web.md` |
 
 ## The loop
 
