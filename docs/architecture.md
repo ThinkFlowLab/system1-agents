@@ -31,7 +31,8 @@ the description, the rules text the model reads, a budget, and the front-specifi
 - Browser front (`BrowserAgentSpec`, `s1a/browser/`): `BrowserDecisionModel` fills the slot of openJiuwen's
   browser subagent. Each browser turn is one `decide_many` over the page's controls, one question per head; the chat
   model writes text only for typed values and the final answer. Agents: `flights`, `allrecipes`. Design:
-  `docs/browser-front.md`; timing: `docs/benchmarks.md`.
+  `docs/browser-front.md`; timing: `docs/benchmarks.md`. That bundled `decide_many` is the in-repo production
+  path measured by `s1a probe --bundle` (#127); ticket-router today sends a single Choice question.
 - Rail front (`RailSpec`, `s1a/rails.py`): `DecisionModelRail` asks one question at one DeepAgent callback hook,
   acts on it above a threshold, and is evaluated on a labelled set. Agent: `injection_guard`.
 

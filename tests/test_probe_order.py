@@ -193,7 +193,10 @@ class TestProbeCli(TestCase):
             built.append(name)
             return JevModel(ScriptedTransport())
 
-        for extra in (["--seed", "1"], ["--json", "out.json"]):
+        for extra, needle in (
+            (["--seed", "1"], "only applies with --order"),
+            (["--json", "out.json"], "only applies with --order or --bundle"),
+        ):
             with (
                 self.subTest(extra=extra),
                 tempfile.TemporaryDirectory() as tmp,
@@ -201,4 +204,4 @@ class TestProbeCli(TestCase):
             ):
                 code, out, err = _main(["probe", str(self._cases_file(tmp)), *extra])
             self.assertEqual((code, out, built), (2, "", []))
-            self.assertIn("only apply with --order", err)
+            self.assertIn(needle, err)

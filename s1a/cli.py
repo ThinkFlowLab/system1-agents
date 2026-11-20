@@ -77,9 +77,21 @@ def parser() -> argparse.ArgumentParser:
             "(same:N, the non-determinism control); report the flip rate (#90)"
         ),
     )
+    fit.add_argument(
+        "--bundle",
+        action="store_true",
+        help=(
+            "cross-question interference (#127): ask every head alone, then all heads in one decide_many "
+            "(file order and reversed), plus a same-order bundled repeat as the non-determinism control; "
+            "report per-head key/binary flip rate vs the isolated answer and total variation"
+        ),
+    )
     fit.add_argument("--seed", type=int, default=None, help="with --order shuffle:N: the shuffle seed (default 0)")
     fit.add_argument(
-        "--json", type=Path, metavar="PATH", help="with --order: write the full summary, every order asked, here"
+        "--json",
+        type=Path,
+        metavar="PATH",
+        help="with --order or --bundle: write the full summary here",
     )
     return build
 
@@ -128,24 +140,49 @@ async def decide(args: argparse.Namespace) -> dict[str, Any]:
 
 
 async def run_probe(
-    cases: Path, model_name: str, order: str | None = None, *, seed: int | None = None, json_path: Path | None = None
+    cases: Path,
+    model_name: str,
+    order: str | None = None,
+    *,
+    seed: int | None = None,
+    json_path: Path | None = None,
+    bundle: bool = False,
 ) -> dict[str, Any]:
-    """The fit probe; with ``order``, the option-order check over the same cases (verdict still from file order)."""
-    if order is None and (seed is not None or json_path is not None):
-        raise ValueError("--seed and --json only apply with --order")  # a usage error, not silently ignored
-    read = probe.read_cases(cases)
+    """The fit probe; with ``order``, the option-order check; with ``bundle``, the cross-question interference check."""
+    if order is not None and bundle:
+        raise ValueError("--bundle and --order cannot be used together")
+    if seed is not None and order is None:
+        raise ValueError("--seed only applies with --order")  # a usage error, not silently ignored
+    if json_path is not None and order is None and not bundle:
+        raise ValueError("--json only applies with --order or --bundle")
+    if bundle:
+        from s1a import probe_bundle
+
+        read_bundle = probe_bundle.read_cases(cases)
+    else:
+        read = probe.read_cases(cases)
     if order is not None:
         probe.parse_order(order)  # a bad --order is a usage error before any model loads
     seed = 0 if seed is None else seed
     decision_model = build_model(model_name)
     try:
-        if order is None:
+        if bundle:
+            from s1a import probe_bundle
+
+            summary = await probe_bundle.run(read_bundle, decision_model)
+        elif order is None:
             summary = await probe.run(read, decision_model)
         else:
             summary = await probe.run_order(read, decision_model, order, seed=seed)
     finally:
         await decision_model.close()
-    if order is None:
+    if bundle:
+        from s1a import probe_bundle
+
+        print(probe_bundle.render(summary))
+        if json_path is not None:
+            json_path.write_text(json.dumps({"model": model_name, **summary}, ensure_ascii=False, indent=1) + "\n")
+    elif order is None:
         print(probe.render(summary))
     else:
         print(probe.render_order(summary))
@@ -171,8 +208,17 @@ def main(argv: list[str]) -> int:
                 asyncio.run(decide(args))
             case "probe":
                 summary = asyncio.run(
-                    run_probe(args.cases, args.model, args.order, seed=args.seed, json_path=args.json)
+                    run_probe(
+                        args.cases,
+                        args.model,
+                        args.order,
+                        seed=args.seed,
+                        json_path=args.json,
+                        bundle=args.bundle,
+                    )
                 )
+                if args.bundle:
+                    return 0  # a measurement, not a fit verdict
                 return 0 if summary["verdict"] == "fits" else 1
     except (agents.UnknownAgent, ValueError) as exc:  # JSONDecodeError is a ValueError
         print(exc, file=sys.stderr)

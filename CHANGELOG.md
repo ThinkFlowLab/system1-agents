@@ -4,6 +4,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `s1a probe --bundle`: cross-question interference on `decide_many` (#127). Each multi-question case is asked
+  isolated (one request per head), bundled in file / production order, bundled with the question-name order
+  reversed, and once more as a same-order bundled repeat (the non-determinism control, the same idea as
+  `--order same:N`). The probe reports, per head, the key or binary flip rate versus the isolated answer and the
+  mean total variation on the probabilities; both answers stay in the record. Cases:
+  `evals/probe/interference.jsonl` (ticket-like Choice+Noul, a ticket-router dummy-question negative control, and
+  a modest browser-shaped frozen tick). `--bundle` and `--order` cannot be used together; without `--bundle` the
+  fit probe and `decide_many` are unchanged. No live row yet (needs Laya weights or a Jev key); do not copy the
+  paper's Tev / Clef percentages. See `docs/decide-many-interference.md`.
+
 ## 0.4.0 - 2026-11-13
 
 ### Added
