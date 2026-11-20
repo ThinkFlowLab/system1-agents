@@ -13,6 +13,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
   if no judge ran). The table names Agents SHA, model, budget and date. Offline tests use a fixture file and a
   scripted player; no live numbers yet (#116).
 
+### Fixed
+
+- `--judge-scores` keys of the form `task_id__arm` are applied per arm (with a fallback to `task_id`). The runner
+  now threads the arm into the score judge, so a two-arm run no longer collapses both arms onto the unsuffixed key
+  (#116).
+
 ## 0.4.0 - 2026-11-13
 
 ### Added

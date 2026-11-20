@@ -70,21 +70,33 @@ def agents_sha() -> str:
     return sha if sha else score.NA
 
 
-def load_score_judge(path: Path, model: str | None):
+class ScoreJudge:
+    """Integer WebJudge scores from a JSON object keyed by ``task_id`` or ``task_id__arm``.
+
+    The runner sets ``arm`` before each call. A ``task_id__arm`` key wins when present; otherwise the
+    unsuffixed ``task_id`` is used.
+    """
+
+    def __init__(self, scores: dict, path: Path, model: str | None) -> None:
+        self.scores = scores
+        self.path = path
+        self.model = model
+        self.arm = ""
+
+    def __call__(self, task, outcome, logs_dir) -> int:
+        del outcome, logs_dir
+        value = self.scores.get(f"{task.id}__{self.arm}", self.scores.get(task.id))
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise tasks.SliceError(f"no integer WebJudge score for {task.id} in {self.path}")
+        return value
+
+
+def load_score_judge(path: Path, model: str | None) -> ScoreJudge:
     """A judge that reads integer scores from a JSON object; used in tests and for applying an offline WebJudge run."""
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise tasks.SliceError(f"{path} must be a JSON object of task ids to integer scores")
-
-    def judge(task, outcome, logs_dir):
-        del outcome, logs_dir
-        value = raw.get(f"{task.id}__{getattr(judge, 'arm', '')}", raw.get(task.id))
-        if not isinstance(value, int) or isinstance(value, bool):
-            raise tasks.SliceError(f"no integer WebJudge score for {task.id} in {path}")
-        return value
-
-    judge.model = model
-    return judge
+    return ScoreJudge(raw, path, model)
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -20,7 +20,11 @@ Player = Callable[["OfficialTask", str, Path], Awaitable["Outcome"]]
 
 
 class Judge(Protocol):
-    """Score one finished episode; return a 1–5 WebJudge-style integer, or raise to record a judge error."""
+    """Score one finished episode; return a 1–5 WebJudge-style integer, or raise to record a judge error.
+
+    The runner sets ``judge.arm`` to the current arm name before each call, so a score file may key by
+    ``task_id__arm`` and fall back to ``task_id``.
+    """
 
     def __call__(self, task: OfficialTask, outcome: "Outcome", logs_dir: Path) -> int: ...
 
@@ -79,6 +83,10 @@ def judged_attempt(
             outcome.decision_ms,
             agents_sha=agents_sha,
         )
+    try:
+        judge.arm = arm
+    except (AttributeError, TypeError):
+        pass
     try:
         score = judge(task, outcome, logs_dir)
     except Exception as exc:  # a judge bug or missing key must not drop the attempt

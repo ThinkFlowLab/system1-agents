@@ -44,7 +44,7 @@ planned attempt is in the denominator, including timeouts, agent errors, `BLOCKE
 Success is [WebJudge](https://github.com/OSU-NLP-Group/Online-Mind2Web), the official auto-eval, at the upstream
 default threshold of 3 (upstream now recommends GPT-6 Luna as the backbone). This repository does not vendor
 WebJudge. Without a judge, a finished episode is recorded as `unevaluated`, never as a pass. After an external
-WebJudge run you can apply integer scores with `--judge-scores scores.json` (a JSON object keyed by task id).
+WebJudge run you can apply integer scores with `--judge-scores scores.json` (a JSON object keyed by `task_id` or `task_id__arm`; the unsuffixed `task_id` is the fallback).
 
 ## Results
 

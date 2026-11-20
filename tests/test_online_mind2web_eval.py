@@ -328,6 +328,42 @@ def test_missing_or_failing_judge_is_not_a_pass():
     assert failed.passed is False and failed.failure is not None and failed.failure.startswith("judge: no API key")
 
 
+@pytest.mark.asyncio
+async def test_score_judge_applies_task_id_arm_keys_per_arm(tmp_path):
+    """A two-arm score file is applied per arm; unsuffixed task_id is only the fallback."""
+    official = tasks.bind(tasks.parse_slice(fixture_slice()), tasks.parse_official(official_rows()))
+    first = official[0]
+    scores_path = tmp_path / "scores.json"
+    scores_path.write_text(
+        json.dumps({f"{first.id}__jev": 5, f"{first.id}__llm": 2, first.id: 1}),
+        encoding="utf-8",
+    )
+    judge = cli.load_score_judge(scores_path, "webjudge-test")
+    play = _player(
+        {
+            f"{first.id}:jev": runner.Outcome("ok", total_ms=1000, decision_ms=200),
+            f"{first.id}:llm": runner.Outcome("ok", total_ms=2000, decision_ms=None),
+        }
+    )
+    attempts = await runner.run_slice(
+        [first], ["jev", "llm"], play, tmp_path / "out-armed", judge=judge, agents_sha="abc"
+    )
+    by_arm = {row.arm: row for row in attempts}
+    assert by_arm["jev"].passed is True and by_arm["jev"].judge_score == 5
+    assert by_arm["llm"].passed is False and by_arm["llm"].judge_score == 2
+    assert by_arm["llm"].failure == "judge:2"
+    assert by_arm["jev"].judge_model == "webjudge-test"
+
+    fallback = tmp_path / "fallback.json"
+    fallback.write_text(json.dumps({first.id: 4}), encoding="utf-8")
+    fallback_judge = cli.load_score_judge(fallback, None)
+    fallback_attempts = await runner.run_slice(
+        [first], ["jev", "llm"], play, tmp_path / "out-fallback", judge=fallback_judge
+    )
+    assert [row.judge_score for row in fallback_attempts] == [4, 4]
+    assert all(row.passed for row in fallback_attempts)
+
+
 def test_wilson_interval():
     interval = score.wilson(0, 16)
     assert interval is not None
