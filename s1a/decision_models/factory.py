@@ -7,6 +7,7 @@ import os
 
 from s1a.decision_models.base import DecisionModel
 from s1a.decision_models.baselines import RandomModel, Rule, RuleModel
+from s1a.decision_models.clef import ClefModel
 from s1a.decision_models.clm import ClmModel
 from s1a.decision_models.cua import CuaS1Model
 from s1a.decision_models.cua_four_b import CuaFourBModel
@@ -26,6 +27,7 @@ DECISION_MODEL_NAMES = (
     "cua",
     "omnijev",
     "onejev",
+    "clef",
     "random",
     "rule",
 )  # the names that build a decision model; ``llm`` is not one
@@ -55,6 +57,8 @@ def build_model(model_name: str, *, seed: int = 0, rule: tuple[str, Rule] | None
             return OmniJevModel.from_env()  # the OmniJev import happens inside; it decides over a screenshot
         case "onejev":
             return OneJevModel.from_env()  # OneJev/qev over HTTP with media; screenshot required
+        case "clef":
+            return ClefModel.from_env()  # Clef / Clef-flash over Workers AI or local /v1/systemone
         case "random":
             return RandomModel(seed)
         case "rule":
