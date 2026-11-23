@@ -25,6 +25,7 @@ DECIDE_MODEL_NAMES = (
     "laya",
     "laya-served",
     "cua",
+    "clef",
 )  # the decision models that answer one question on their own: no env, no rule, no chance
 
 
@@ -40,7 +41,7 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("flags", nargs=argparse.REMAINDER)
     decide = commands.add_parser(
         "decide",
-        help="one choice question to a decision model: jev, clm or laya-served over HTTP, or laya and cua in process",
+        help="one choice question to a decision model: jev, clm, laya-served or clef over HTTP, or laya and cua in process",
     )
     decide.add_argument("--state", required=True, help="a JSON object, or @path to a file holding one")
     decide.add_argument(
@@ -55,7 +56,7 @@ def parser() -> argparse.ArgumentParser:
         "--model",
         choices=DECIDE_MODEL_NAMES,
         default="jev",
-        help="who answers: jev, clm or laya-served over HTTP, laya and cua in process",
+        help="who answers: jev, clm, laya-served or clef over HTTP, laya and cua in process",
     )
     fit = commands.add_parser("probe", help="the fit probe: hand-written choice cases from a JSONL file")
     fit.add_argument(
@@ -67,7 +68,7 @@ def parser() -> argparse.ArgumentParser:
         "--model",
         choices=DECIDE_MODEL_NAMES,
         default="jev",
-        help="who answers: jev, clm or laya-served over HTTP, laya and cua in process",
+        help="who answers: jev, clm, laya-served or clef over HTTP, laya and cua in process",
     )
     fit.add_argument(
         "--order",

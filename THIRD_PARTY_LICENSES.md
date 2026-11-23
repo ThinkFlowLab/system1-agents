@@ -126,3 +126,11 @@ OneJev and its serving code are Apache License 2.0 (Copyright OmniJev Team). Thi
 vendor OneJev weights, training code, or the `qev`/`flide` packages; install and run them separately
 per the model card. The unrelated PyPI package named `qev` is not the OneJev server — install from the
 OneJev GitHub repository as the model card instructs.
+
+The `--model clef` adapter (`s1a/decision_models/clef.py`) talks to Cloudflare Clef or Clef-flash
+through Workers AI or a local SGLang `/v1/systemone` server. Clef / Clef-flash weights and the
+model card are Apache License 2.0 (Copyright Cloudflare). This repository does not vendor the
+weights, `joint_schema_model.py`, or the `lmsysorg/sglang:dev-clef` serving image; use Workers AI
+or install and run them separately per
+https://huggingface.co/Cloudflare/clef and
+https://developers.cloudflare.com/workers-ai/models/clef/.

@@ -4,6 +4,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `--model clef`: [Clef](https://huggingface.co/Cloudflare/clef) / [Clef-flash](https://huggingface.co/Cloudflare/clef-flash)
+  (Apache-2.0) as a **served** multimodal System One client against Cloudflare Workers AI or a local
+  `/v1/systemone` server (`CLEF_URL`, or `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_AUTH_TOKEN`; `CLEF_MODEL=clef|clef-flash`,
+  default `clef-flash`). Posts choice/noul with Clef's `images` array (PNG/JPEG/WebP data URLs, max 4) when the
+  observation has screenshots; a text observation still runs. `score` questions and `videos` are unsupported on
+  our interface (Workers AI Clef / Clef-flash also has no `videos` field). Contract tests use a fake HTTP server;
+  live Workers AI / GPU qualification is not claimed (#126).
+
 ## 0.4.0 - 2026-11-13
 
 ### Added

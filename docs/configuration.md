@@ -57,6 +57,12 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `ONEJEV_MODEL` | `onejev` model | `OmniJev/OneJev1.6-4B` | Model id sent in the `/v1/systemone` body (checkpoint the server loaded, e.g. `OmniJev/OneJev1.6-0.8B`). |
 | `ONEJEV_API_KEY` | `onejev` model | *(unset)* | Bearer token when the server expects one; loopback `qev`/`flide` usually needs none. |
 | `ONEJEV_TIMEOUT_S` | `onejev` model | `30` | Deadline per decision in seconds, the one refused-connection / 502 / 504 retry included. A finite number above 0. Raise for large checkpoints or a cold load. |
+| `CLEF_URL` | `clef` model | *(unset)* | Base URL of a local Clef / Clef-flash server, e.g. `http://127.0.0.1:30000`. Posts to `{CLEF_URL}/v1/systemone`. When set, this wins over Workers AI credentials. Required unless `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AUTH_TOKEN` are set. |
+| `CLOUDFLARE_ACCOUNT_ID` | `clef` model | *(unset)* | Cloudflare account id for Workers AI (`POST /client/v4/accounts/$ACCOUNT_ID/ai/run/@cf/cloudflare/clef` or `clef-flash`). Used only when `CLEF_URL` is unset. |
+| `CLOUDFLARE_AUTH_TOKEN` | `clef` model | *(unset)* | Bearer token with Workers AI permission, as in the official Clef docs. `CLOUDFLARE_API_TOKEN` is accepted as an alias. Used only when `CLEF_URL` is unset. |
+| `CLEF_MODEL` | `clef` model | `clef-flash` | Variant sent in the request body and, on Workers AI, selected in the run URL: `clef` (27B) or `clef-flash` (9B, default for latency). Other values are a configuration error. |
+| `CLEF_API_KEY` | `clef` model | *(unset)* | Bearer token for a local `/v1/systemone` server when it expects one; loopback SGLang usually needs none. |
+| `CLEF_TIMEOUT_S` | `clef` model | `30` | Deadline per decision in seconds, the one refused-connection / 502 / 504 retry included. A finite number above 0. |
 | `CUA_DRIVER_BIN` | `desktop` agent | `cua-driver` | Path to the `cua-driver` executable on Windows or macOS when not located on `PATH`. |
 | `CUA_DRIVER_PERMISSION_MODE` | `desktop` agent | `standard` | Permission mode passed to `cua-driver mcp` (`standard`, or `bounded` for restricted capability manifests). |
 | `HF_HOME` | Hugging Face runtime | `~/.cache/huggingface` | Cache directory where Laya and Cua-S1 checkpoints are downloaded on first run. |

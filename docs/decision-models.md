@@ -12,7 +12,7 @@ TypeSafe "System One model". This repository uses the terms interchangeably. `--
 `clm` (CLM's `clm-serve` over HTTP, see [clm.md](clm.md)),
 `laya` (in process, behind `uv sync --extra laya`), `laya-served` (Laya served over HTTP by system1-omni, see
 [served-laya.md](served-laya.md)), `cua` (Cua-S1 Nano in process, behind `uv sync --extra cua`),
-`onejev` (OneJev over HTTP via `qev`/`flide` with a screenshot), `random` and `rule` (the tool front's baselines).
+`onejev` (OneJev over HTTP via `qev`/`flide` with a screenshot), `clef` (Clef / Clef-flash over Workers AI or a local `/v1/systemone` server), `random` and `rule` (the tool front's baselines).
 `build_model(model_name, seed=, rule=)` builds one from the environment; `llm` names the chat model, which `build_model` does not build.
 
 The registered paths, input modalities and question types are summarized in the [decision-model capability matrix](capabilities.md), separately from run evidence and hardware validation.
@@ -66,6 +66,7 @@ shorthands; `warm()` and `close()` open and release the backend.
 | `cua` | `CuaS1Model(scorer, collator, model=, context_bytes=, option_bytes=)` | `cua` | Cua-S1 Nano, one `score_elements` pass per request on a thread; choice questions only, text only, deterministic; the context is header, state and rules; the checkpoint reads its first 256 bytes, and the first overflowing request logs one warning; `from_env` reads `CUA_S1_*` (see [configuration.md](configuration.md)) |
 | `omnijev` | `OmniJevModel(agent, model=)` | `omnijev` | OmniJev (a Qwen3.5 vision-language decision model), one `MSO1.system_one` call per request on a thread; choice and noul questions over the observation's screenshot, deterministic; the text state, goal and rules go in front of each question (a browser state puts its recent actions first and caps the page text at 2,000 characters, so a long page cannot push the history out of the 6,000-character context), a browser element row becomes its label and value; a choice's probabilities, which OmniJev leaves `abstain` out of, are renormalised over the offered keys; an observation without an image is `MODEL_CALL_FAILED`; `from_env` reads `OMNIJEV_*` (see [configuration.md](configuration.md)); in process only: system1-omni has no OmniJev vision worker yet (its supported models are Laya, Open-Jev text and Cua-S1 screenshots), so there is no served `omnijev` path |
 | `onejev` | `OneJevModel(client, model=)` | `onejev` | OneJev (OmniJev org, Apache-2.0) served by `qev`/`flide` over TypeSafe-compatible `POST /v1/systemone` plus a `media` field; choice and noul over the observation's screenshot(s), deterministic; state carries `<image:N>` markers and each screenshot is a PNG/JPEG/WebP data URL in `media` (digest and size in `raw.sent_images`, never the bytes); an observation without an image is `MODEL_CALL_FAILED` (same policy as `omnijev`); one refused-connection / 502 / 504 retry within `ONEJEV_TIMEOUT_S`; `raw` keeps `served_by`, `url`, `request_id` and `server_timing`; `from_env` reads `ONEJEV_*` (see [configuration.md](configuration.md)); browser and `build_model` only — not tool/rails/`decide`. Local tests use a stub server; live GPU validation is **not recorded** in this checkout |
+| `clef` | `ClefModel(client, model=)` | `clef` | [Clef](https://huggingface.co/Cloudflare/clef) / [Clef-flash](https://huggingface.co/Cloudflare/clef-flash) (Cloudflare, Apache-2.0) served over HTTP: Cloudflare Workers AI (`POST /client/v4/accounts/$ACCOUNT_ID/ai/run/@cf/cloudflare/clef` or `clef-flash`) or a local SGLang `POST /v1/systemone`. Variant via `CLEF_MODEL=clef` or `clef-flash` (default `clef-flash`). Choice and noul only — Clef's `score` type is unsupported on our interface and is not sent. Screenshots map to Clef's `images` array (PNG/JPEG/WebP data URLs, max 4 per the Workers AI schema; digests in `raw.sent_images`, never the bytes); an observation without an image runs as text. `videos` are unsupported on our interface; the Workers AI Clef / Clef-flash input schema also has no `videos` field (that extension is documented on Clef-omni) and this adapter does not send one. One refused-connection / 502 / 504 retry within `CLEF_TIMEOUT_S`; `raw` keeps `served_by` (including `path`: `local` or `workers-ai`), `url`, `request_id` and `server_timing`. `from_env` reads `CLEF_URL` or `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_AUTH_TOKEN` (see [configuration.md](configuration.md)). Registered on the tool, browser, rails, `decide`/`probe` and MCP fronts. Contract tests use a stub server; live Workers AI / GPU qualification is **not recorded** in this checkout |
 | `random` | `RandomModel(seed)` | `random` | uniform over the offered keys (contract confidence = `1/|options|`), one seeded stream per episode; choice questions only |
 | `rule` | `RuleModel(name, rule)` | the rule's name | one-hot, confidence 1; a key outside the menu raises `RuntimeError`, a bug in the rule |
 
@@ -190,6 +191,28 @@ real servers in `tests/data/served_laya/`. Nothing patches `httpx`.
    checkpoint, it can skip random initialization with transformers' `no_init_weights`, but only if loading
    fails on missing keys (`strict=True` or an equivalent check). Prefer fixing this in the model's package;
    Laya added the skip in 0.3.9. This step does not apply to backends served over HTTP.
+
+### Served Clef / Clef-flash
+
+`clef` is registered in `build_model()` and on the tool, browser, rails, `decide`/`probe` and MCP fronts. Point
+`CLEF_URL` at a local [SGLang Clef](https://huggingface.co/Cloudflare/clef) server, or set `CLOUDFLARE_ACCOUNT_ID`
+and `CLOUDFLARE_AUTH_TOKEN` for [Workers AI](https://developers.cloudflare.com/workers-ai/models/clef/).
+`CLEF_MODEL` selects `clef` (27B) or `clef-flash` (9B, the default). The request `model` field is that same
+selector (`clef` / `clef-flash`), which is what the Workers AI schema requires and what the in-process `systemone`
+example on the model card uses. The model card's SGLang curl shows `Cloudflare/clef` as the model id; this adapter
+does not remap the selector to a Hugging Face id. Example (not run in CI; needs a local server or a Cloudflare
+token, and is not a qualification record):
+
+```bash
+# local SGLang, as on the Clef model card
+# docker run --gpus all -p 30000:30000 lmsysorg/sglang:dev-clef sglang serve --model-path Cloudflare/clef-flash --host 0.0.0.0 --port 30000
+CLEF_URL=http://127.0.0.1:30000 CLEF_MODEL=clef-flash \
+  uv run s1a probe path/to/cases.jsonl --model clef
+```
+
+The capability matrix distinguishes this **adapter wiring** from qualification on a named checkpoint and path:
+no live Workers AI or GPU run is recorded in this checkout, and Cloudflare's Decision Index / workflow-eval
+numbers are not Agents results.
 
 ### Laya browser input shaping
 
