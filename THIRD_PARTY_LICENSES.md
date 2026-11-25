@@ -126,3 +126,12 @@ OneJev and its serving code are Apache License 2.0 (Copyright OmniJev Team). Thi
 vendor OneJev weights, training code, or the `qev`/`flide` packages; install and run them separately
 per the model card. The unrelated PyPI package named `qev` is not the OneJev server — install from the
 OneJev GitHub repository as the model card instructs.
+
+## Fastino GLiDE
+
+The `--model glide` adapter (`s1a/decision_models/glide.py`) talks to Fastino GLiDE through the hosted
+API (`POST https://api.fastino.ai/v1/systemone`) or a local `glide.server`. GLiDE weights (for example
+[fastino/GLiDE-27B](https://huggingface.co/fastino/GLiDE-27B)) are under the Fastino Community License,
+not Apache-2.0. This repository does not vendor GLiDE weights, training code, or the `glide` serving
+package; use the hosted API or install and run a local server separately per the model card and
+https://docs.fastino.ai/inference/systemone.

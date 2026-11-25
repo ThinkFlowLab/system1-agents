@@ -11,6 +11,7 @@ from s1a.decision_models.base import DecisionModel, JevTransport
 from s1a.decision_models.baselines import RandomModel, Rule, RuleModel
 from s1a.decision_models.cua import CuaS1Model
 from s1a.decision_models.factory import DECISION_MODEL_NAMES, build_model
+from s1a.decision_models.glide import GlideModel
 from s1a.decision_models.fakes import ScriptedModel, ScriptedTransport
 from s1a.decision_models.jev import JevModel, jev_question
 from s1a.decision_models.laya import LayaModel
@@ -57,6 +58,7 @@ __all__ = [
     "Noul",
     "NoulQuestion",
     "OmniJevModel",
+    "GlideModel",
     "OneJevModel",
     "Observation",
     "Question",
