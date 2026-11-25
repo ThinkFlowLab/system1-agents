@@ -101,6 +101,30 @@ ONEJEV_URL=http://127.0.0.1:8000 ONEJEV_TIMEOUT_S=60 \
 This is a setup recipe only. Capability registration and stub-server contract tests do **not** establish task
 success rates or hardware validation; see [capabilities.md](capabilities.md).
 
+### Served GLiDE
+
+`glide` is registered in `build_model()` and on the tool, browser, rails, `decide`/`probe` and MCP fronts. Point
+`GLIDE_URL` at a local [`glide.server`](https://huggingface.co/fastino/GLiDE-27B), or set `FASTINO_API_KEY` for
+the [hosted Fastino API](https://docs.fastino.ai/inference/systemone). `GLIDE_MODEL` defaults to `fastino/GLiDE`.
+The existing Jev question builder is reused (`instructions` as a JSON object, which Fastino accepts). Browser
+element rows in choice `criteria` are flattened to description strings. Hosted requests send `store: false`.
+Screenshots become `state` `image_url` data-URL parts (max 4; JPEG/PNG/GIF/WebP); a text observation still runs.
+`score` questions are unsupported on our interface. The weights are under the Fastino Community License and are
+not vendored. Example (not run in CI; needs a Fastino key or a local server, and is not a qualification record):
+
+```bash
+# local server, as on the GLiDE-27B model card
+# python -m glide.server --model /models/GLiDE-27B --port 8000
+GLIDE_URL=http://127.0.0.1:8000   uv run s1a probe path/to/cases.jsonl --model glide
+
+# hosted Fastino
+FASTINO_API_KEY=...   uv run s1a probe path/to/cases.jsonl --model glide
+```
+
+The capability matrix distinguishes this **adapter wiring** from qualification on a named checkpoint and path:
+no live Fastino or GPU run is recorded in this checkout, and published Decision Index / Artificial Analysis
+numbers are not Agents results.
+
 ### Served JEV-VL
 
 `jev-vl-served` is registered in the browser front and `build_model()`. It sends the observation's text state,

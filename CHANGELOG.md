@@ -4,6 +4,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `--model glide`: [GLiDE](https://arxiv.org/abs/2611.26509) as a **served** System One client against hosted
+  Fastino (`FASTINO_API_KEY`, `POST https://api.fastino.ai/v1/systemone`) or a local `glide.server` (`GLIDE_URL`).
+  Request `model` defaults to `fastino/GLiDE` (`GLIDE_MODEL`). Posts choice/noul; screenshots travel as GLiDE
+  `state` `image_url` data-URL parts (JPEG/PNG/GIF/WebP, max 4), not Clef `images` or OneJev `media`. Hosted
+  evals send `store: false`. `score` questions are unsupported on our interface. Weights use the Fastino
+  Community License and are not vendored. Contract tests use a fake HTTP server; live Fastino / GPU
+  qualification is not claimed (#129).
+
 ## 0.4.0 - 2026-11-13
 
 ### Added

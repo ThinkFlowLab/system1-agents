@@ -57,6 +57,11 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `ONEJEV_MODEL` | `onejev` model | `OmniJev/OneJev1.6-4B` | Model id sent in the `/v1/systemone` body (checkpoint the server loaded, e.g. `OmniJev/OneJev1.6-0.8B`). |
 | `ONEJEV_API_KEY` | `onejev` model | *(unset)* | Bearer token when the server expects one; loopback `qev`/`flide` usually needs none. |
 | `ONEJEV_TIMEOUT_S` | `onejev` model | `30` | Deadline per decision in seconds, the one refused-connection / 502 / 504 retry included. A finite number above 0. Raise for large checkpoints or a cold load. |
+| `GLIDE_URL` | `glide` model | *(unset)* | Base URL of a local `glide.server`, e.g. `http://127.0.0.1:8000`. Wins over hosted Fastino when set. |
+| `FASTINO_API_KEY` | `glide` model | *(unset)* | Fastino API key, sent as `X-API-Key`, used when `GLIDE_URL` is unset. Required for the hosted path. |
+| `GLIDE_MODEL` | `glide` model | `fastino/GLiDE` | Model id sent in the `/v1/systemone` body (or a GLiDE id you deployed). The hosted response echoes the engine name as `glide`. |
+| `GLIDE_API_KEY` | `glide` model | *(unset)* | `X-API-Key` when a local server expects one; loopback `glide.server` usually needs none. |
+| `GLIDE_TIMEOUT_S` | `glide` model | `30` | Deadline per decision in seconds, including the transport / 502 / 504 retry and bounded Fastino `425` / `429` / `503` retries (`Retry-After`). A finite number above 0. Fastino recommends a 300 s read timeout if you wait out a cold model; raise this accordingly. |
 | `CUA_DRIVER_BIN` | `desktop` agent | `cua-driver` | Path to the `cua-driver` executable on Windows or macOS when not located on `PATH`. |
 | `CUA_DRIVER_PERMISSION_MODE` | `desktop` agent | `standard` | Permission mode passed to `cua-driver mcp` (`standard`, or `bounded` for restricted capability manifests). |
 | `HF_HOME` | Hugging Face runtime | `~/.cache/huggingface` | Cache directory where Laya and Cua-S1 checkpoints are downloaded on first run. |
