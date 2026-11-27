@@ -23,3 +23,6 @@ This product includes software developed by third parties:
   Beurer-Kellner, Marc Fischer, and Florian Tramèr). Full license text: THIRD_PARTY_LICENSES.md
 - s1a/decision_models/onejev.py: HTTP client for OneJev / qev (OmniJev/OneJev), Apache-2.0;
   the weights and server are not vendored. Details: THIRD_PARTY_LICENSES.md
+- s1a/decision_models/beveridge.py: adapter for Beveridge (bev-decisions),
+  Apache-2.0 (Copyright 2026 Dr. Sathiskumar JOTHI); the weights and server are not vendored.
+  Details: THIRD_PARTY_LICENSES.md

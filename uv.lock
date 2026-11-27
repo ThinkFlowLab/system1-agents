@@ -357,6 +357,23 @@ wheels = [
 ]
 
 [[package]]
+name = "bev-decisions"
+version = "0.2.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "huggingface-hub" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "safetensors" },
+    { name = "torch" },
+    { name = "transformers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/a6/cd6e1b17d00115f211c34d28d4d01919a70c3b1df934ef14b40e839c2038/bev_decisions-0.2.5.tar.gz", hash = "sha256:2f53aadc4d93946794529501349c46440b585665066c201226f9f51981c1c63f", size = 46558, upload-time = "2026-10-16T04:20:55.506Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8c/db/9595c98999461e3ebe63be3ea878d2e01e4e5e48c9b443ecf160c3df034a/bev_decisions-0.2.5-py3-none-any.whl", hash = "sha256:243e77b7e464736aa77158233b3f08e6ccc6ec8e6f083c21af9ccbac01ccfab1", size = 41026, upload-time = "2026-10-16T04:20:54.211Z" },
+]
+
+[[package]]
 name = "blis"
 version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
@@ -5243,6 +5260,9 @@ alfworld-visual = [
     { name = "torchvision" },
     { name = "werkzeug" },
 ]
+beveridge = [
+    { name = "bev-decisions" },
+]
 blackjack = [
     { name = "rlcard" },
 ]
@@ -5291,6 +5311,7 @@ requires-dist = [
     { name = "ai2thor", marker = "extra == 'alfworld-visual'", specifier = "==2.1.0" },
     { name = "alfworld", marker = "extra == 'alfworld'", specifier = ">=0.4" },
     { name = "anyio", specifier = ">=4" },
+    { name = "bev-decisions", marker = "extra == 'beveridge'", specifier = ">=0.2.5" },
     { name = "cua-s1", marker = "extra == 'cua'", git = "https://github.com/trycua/cua.git?subdirectory=libs%2Fcua-s1%2Fpython&rev=aea61b6eb97e2d8c0f6f71eb804e5769fe910af4" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "huggingface-hub", marker = "extra == 'cua'", specifier = ">=0.24" },
@@ -5328,7 +5349,7 @@ requires-dist = [
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.83" },
     { name = "werkzeug", marker = "extra == 'alfworld-visual'", specifier = "==2.0.3" },
 ]
-provides-extras = ["blackjack", "alfworld", "alfworld-visual", "report", "laya", "cua", "omnijev", "cua-four-b", "dev"]
+provides-extras = ["blackjack", "alfworld", "alfworld-visual", "report", "laya", "beveridge", "cua", "omnijev", "cua-four-b", "dev"]
 
 [[package]]
 name = "tatsu"

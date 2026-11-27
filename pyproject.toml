@@ -45,6 +45,7 @@ alfworld-visual = [
 ]
 report = ["pillow>=10", "playwright>=1.45"]  # evals.replay: pages, GIFs; never imported by a runner
 laya = ["laya>=0.3.9"]  # the in-process decision model behind --model laya; pulls torch and transformers
+beveridge = ["bev-decisions>=0.2.5"]  # in-process --model beveridge (Large-C on CPU); pulls torch and transformers. The served path needs no extra.
 cua = [  # Cua-S1 Nano behind --model cua; pinned to the Cua PR that ships the checkpoints (trycua/cua#4023), pulls torch
     "cua-s1 @ git+https://github.com/trycua/cua.git@aea61b6eb97e2d8c0f6f71eb804e5769fe910af4#subdirectory=libs/cua-s1/python",
     "huggingface-hub>=0.24",
@@ -93,6 +94,7 @@ include = [
     "s1a/decision_models/cua.py",
     "s1a/decision_models/cua_four_b.py",
     "s1a/decision_models/laya.py",
+    "s1a/decision_models/beveridge.py",  # bev is imported only inside from_env
     "s1a/decision_models/omnijev.py",
 ]
 

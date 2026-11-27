@@ -12,7 +12,7 @@ TypeSafe "System One model". This repository uses the terms interchangeably. `--
 `clm` (CLM's `clm-serve` over HTTP, see [clm.md](clm.md)),
 `laya` (in process, behind `uv sync --extra laya`), `laya-served` (Laya served over HTTP by system1-omni, see
 [served-laya.md](served-laya.md)), `cua` (Cua-S1 Nano in process, behind `uv sync --extra cua`),
-`onejev` (OneJev over HTTP via `qev`/`flide` with a screenshot), `random` and `rule` (the tool front's baselines).
+`onejev` (OneJev over HTTP via `qev`/`flide` with a screenshot), `beveridge` (Beveridge in process or over `/v1/decide`), `random` and `rule` (the tool front's baselines).
 `build_model(model_name, seed=, rule=)` builds one from the environment; `llm` names the chat model, which `build_model` does not build.
 
 The registered paths, input modalities and question types are summarized in the [decision-model capability matrix](capabilities.md), separately from run evidence and hardware validation.
@@ -65,6 +65,7 @@ shorthands; `warm()` and `close()` open and release the backend.
 | `laya-served` | `ServedLayaModel(client, model=, max_len=)` | `laya-served` | one `POST /v1/systemone` per request to `LAYA_SERVED_URL`, body built with `laya_question()` as for `laya`; one retry on a dropped connection, 502 or 504, and after `Retry-After` on 503, all within `LAYA_SERVED_TIMEOUT_S`; the same window check as `laya`; `model` is the served checkpoint and revision, and `raw` keeps `served_by`, `url`, `request_id` and `server_timing` (see [served-laya.md](served-laya.md)) |
 | `cua` | `CuaS1Model(scorer, collator, model=, context_bytes=, option_bytes=)` | `cua` | Cua-S1 Nano, one `score_elements` pass per request on a thread; choice questions only, text only, deterministic; the context is header, state and rules; the checkpoint reads its first 256 bytes, and the first overflowing request logs one warning; `from_env` reads `CUA_S1_*` (see [configuration.md](configuration.md)) |
 | `omnijev` | `OmniJevModel(agent, model=)` | `omnijev` | OmniJev (a Qwen3.5 vision-language decision model), one `MSO1.system_one` call per request on a thread; choice and noul questions over the observation's screenshot, deterministic; the text state, goal and rules go in front of each question (a browser state puts its recent actions first and caps the page text at 2,000 characters, so a long page cannot push the history out of the 6,000-character context), a browser element row becomes its label and value; a choice's probabilities, which OmniJev leaves `abstain` out of, are renormalised over the offered keys; an observation without an image is `MODEL_CALL_FAILED`; `from_env` reads `OMNIJEV_*` (see [configuration.md](configuration.md)); in process only: system1-omni has no OmniJev vision worker yet (its supported models are Laya, Open-Jev text and Cua-S1 screenshots), so there is no served `omnijev` path |
+| `beveridge` | `BeveridgeModel(client=, agent=, model=)` | `beveridge` | Beveridge (Apache-2.0) in process via `bev.load()` or served at `POST /v1/decide` (`BEV_URL` wins); `BEV_MODEL` selects Large-C (default), Pro-C or Pro-C-Web; choice and noul only, text only, deterministic; at most 15 questions per call (the paper cap; bev-decisions 0.2.5 allows 16); no `images` field; `raw` keeps `served_by` (in-process vs served), `requested_model`, and on the served path `url`, `request_id` and `server_timing`; `from_env` reads `BEV_*` (see [configuration.md](configuration.md)); registered on tool, rails, browser, `decide`/`probe` and MCP. Contract tests use a stub server and a fake `bev.load`; live qualification is **not recorded** in this checkout |
 | `onejev` | `OneJevModel(client, model=)` | `onejev` | OneJev (OmniJev org, Apache-2.0) served by `qev`/`flide` over TypeSafe-compatible `POST /v1/systemone` plus a `media` field; choice and noul over the observation's screenshot(s), deterministic; state carries `<image:N>` markers and each screenshot is a PNG/JPEG/WebP data URL in `media` (digest and size in `raw.sent_images`, never the bytes); an observation without an image is `MODEL_CALL_FAILED` (same policy as `omnijev`); one refused-connection / 502 / 504 retry within `ONEJEV_TIMEOUT_S`; `raw` keeps `served_by`, `url`, `request_id` and `server_timing`; `from_env` reads `ONEJEV_*` (see [configuration.md](configuration.md)); browser and `build_model` only — not tool/rails/`decide`. Local tests use a stub server; live GPU validation is **not recorded** in this checkout |
 | `random` | `RandomModel(seed)` | `random` | uniform over the offered keys (contract confidence = `1/|options|`), one seeded stream per episode; choice questions only |
 | `rule` | `RuleModel(name, rule)` | the rule's name | one-hot, confidence 1; a key outside the menu raises `RuntimeError`, a bug in the rule |
@@ -100,6 +101,38 @@ ONEJEV_URL=http://127.0.0.1:8000 ONEJEV_TIMEOUT_S=60 \
 
 This is a setup recipe only. Capability registration and stub-server contract tests do **not** establish task
 success rates or hardware validation; see [capabilities.md](capabilities.md).
+
+### Beveridge (in process or served)
+
+`beveridge` is registered in `build_model()` and on the tool, browser, rails, `decide`/`probe` and MCP fronts.
+The default is in-process [`bev.load()`](https://pypi.org/project/bev-decisions/) of
+[Beveridge-Large-C](https://huggingface.co/sathiskumarjothi0/Beveridge-Large-C) after `uv sync --extra beveridge`
+(CPU is enough for Large-C; do not vendor the weights). Set `BEV_MODEL` to `large-c` (default), `pro-c`, or
+`pro-c-web` (or a Hugging Face id / local path). When `BEV_URL` is set it wins, and the adapter posts to
+`/v1/decide` — there is no `/v1/systemone`, so this cannot ride `--model jev`. The upstream server binds
+127.0.0.1 and has no auth; `BEV_API_KEY` is only for a gateway you put in front of it.
+
+Instructions are sent as a string (goal, operation and rules joined), not Jev's instruction object. Browser
+element rows in choice `criteria` are flattened to description strings. Large-C is text-only: screenshots on the
+observation are dropped, and no `images` field is sent. Pro-C-Web is a text/JSON page-action checkpoint, not a
+screenshot model. A request may carry at most 15 questions (the paper's cap). `score` questions are unsupported
+on our interface. Beveridge-Bench / automation-rate figures from the paper are not Agents results.
+
+Example (not run in CI; needs the extra or a local server, and is not a qualification record):
+
+```bash
+# in process, Large-C on CPU
+uv sync --extra beveridge
+uv run s1a probe path/to/cases.jsonl --model beveridge
+
+# or a local server
+# pip install "bev-decisions[serve]"
+# bev serve --model sathiskumarjothi0/Beveridge-Large-C --port 8000
+BEV_URL=http://127.0.0.1:8000   uv run s1a probe path/to/cases.jsonl --model beveridge
+```
+
+The capability matrix distinguishes this **adapter wiring** from qualification on a named checkpoint and path:
+no live Beveridge run is recorded in this checkout.
 
 ### Served JEV-VL
 

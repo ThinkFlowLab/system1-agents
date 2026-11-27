@@ -126,3 +126,16 @@ OneJev and its serving code are Apache License 2.0 (Copyright OmniJev Team). Thi
 vendor OneJev weights, training code, or the `qev`/`flide` packages; install and run them separately
 per the model card. The unrelated PyPI package named `qev` is not the OneJev server — install from the
 OneJev GitHub repository as the model card instructs.
+
+## Beveridge / bev-decisions
+
+The `--model beveridge` adapter (`s1a/decision_models/beveridge.py`) talks to Beveridge in process via
+`bev.load()` (`pip install bev-decisions` / `uv sync --extra beveridge`) or over HTTP to a `bev serve`
+process (`POST /v1/decide`). The [bev-decisions](https://pypi.org/project/bev-decisions/) package and the
+released weights ([Beveridge-Large-C](https://huggingface.co/sathiskumarjothi0/Beveridge-Large-C),
+[Beveridge-Pro-C](https://huggingface.co/sathiskumarjothi0/Beveridge-Pro-C),
+[Beveridge-Pro-C-Web](https://huggingface.co/sathiskumarjothi0/Beveridge-Pro-C-Web)) are Apache License 2.0
+(Copyright 2026 Dr. Sathiskumar JOTHI). Beveridge-Pro-C is built on Gemma 4 (Apache-2.0) by Google;
+Beveridge-Large-C on ModernBERT-large (Apache-2.0) by Answer.AI and LightOn. This repository does not vendor
+Beveridge weights, training code, or the `bev-decisions` package; install and run them separately per the
+model card and https://bev.sjothi.com/.
