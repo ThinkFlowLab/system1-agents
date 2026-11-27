@@ -49,6 +49,7 @@ BROWSER_MODEL_NAMES = (
     "cua",
     "omnijev",
     "onejev",
+    "beveridge",
     "llm",
 )  # a decision model over HTTP or in process, or the chat model
 RUNS_DIR = HOME / "runs" / "browser"
@@ -254,7 +255,7 @@ async def browse(
     workspace = str(logs_dir / "workspace")  # the harness scaffolds SOUL.md, memory/ and friends here, not in the cwd
     instance = BrowserInstanceConfig(launch_args=browser_launch_args(headless))
     match model_name:
-        case "jev" | "jev-vl-served" | "clm" | "laya" | "laya-served" | "cua" | "omnijev" | "onejev":
+        case "jev" | "jev-vl-served" | "clm" | "laya" | "laya-served" | "cua" | "omnijev" | "onejev" | "beveridge":
             if decision_model is None:
                 raise RuntimeError(f"--model {model_name} needs a decision model")
             slot_model = BrowserDecisionModel(

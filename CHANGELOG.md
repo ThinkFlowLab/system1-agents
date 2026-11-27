@@ -4,6 +4,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 ## Unreleased
 
+### Added
+
+- `--model beveridge`: [Beveridge](https://arxiv.org/abs/2611.18655) (Large-C / Pro-C / Pro-C-Web, Apache-2.0) as
+  an in-process or served decision backend. Default is `bev.load()` of Beveridge-Large-C after
+  `uv sync --extra beveridge` (`BEV_MODEL` selects the checkpoint; CPU is enough for Large-C). `BEV_URL` wins
+  when set and posts to `/v1/decide` (not `/v1/systemone`). Posts choice/noul only; no `images` field; at most
+  15 questions per call. Weights are not vendored. Contract tests use a stub `/v1/decide` server and a fake
+  `bev.load`; live qualification is not claimed (#135).
+
 ## 0.4.0 - 2026-11-13
 
 ### Added

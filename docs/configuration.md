@@ -57,6 +57,11 @@ Variables can be exported in your shell or placed in a `.env` file at the root o
 | `ONEJEV_MODEL` | `onejev` model | `OmniJev/OneJev1.6-4B` | Model id sent in the `/v1/systemone` body (checkpoint the server loaded, e.g. `OmniJev/OneJev1.6-0.8B`). |
 | `ONEJEV_API_KEY` | `onejev` model | *(unset)* | Bearer token when the server expects one; loopback `qev`/`flide` usually needs none. |
 | `ONEJEV_TIMEOUT_S` | `onejev` model | `30` | Deadline per decision in seconds, the one refused-connection / 502 / 504 retry included. A finite number above 0. Raise for large checkpoints or a cold load. |
+| `BEV_URL` | `beveridge` model | *(unset)* | Base URL of a `bev serve` process, e.g. `http://127.0.0.1:8000`. Wins over the in-process path when set. Posts to `/v1/decide` (not `/v1/systemone`). |
+| `BEV_MODEL` | `beveridge` model | `large-c` → `sathiskumarjothi0/Beveridge-Large-C` | Checkpoint: `large-c`, `pro-c`, `pro-c-web`, a Hugging Face id, or a local path. |
+| `BEV_DEVICE` | `beveridge` model | *(package default)* | In-process device (`cpu`, `cuda`, `mps`). Ignored on the served path. |
+| `BEV_API_KEY` | `beveridge` model | *(unset)* | Bearer token only if a gateway in front of `bev serve` expects one; the upstream server has no auth. |
+| `BEV_TIMEOUT_S` | `beveridge` model | `30` | Deadline per served decision in seconds, the one refused-connection / 502 / 504 retry included. A finite number above 0. |
 | `CUA_DRIVER_BIN` | `desktop` agent | `cua-driver` | Path to the `cua-driver` executable on Windows or macOS when not located on `PATH`. |
 | `CUA_DRIVER_PERMISSION_MODE` | `desktop` agent | `standard` | Permission mode passed to `cua-driver mcp` (`standard`, or `bounded` for restricted capability manifests). |
 | `HF_HOME` | Hugging Face runtime | `~/.cache/huggingface` | Cache directory where Laya and Cua-S1 checkpoints are downloaded on first run. |

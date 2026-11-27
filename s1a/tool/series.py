@@ -26,7 +26,7 @@ def parser(spec: ToolAgentSpec) -> argparse.ArgumentParser:
         "--model",
         choices=MODEL_NAMES,
         required=True,
-        help="who decides: jev, clm or laya-served (over HTTP), laya or cua (in process), llm (the chat model in MODEL_NAME), random, or rule (the agent's baseline)",
+        help="who decides: jev, clm or laya-served (over HTTP), laya, cua or beveridge (in process), llm (the chat model in MODEL_NAME), random, or rule (the agent's baseline)",
     )
     build.add_argument(
         "--rethink",
@@ -96,7 +96,9 @@ async def play(spec: ToolAgentSpec, args: argparse.Namespace, *, results_dir: Pa
             limits = RecoveryLimits(max_attempts=attempts, timeout_s=float(rethink_timeout))
             if args.model == "llm":
                 raise RuntimeError("bounded rethink needs a decision model; --model llm cannot use it")
-    shared = build_model(args.model) if args.model in ("jev", "clm", "laya", "laya-served", "cua") else None
+    shared = (
+        build_model(args.model) if args.model in ("jev", "clm", "laya", "laya-served", "cua", "beveridge") else None
+    )
     run = await asyncio.to_thread(spec.series, args)  # question fetches, game file parsing: seconds of blocking I/O
     if args.model == "rule":
         shared = build_model("rule", rule=run.baseline)
